@@ -3,6 +3,7 @@ import { useCategoryStore } from '../store/categorystore';
 import toast, { Toaster } from 'react-hot-toast';
 import { Plus, Edit, Trash2, Search, Loader2, Upload, X } from 'lucide-react';
 import { openCloudinaryWidget } from '../../utils/cloudinary';
+import { getImageUrl } from '@/config';
 
 export default function CategoryCRUD() {
   const { categories, loading, error, fetchCategories, addCategory, updateCategory, deleteCategory } = useCategoryStore();
@@ -193,7 +194,7 @@ export default function CategoryCRUD() {
                     {cat.imageUrl && !failedImages.has(cat.id || cat._id) ? (
                       <>
                         <img 
-                          src={`http://localhost:5000${cat.imageUrl}`}
+                          src={getImageUrl(cat.imageUrl)}
                           alt={cat.name} 
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                           onError={() => {
@@ -316,7 +317,7 @@ export default function CategoryCRUD() {
                 {form.imageUrl ? (
                   <div className="mt-4 relative">
                     <img 
-                      src={form.imageUrl.startsWith('http') ? form.imageUrl : `http://localhost:5000${form.imageUrl}`}
+                      src={getImageUrl(form.imageUrl)}
                       alt="preview" 
                       className="w-full h-48 object-cover rounded-xl border-2 border-violet-300 shadow-md"
                       onError={(e) => {

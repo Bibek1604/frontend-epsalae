@@ -149,112 +149,87 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-600 bg-clip-text text-transparent mb-2">Dashboard</h1>
-          <p className="text-gray-400 text-lg">Welcome to your admin dashboard</p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">Dashboard</h1>
+          <p className="text-gray-500">Welcome back! Here's what's happening with your store.</p>
         </div>
 
         {/* Stats Cards */}
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="w-12 h-12 animate-spin text-cyan-500" />
+            <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
               {stats.map((stat, idx) => {
                 const Icon = stat.icon;
                 return (
                   <div
                     key={idx}
-                    className={`${stat.bgColor} border ${stat.borderColor} rounded-2xl p-8 backdrop-blur-sm hover:scale-105 transition-transform`}
+                    className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-gray-300 font-semibold text-sm">{stat.label}</h3>
-                      <div className={`p-3 rounded-lg ${stat.bgColor} border ${stat.borderColor}`}>
-                        <Icon className={`w-6 h-6 ${stat.textColor}`} />
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`p-2.5 rounded-xl bg-gradient-to-br ${stat.color}`}>
+                        <Icon className="w-5 h-5 text-white" />
                       </div>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                      <p className={`text-4xl font-bold ${stat.textColor}`}>{stat.value}</p>
-                      <p className="text-gray-500 text-sm">total</p>
-                    </div>
+                    <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
+                    <p className="text-xs text-gray-500 font-medium">{stat.label}</p>
                   </div>
                 );
               })}
             </div>
 
+            {/* Quick Stats Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
+                <p className="text-indigo-100 text-sm font-medium mb-2">Total Revenue</p>
+                <p className="text-3xl font-bold mb-1">
+                  Rs. {orderStore.orders?.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toLocaleString() || 0}
+                </p>
+                <p className="text-indigo-200 text-sm">From {orderStore.orders?.length || 0} orders</p>
+              </div>
+              <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white">
+                <p className="text-emerald-100 text-sm font-medium mb-2">Pending Orders</p>
+                <p className="text-3xl font-bold mb-1">
+                  {orderStore.orders?.filter(o => o.status === 'pending')?.length || 0}
+                </p>
+                <p className="text-emerald-200 text-sm">Awaiting processing</p>
+              </div>
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white">
+                <p className="text-amber-100 text-sm font-medium mb-2">Active Campaigns</p>
+                <p className="text-3xl font-bold mb-1">
+                  {(couponStore.coupons?.filter(c => c.isActive)?.length || 0) + 
+                   (flashSaleStore.flashSales?.filter(fs => fs.isActive)?.length || 0)}
+                </p>
+                <p className="text-amber-200 text-sm">Running promotions</p>
+              </div>
+            </div>
+
             {/* CRUD Modules */}
-            <div className="mb-12">
-              <h2 className="text-3xl font-bold text-white mb-8">Management Modules</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Access</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {modules.map((module, idx) => {
                   const Icon = module.icon;
                   return (
                     <Link
                       key={idx}
                       to={module.path}
-                      className="group relative overflow-hidden rounded-2xl bg-gray-800 border border-gray-700 hover:border-cyan-500 transition-all"
+                      className="group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-lg hover:border-indigo-100 transition-all"
                     >
-                      {/* Gradient background on hover */}
-                      <div className={`absolute inset-0 bg-gradient-to-r ${module.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
-
-                      <div className="relative p-8">
-                        {/* Icon and Title */}
-                        <div className={`inline-flex p-4 rounded-lg bg-gradient-to-r ${module.color} mb-4`}>
-                          <Icon className="w-6 h-6 text-white" />
-                        </div>
-
-                        <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-cyan-300 transition">{module.title}</h3>
-                        <p className="text-gray-400 text-sm mb-6">{module.description}</p>
-
-                        {/* Stats */}
-                        <div className="flex items-center justify-between pt-6 border-t border-gray-700">
-                          <div>
-                            <p className="text-3xl font-bold text-cyan-300">{module.count}</p>
-                            <p className="text-gray-500 text-xs mt-1">items</p>
-                          </div>
-                          <div className="text-gray-600 group-hover:text-cyan-400 transition">
-                            <TrendingUp className="w-6 h-6" />
-                          </div>
-                        </div>
+                      <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${module.color} mb-3`}>
+                        <Icon className="w-5 h-5 text-white" />
                       </div>
+                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors mb-1">{module.title}</h3>
+                      <p className="text-2xl font-bold text-gray-900">{module.count}</p>
                     </Link>
                   );
                 })}
-              </div>
-            </div>
-
-            {/* Quick Stats Summary */}
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8">
-              <h2 className="text-2xl font-bold text-white mb-6">System Overview</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                  <p className="text-gray-400 text-sm mb-2">Total Items</p>
-                  <p className="text-4xl font-bold text-cyan-300">
-                    {(productStore.products?.length || 0) + 
-                     (categoryStore.categories?.length || 0) + 
-                     (couponStore.coupons?.length || 0) + 
-                     (flashSaleStore.flashSales?.length || 0) + 
-                     (bannerStore.banners?.length || 0)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm mb-2">Active Campaigns</p>
-                  <p className="text-4xl font-bold text-yellow-300">
-                    {(couponStore.coupons?.filter(c => c.isActive)?.length || 0) + 
-                     (flashSaleStore.flashSales?.filter(fs => fs.isActive)?.length || 0)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm mb-2">Pending Orders</p>
-                  <p className="text-4xl font-bold text-green-300">
-                    {orderStore.orders?.filter(o => o.status === 'pending')?.length || 0}
-                  </p>
-                </div>
               </div>
             </div>
           </>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../components/store/authstore';
 import toast, { Toaster } from 'react-hot-toast';
 import { LogIn, Loader2, Eye, EyeOff } from 'lucide-react';
+import { API_URL } from '@/config';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('admin@epasaley.com');
@@ -23,7 +24,7 @@ export default function AdminLogin() {
     try {
       // 1️⃣ SEND LOGIN REQUEST TO BACKEND
       console.log('📤 Sending login request...');
-      const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

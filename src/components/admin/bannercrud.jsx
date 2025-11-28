@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useBannerStore } from '../store/bannerstore';
 import toast, { Toaster } from 'react-hot-toast';
 import { Plus, Edit, Trash2, Upload, Loader2, X } from 'lucide-react';
+import { getImageUrl } from '@/config';
 
 export default function BannerCRUD() {
   const { banners, loading, fetchBanners, addBanner, updateBanner, deleteBanner } = useBannerStore();
@@ -143,7 +144,7 @@ export default function BannerCRUD() {
                 <div key={banner.id || banner._id} className="group relative rounded-2xl overflow-hidden shadow-2xl bg-gray-800 border border-gray-700 hover:border-pink-500 transition-all">
                   {/* Image */}
                   <img
-                    src={banner.imageUrl ? (banner.imageUrl.startsWith('http') ? banner.imageUrl : `http://localhost:5000${banner.imageUrl}`) : '/placeholder.png'}
+                    src={getImageUrl(banner.imageUrl, '/placeholder.png')}
                     alt={banner.title}
                     className="w-full h-64 object-cover"
                   />

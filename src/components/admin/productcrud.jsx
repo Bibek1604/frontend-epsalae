@@ -4,6 +4,7 @@ import { useProductStore } from '../store/productstore';
 import { useCategoryStore } from '../store/categorystore';
 import toast, { Toaster } from 'react-hot-toast';
 import { Plus, Edit, Trash2, Upload, Loader2, Search, X, Check } from 'lucide-react';
+import { getImageUrl } from '@/config';
 
 export default function ProductCRUD() {
   const { products, loading, fetchProducts, addProduct, updateProduct, deleteProduct } = useProductStore();
@@ -137,7 +138,7 @@ export default function ProductCRUD() {
       isActive: product.isActive !== false,
       imageUrl: product.imageUrl || '',
     });
-    setPreviewImage(product.imageUrl ? `http://localhost:5000${product.imageUrl}` : null);
+    setPreviewImage(product.imageUrl ? getImageUrl(product.imageUrl) : null);
     setShowModal(true);
   };
 
@@ -237,7 +238,7 @@ export default function ProductCRUD() {
                     <div className="flex items-center gap-3">
                       {product.imageUrl && (
                         <img
-                          src={`http://localhost:5000${product.imageUrl}`}
+                          src={getImageUrl(product.imageUrl)}
                           alt={product.name}
                           className="w-10 h-10 rounded-lg object-cover bg-gray-600"
                           onError={(e) => (e.target.style.display = 'none')}

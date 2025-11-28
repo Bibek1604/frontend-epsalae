@@ -1,25 +1,62 @@
-import { Truck, ShieldCheck, RefreshCw, Headphones } from 'lucide-react';
+import { Truck, ShieldCheck, RefreshCw, Clock, BadgeCheck, Headphones } from 'lucide-react';
 
 export default function Trustability() {
   const features = [
-    { icon: Truck, title: "Free Shipping", desc: "On orders above Rs. 5000" },
-    { icon: ShieldCheck, title: "Secure Payment", desc: "100% protected transactions" },
-    { icon: RefreshCw, title: "Easy Returns", desc: "7 days return policy" },
-    { icon: Headphones, title: "24/7 Support", desc: "We're always here" },
+    { 
+      icon: Truck, 
+      title: "Fast and Free Delivery", 
+      desc: "Free delivery on all orders"
+    },
+    { 
+      icon: BadgeCheck, 
+      title: "100% Verified Products", 
+      desc: "All products are verified"
+    },
+    { 
+      icon: ShieldCheck, 
+      title: "Secure Payments", 
+      desc: "100% secure payments"
+    },
+    { 
+      icon: RefreshCw, 
+      title: "Easy Returns", 
+      desc: "7 days return policy"
+    },
+    { 
+      icon: Headphones, 
+      title: "24/7 Support", 
+      desc: "Dedicated support"
+    },
+    { 
+      icon: Clock, 
+      title: "Quick Dispatch", 
+      desc: "Order within 24 hours"
+    },
   ];
 
   return (
-    <section className="py-20 bg-gray-50 border-t border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-10">
-        {features.map((f, i) => (
-          <div key={i} className="text-center group">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-orange-100 to-pink-100 rounded-full mb-5 group-hover:scale-110 transition-transform duration-300">
-              <f.icon className="w-10 h-10 text-orange-600" />
+    <section className="py-8 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+          {features.map((feature, index) => (
+            <div 
+              key={index} 
+              className="flex items-center gap-3 text-center md:text-left"
+            >
+              <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <feature.icon className="w-6 h-6 text-teal-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 text-sm">
+                  {feature.title}
+                </h4>
+                <p className="text-gray-500 text-xs">
+                  {feature.desc}
+                </p>
+              </div>
             </div>
-            <h4 className="font-bold text-xl text-gray-800">{f.title}</h4>
-            <p className="text-gray-600 mt-2">{f.desc}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

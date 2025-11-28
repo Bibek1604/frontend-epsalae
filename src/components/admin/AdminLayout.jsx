@@ -10,12 +10,12 @@ import BannerCrud from './bannercrud'
 
 export default function AdminLayout() {
   return (
-    <div className="flex w-full gap-4 bg-gray-100">
+    <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar - stays consistent */}
       <Sidebar />
 
       {/* Main Content - changes based on route */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto p-6">
         <Routes>
           <Route path="/" element={<AdminDashboard />} />
           <Route path="/productcrud" element={<ProductCrud />} />
