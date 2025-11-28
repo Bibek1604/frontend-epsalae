@@ -67,7 +67,7 @@ export default function OrderSuccess() {
             <div className="space-y-3">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>${(order.total * 0.9).toFixed(2)}</span>
+                <span>₹{(order.total * 0.9).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Shipping</span>
@@ -75,11 +75,11 @@ export default function OrderSuccess() {
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Tax (10%)</span>
-                <span>${(order.total * 0.1).toFixed(2)}</span>
+                <span>₹{(order.total * 0.1).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xl font-bold text-gray-900 pt-3 border-t">
                 <span>Total</span>
-                <span className="text-primary-600">${order.total.toFixed(2)}</span>
+                <span className="text-primary-600">₹{order.total.toFixed(2)}</span>
               </div>
             </div>
           </div>

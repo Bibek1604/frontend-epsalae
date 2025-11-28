@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProductStore } from '../store/productstore';
 import { Zap, TrendingUp } from 'lucide-react';
 
 export default function FeaturedProducts() {
+  const navigate = useNavigate();
   const { products, loading, fetchProductsWithOffers } = useProductStore();
   const [visible, setVisible] = useState(8);
 
@@ -60,7 +62,8 @@ export default function FeaturedProducts() {
         {visibleProducts.map((product) => (
           <div
             key={product.id || product._id}
-            className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border-2 border-red-100"
+            onClick={() => navigate(`/product/${product._id || product.id}`)}
+            className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border-2 border-red-100 cursor-pointer"
           >
             {/* Image Container */}
             <div className="relative h-40 bg-gray-200 overflow-hidden">

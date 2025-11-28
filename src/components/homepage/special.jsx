@@ -81,7 +81,7 @@ export default function ProductsGrid() {
                         Price
                       </p>
                       <p className="mt-1 text-lg font-bold text-gray-900">
-                        ${product.price.toFixed(2)}
+                        ₹{product.price.toFixed(2)}
                       </p>
                     </div>
                     <div>
@@ -97,7 +97,7 @@ export default function ProductsGrid() {
                         Revenue
                       </p>
                       <p className="mt-1 text-lg font-bold text-emerald-600">
-                        {product.revenue ? `$${product.revenue.toFixed(2)}` : "—"}
+                        {product.revenue ? `₹${product.revenue.toFixed(2)}` : "—"}
                       </p>
                     </div>
                   </div>

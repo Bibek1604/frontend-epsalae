@@ -11,7 +11,7 @@ const Banner = () => {
   const fallbackBanners = [
     { imageUrl: 'https://images.unsplash.com/photo-1441986300917-646728096785?w=1920&h=800&fit=crop', title: 'Summer Sale – Up to 70% Off', subtitle: 'Limited time only' },
     { imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1920&h=800&fit=crop', title: 'New Arrivals 2025', subtitle: 'Shop the latest trends' },
-    { imageUrl: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52a?w=1920&h=800&fit=crop', title: 'Free Shipping Worldwide', subtitle: 'On orders over $50' },
+    { imageUrl: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52a?w=1920&h=800&fit=crop', title: 'Free Shipping Worldwide', subtitle: 'On orders over ₹5000' },
     { imageUrl: 'https://images.unsplash.com/photo-1551489186-cf8726f514f8?w=1920&h=800&fit=crop', title: 'Black Friday Deals', subtitle: 'Starting Now!' },
   ];
 

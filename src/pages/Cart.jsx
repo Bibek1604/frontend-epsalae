@@ -70,7 +70,7 @@ export default function Cart() {
                       {item.color && <span>{item.color.charAt(0).toUpperCase() + item.color.slice(1)} • </span>}
                       {item.size && <span>Size: {item.size}</span>}
                     </p>
-                    <p className="font-semibold text-primary-600 mb-3">${item.price}</p>
+                    <p className="font-semibold text-primary-600 mb-3">₹{item.price}</p>
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center border border-gray-300 rounded-lg">
@@ -109,23 +109,23 @@ export default function Cart() {
               <div className="space-y-4 mb-6 pb-6 border-b">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount</span>
-                    <span>-${discount.toFixed(2)}</span>
+                    <span>-₹{discount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-gray-600">
                   <span>Tax (10%)</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>₹{tax.toFixed(2)}</span>
                 </div>
               </div>
 
               <div className="flex justify-between text-xl font-bold text-gray-900 mb-6">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>₹{total.toFixed(2)}</span>
               </div>
 
               {/* Coupon Input */}
@@ -165,7 +165,7 @@ export default function Cart() {
             {/* Shipping Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
               <p className="text-sm text-blue-900">
-                <strong>Free shipping</strong> on orders over $100
+                <strong>Free shipping</strong> on orders over ₹10000
               </p>
             </div>
           </div>

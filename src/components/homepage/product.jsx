@@ -1,8 +1,10 @@
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useProductStore } from "../store/productstore";
 import { Loader2, ShoppingCart } from "lucide-react";
 
 export default function ProductsGrid() {
+  const navigate = useNavigate();
   const { products, loading, fetchProducts } = useProductStore();
 
   useEffect(() => {
@@ -62,7 +64,8 @@ export default function ProductsGrid() {
             {displayProducts.map((product) => (
               <div
                 key={product.id}
-                className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 flex flex-col"
+                className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 flex flex-col cursor-pointer"
+                onClick={() => navigate(`/product/${product.id}`)}
               >
                 {/* Product Image */}
                 <div className="relative overflow-hidden h-96">
@@ -93,7 +96,13 @@ export default function ProductsGrid() {
                   )}
 
                   {/* Add to Cart Button */}
-                  <button className="absolute inset-0 w-full h-full bg-black/0 hover:bg-black/40 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/product/${product.id}`);
+                    }}
+                    className="absolute inset-0 w-full h-full bg-black/0 hover:bg-black/40 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100"
+                  >
                     <div className="bg-white rounded-full p-4 shadow-lg hover:scale-110 transition-transform">
                       <ShoppingCart className="w-6 h-6 text-blue-600" />
                     </div>

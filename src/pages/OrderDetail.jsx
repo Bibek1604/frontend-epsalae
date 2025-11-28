@@ -168,7 +168,7 @@ export default function OrderDetail() {
                       <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">${item.price.toFixed(2)}</p>
+                      <p className="font-semibold text-gray-900">₹{item.price.toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
@@ -199,7 +199,7 @@ export default function OrderDetail() {
               <div className="space-y-3 mb-4 pb-4 border-b">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>${order.subtotal.toFixed(2)}</span>
+                  <span>₹{order.subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
@@ -207,12 +207,12 @@ export default function OrderDetail() {
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Tax</span>
-                  <span>${order.tax.toFixed(2)}</span>
+                  <span>₹{order.tax.toFixed(2)}</span>
                 </div>
               </div>
               <div className="flex justify-between text-lg font-bold text-gray-900">
                 <span>Total</span>
-                <span className="text-primary-600">${order.total.toFixed(2)}</span>
+                <span className="text-primary-600">₹{order.total.toFixed(2)}</span>
               </div>
             </div>
 

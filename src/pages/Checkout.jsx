@@ -373,7 +373,7 @@ export default function Checkout() {
                       <p className="font-semibold text-gray-900">{item.name}</p>
                       <p className="text-gray-600 text-xs">Qty: {item.quantity}</p>
                     </div>
-                    <p className="font-semibold text-gray-900">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-semibold text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -381,23 +381,23 @@ export default function Checkout() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>
-                    {shipping === 0 ? 'FREE' : '$' + shipping.toFixed(2)}
+                    {shipping === 0 ? 'FREE' : '₹' + shipping.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Tax (10%)</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>₹{tax.toFixed(2)}</span>
                 </div>
               </div>
 
               <div className="pt-6 border-t flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className="text-primary-600">${total.toFixed(2)}</span>
+                <span className="text-primary-600">₹{total.toFixed(2)}</span>
               </div>
 
               {shipping === 0 && (
