@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useFlashSaleStore } from '../store/flashSalestore';
+import { useFlashSaleStore } from '../store/flashsalestore';
 import { useProductStore } from '../store/productstore';
 import toast, { Toaster } from 'react-hot-toast';
 import { Plus, Edit, Trash2, Zap, Loader2, Search, X, Check, Clock } from 'lucide-react';
@@ -28,8 +28,8 @@ export default function FlashSaleCRUD() {
   // Load data on mount
   useEffect(() => {
     fetchFlashSales();
-    if (products.length === 0) fetchProducts();
-  }, []);
+    fetchProducts();
+  }, [fetchFlashSales, fetchProducts]);
 
   // Form change handler
   const handleChange = (e) => {

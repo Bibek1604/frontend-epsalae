@@ -50,3 +50,5 @@ export const couponApi = {
     return res;
   },
 };
+
+export const promocode = couponApi;

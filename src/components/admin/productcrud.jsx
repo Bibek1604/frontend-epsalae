@@ -33,7 +33,7 @@ export default function ProductCRUD() {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-  }, []);
+  }, [fetchProducts, fetchCategories]);
 
   // File upload handler
   const handleImageUpload = (e) => {

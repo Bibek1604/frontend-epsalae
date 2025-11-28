@@ -1,23 +1,55 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from 'lucide-react'
+import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react'
 import { useCart } from '@/store/cartstore'
+import { promocode } from '../components/api/promocode'
 
 export default function Cart() {
   const navigate = useNavigate()
   const { cart, removeFromCart, updateQuantity, getTotalPrice } = useCart()
   const [couponCode, setCouponCode] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [discount, setDiscount] = useState(0)
+  const [couponError, setCouponError] = useState('')
+  const [couponSuccess, setCouponSuccess] = useState('')
 
   const subtotal = getTotalPrice()
-  const tax = subtotal * 0.1
+  const tax = (subtotal - discount) * 0.1
   const total = subtotal - discount + tax
 
-  const applyCoupon = () => {
-    if (couponCode === 'SAVE10') {
-      setDiscount(subtotal * 0.1)
-      setCouponCode('')
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code')
+      return
     }
+
+    try {
+      setCouponError('')
+      setCouponSuccess('')
+      
+      // Validate coupon with backend
+      const res = await promocode.validate(couponCode)
+      const coupon = res.data?.data || res.data
+      
+      if (coupon && coupon.isActive) {
+        setAppliedCoupon(coupon)
+        setDiscount(coupon.discountAmount)
+        setCouponSuccess(`Coupon applied! ₹${coupon.discountAmount} discount`)
+        setCouponCode('')
+      } else {
+        setCouponError('Invalid or expired coupon code')
+      }
+    } catch (err) {
+      setCouponError('Coupon code is invalid or expired')
+      console.error('Coupon error:', err)
+    }
+  }
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null)
+    setDiscount(0)
+    setCouponSuccess('')
+    setCouponError('')
   }
 
   if (cart.length === 0) {
@@ -130,33 +162,62 @@ export default function Cart() {
 
               {/* Coupon Input */}
               <div className="mb-6">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    placeholder="Coupon code (e.g., SAVE10)"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                  <button
-                    onClick={applyCoupon}
-                    className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg font-semibold hover:bg-gray-300 text-sm"
-                  >
-                    Apply
-                  </button>
-                </div>
+                {!appliedCoupon ? (
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      placeholder="Coupon code"
+                      disabled={appliedCoupon !== null}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
+                    />
+                    <button
+                      onClick={applyCoupon}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 text-sm"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={18} className="text-green-600" />
+                      <span className="text-green-700 font-semibold">{appliedCoupon.code}</span>
+                    </div>
+                    <button
+                      onClick={removeCoupon}
+                      className="text-green-600 hover:text-green-700 text-sm font-semibold"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+                {couponError && (
+                  <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-2">
+                    <AlertCircle size={16} />
+                    {couponError}
+                  </div>
+                )}
+                {couponSuccess && (
+                  <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 border border-green-200 rounded-lg p-2">
+                    <CheckCircle size={16} />
+                    {couponSuccess}
+                  </div>
+                )}
               </div>
 
               {/* Checkout Button */}
               <button
                 onClick={() => navigate('/checkout')}
-                className="w-full bg-primary-500 text-white py-3 rounded-lg font-bold hover:bg-primary-600 mb-3"
+                disabled={cart.length === 0}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 mb-3 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
               >
                 Proceed to Checkout
               </button>
               <button
                 onClick={() => navigate('/')}
-                className="w-full border-2 border-gray-300 text-gray-900 py-3 rounded-lg font-semibold hover:border-gray-400"
+                className="w-full border-2 border-gray-300 text-gray-900 py-3 rounded-lg font-semibold hover:border-gray-400 hover:bg-gray-50"
               >
                 Continue Shopping
               </button>

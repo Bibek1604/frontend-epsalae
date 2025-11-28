@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Home from './components/homepage/home'
 import ProductDetail from './components/product-details/ProductDetail'
+import Products from './pages/Products'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import OrderSuccess from './pages/OrderSuccess'
-import OrderHistory from './pages/OrderHistory'
-import OrderDetail from './pages/OrderDetail'
+import TrackOrder from './pages/TrackOrder'
 import AdminLogin from './pages/AdminLogin'
 import AdminLayout from './components/admin/AdminLayout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -20,12 +20,12 @@ function App() {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/products" element={<Products />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success/:orderId" element={<OrderSuccess />} />
-            <Route path="/orders" element={<OrderHistory />} />
-            <Route path="/orders/:orderId" element={<OrderDetail />} />
+            <Route path="/track-order" element={<TrackOrder />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/*" element={
               <ProtectedRoute>
