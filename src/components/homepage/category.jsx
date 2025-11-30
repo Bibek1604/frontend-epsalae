@@ -1,99 +1,152 @@
-// category.jsx - Premium Blue-Green Categories
-import React, { useEffect } from 'react';
-import { useCategoryStore } from '../store/categorystore';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, Smartphone, Shirt, Laptop, Home, Sparkles, Dumbbell, Headphones, Sofa, ArrowRight } from 'lucide-react';
-import { getImageUrl } from '@/config';
+// src/components/TopCategories.jsx - 2025 Ultra-Premium Edition
+import React, { useEffect } from 'react'
+import { useCategoryStore } from '../store/categorystore'
+import { useNavigate } from 'react-router-dom'
+import { 
+  Loader2, 
+  Smartphone, 
+  Shirt, 
+  Laptop, 
+  Home, 
+  Sparkles, 
+  Dumbbell, 
+  Headphones, 
+  Sofa, 
+  Watch, 
+  Gamepad2, 
+  Camera, 
+  Package,
+  ArrowRight 
+} from 'lucide-react'
+import { getImageUrl } from '@/config'
+import { motion } from 'framer-motion'
+
+// Icon mapping
+const ICONS = {
+  Mobiles: Smartphone,
+  Fashion: Shirt,
+  Laptops: Laptop,
+  'Home & Living': Home,
+  Beauty: Sparkles,
+  Sports: Dumbbell,
+  Electronics: Headphones,
+  Furniture: Sofa,
+  Watches: Watch,
+  Gaming: Gamepad2,
+  Cameras: Camera,
+  Accessories: Package,
+}
 
 export default function TopCategories() {
-  const { categories, loading, fetchCategories } = useCategoryStore();
-  const navigate = useNavigate();
+  const { categories, loading, fetchCategories } = useCategoryStore()
+  const navigate = useNavigate()
 
   useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+    fetchCategories()
+  }, [fetchCategories])
 
-  // Fallback categories with colors
-  const fallbackCategories = [
-    { name: "Mobiles", icon: Smartphone, color: "from-blue-500 to-cyan-400", bg: "bg-blue-50" },
-    { name: "Fashion", icon: Shirt, color: "from-pink-500 to-rose-400", bg: "bg-pink-50" },
-    { name: "Laptops", icon: Laptop, color: "from-violet-500 to-purple-400", bg: "bg-violet-50" },
-    { name: "Home", icon: Home, color: "from-amber-500 to-orange-400", bg: "bg-amber-50" },
-    { name: "Beauty", icon: Sparkles, color: "from-rose-500 to-pink-400", bg: "bg-rose-50" },
-    { name: "Sports", icon: Dumbbell, color: "from-green-500 to-emerald-400", bg: "bg-green-50" },
-    { name: "Electronics", icon: Headphones, color: "from-indigo-500 to-blue-400", bg: "bg-indigo-50" },
-    { name: "Furniture", icon: Sofa, color: "from-teal-500 to-cyan-400", bg: "bg-teal-50" },
-  ];
-
-  const displayCategories = (categories && categories.length > 0)
-    ? categories.map((cat, idx) => ({
-        name: cat.name,
-        imageUrl: getImageUrl(cat.imageUrl),
-        icon: fallbackCategories[idx % fallbackCategories.length].icon,
-        color: fallbackCategories[idx % fallbackCategories.length].color,
-        bg: fallbackCategories[idx % fallbackCategories.length].bg,
-      }))
-    : fallbackCategories;
+  const displayCategories = categories.length > 0 ? categories : [
+    { name: "Mobiles" },
+    { name: "Fashion" },
+    { name: "Laptops" },
+    { name: "Home & Living" },
+    { name: "Beauty" },
+    { name: "Sports" },
+    { name: "Electronics" },
+    { name: "Furniture" },
+  ]
 
   return (
-    <section className="py-16 bg-[#F7F9FA]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Section Header */}
-        <div className="flex items-center justify-between mb-10">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-              Shop by Category
-            </h2>
-            <p className="text-gray-500 mt-1">Browse our popular categories</p>
-          </div>
-          <button 
-            onClick={() => navigate('/products')}
-            className="group flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-[#4A90E2] text-[#4A90E2] hover:text-white rounded-xl font-medium transition-all shadow-sm hover:shadow-lg border border-gray-200 hover:border-[#4A90E2]"
-          >
-            View All
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
+    <section className="py-24 overflow-hidden bg-white lg:py-32">
+      <div className="px-6 mx-auto max-w-7xl lg:px-8">
+
+        {/* Header – Editorial Typography */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="mb-20 text-center"
+        >
+          <h2 className="text-5xl font-light tracking-tight text-gray-900 md:text-7xl">
+            Shop by <span className="font-medium">Category</span>
+          </h2>
+          <p className="max-w-2xl mx-auto mt-6 text-xl text-gray-500">
+            Curated collections. Delivered across Nepal in 1–3 days.
+          </p>
+        </motion.div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="w-10 h-10 animate-spin text-[#4A90E2]" />
+          <div className="flex items-center justify-center h-96">
+            <Loader2 className="w-12 h-12 text-gray-900 animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 md:gap-6">
-            {displayCategories.map((cat, idx) => {
-              const IconComponent = cat.icon;
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-8">
+
+            {displayCategories.map((cat, index) => {
+              const Icon = ICONS[cat.name] || Package
+
               return (
-                <div
+                <motion.div
                   key={cat.name}
+                  initial={{ opacity: 0, y: 60 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7, delay: index * 0.07 }}
                   onClick={() => navigate(`/products?category=${encodeURIComponent(cat.name)}`)}
-                  className="group cursor-pointer"
+                  className="cursor-pointer group"
                 >
-                  <div className={`relative ${cat.bg} rounded-2xl p-6 flex flex-col items-center transition-all duration-300 hover:shadow-lg hover:shadow-[#4A90E2]/10 hover:-translate-y-1 border border-transparent hover:border-[#4A90E2]/20`}>
-                    {/* Gradient Circle */}
-                    <div className={`w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br ${cat.color} rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                      {cat.imageUrl && !cat.imageUrl.includes('placeholder') ? (
-                        <img
-                          src={cat.imageUrl}
-                          alt={cat.name}
-                          className="w-8 h-8 md:w-10 md:h-10 object-contain"
-                        />
-                      ) : IconComponent ? (
-                        <IconComponent className="w-7 h-7 md:w-8 md:h-8 text-white" />
-                      ) : null}
+                  <div className="relative aspect-square">
+
+                    {/* Background Circle – Ultra Clean */}
+                    <div className="absolute inset-0 transition-transform duration-700 scale-95 rounded-3xl bg-gray-50 group-hover:scale-100" />
+
+                    {/* Black Icon Circle */}
+                    <div className="relative flex flex-col items-center justify-center h-full gap-6">
+                      <div className="flex items-center justify-center w-24 h-24 transition-all duration-700 bg-gray-900 rounded-full shadow-2xl md:w-28 md:h-28 ring-8 ring-white/70 group-hover:shadow-3xl group-hover:ring-emerald-500/20">
+                        {cat.imageUrl && !cat.imageUrl.includes('placeholder') ? (
+                          <img
+                            src={getImageUrl(cat.imageUrl)}
+                            alt={cat.name}
+                            className="object-contain w-14 h-14"
+                          />
+                        ) : (
+                          <Icon className="text-white w-14 h-14" />
+                        )}
+                      </div>
+
+                      {/* Category Name – Bold & Minimal */}
+                      <p className="text-lg font-medium tracking-tight text-gray-900 transition-colors duration-500 md:text-xl group-hover:text-emerald-600">
+                        {cat.name}
+                      </p>
                     </div>
 
-                    {/* Category Name */}
-                    <p className="text-center text-gray-800 text-sm font-semibold group-hover:text-[#4A90E2] transition-colors">
-                      {cat.name}
-                    </p>
+                    {/* Subtle Hover Ring */}
+                    <div className="absolute transition-all duration-700 -inset-4 rounded-3xl ring-1 ring-transparent group-hover:ring-emerald-600/20" />
                   </div>
-                </div>
-              );
+                </motion.div>
+              )
             })}
           </div>
         )}
+
+        {/* CTA – Hidden on mobile, visible on lg+ */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.6 }}
+          className="mt-20 text-center"
+        >
+          <button
+            onClick={() => navigate('/products')}
+            className="inline-flex items-center gap-4 px-12 py-5 text-lg font-medium text-white transition-all duration-500 bg-gray-900 rounded-full hover:bg-gray-800 hover:shadow-2xl group"
+          >
+            Explore All Categories
+            <ArrowRight className="w-6 h-6 transition-transform duration-500 group-hover:translate-x-2" />
+          </button>
+        </motion.div>
       </div>
     </section>
-  );
+  )
 }
