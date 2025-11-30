@@ -13,13 +13,12 @@ export default function AdminLayout() {
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar - stays consistent */}
       <Sidebar />
-
       {/* Main Content - changes based on route */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 p-6 ml-64 overflow-auto">
         <Routes>
           <Route path="/" element={<AdminDashboard />} />
-          <Route path="/productcrud" element={<ProductCrud />} />
           <Route path="/categorycrud" element={<CategoryCrud />} />
+          <Route path="/productcrud" element={<ProductCrud />} />
           <Route path="/ordercrud" element={<OrderCrud />} />
           <Route path="/promocodecrud" element={<PromoCodCrud />} />
           <Route path="/flashsalecrud" element={<FlashSaleCrud />} />

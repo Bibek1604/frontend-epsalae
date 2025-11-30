@@ -109,15 +109,43 @@ export default function CheckoutPage() {
       }
 
       const res = await orderApi.create(orderData)
+      console.log('📦 Order API Response:', res.data) // Debug log
       const createdOrder = res.data?.data || res.data
-      const orderId = createdOrder?.id || createdOrder?._id || 'ORDER'
-
-      // WhatsApp notification
-      const whatsappMessage = `🛒 *New Order!*\n\n📦 Order #${orderId.toString().slice(-8)}\n👤 ${savedAddress.first_name} ${savedAddress.last_name}\n📞 ${savedAddress.phone}\n📍 ${savedAddress.address}, ${savedAddress.city}, ${savedAddress.district}\n💳 ${selectedPayment.toUpperCase()}\n💰 Rs. ${total.toLocaleString()}\n\n📦 Items:\n${cart.map(item => `• ${item.name} x${item.quantity} - Rs. ${(item.price * item.quantity).toLocaleString()}`).join('\n')}`
-      window.open(`https://wa.me/9779860056658?text=${encodeURIComponent(whatsappMessage)}`, '_blank')
+      // Get the real order ID from backend - check all possible field names
+      const orderId = createdOrder?.orderId || createdOrder?.order_id || createdOrder?.id || createdOrder?._id || null
+      
+      if (!orderId) {
+        console.error('❌ No order ID received from backend:', createdOrder)
+        alert('Order created but no order ID received. Please contact support.')
+        return
+      }
+      
+      console.log('✅ Order created with ID:', orderId)
 
       clearCart()
-      navigate(`/order-success/${orderId}`)
+      // Pass the complete backend response with the real order ID
+      navigate(`/order-success/${orderId}`, {
+        state: {
+          order: {
+            ...createdOrder,
+            id: orderId, // Backend generated ID
+            orderId: orderId, // Also store as orderId
+            name: `${savedAddress.first_name} ${savedAddress.last_name}`.trim(),
+            phone: savedAddress.phone,
+            address: savedAddress.address,
+            city: savedAddress.city,
+            district: savedAddress.district,
+            description: savedAddress.description,
+            items: orderData.items,
+            subtotal: subtotal,
+            shipping: shipping,
+            total: total,
+            totalAmount: total,
+            paymentMethod: selectedPayment,
+            orderDate: createdOrder?.createdAt || createdOrder?.created_at || new Date().toISOString()
+          }
+        }
+      })
     } catch (err) {
       console.error('Order failed:', err)
     } finally {

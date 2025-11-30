@@ -1,3 +1,4 @@
+// src/pages/AdminDashboard.jsx
 import { useState, useEffect } from 'react';
 import { useProductStore } from '../components/store/productstore';
 import { useCategoryStore } from '../components/store/categorystore';
@@ -5,7 +6,10 @@ import { useOrderStore } from '../components/store/orderstore';
 import { useCouponStore } from '../components/store/promocodestore';
 import { useFlashSaleStore } from '../components/store/flashsalestore';
 import { useBannerStore } from '../components/store/bannerstore';
-import { Package, Tag, ShoppingCart, Ticket, Zap, Image, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
+import { 
+  Package, Tag, ShoppingCart, TicketPercent, Zap, ImageIcon, 
+  TrendingUp, AlertCircle, Loader2, ArrowUpRight, Store 
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminDashboard() {
@@ -37,204 +41,114 @@ export default function AdminDashboard() {
       }
     };
     loadAllData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const totalRevenue = orderStore.orders?.reduce((sum, o) => sum + (o.totalAmount || 0), 0) || 0;
+  const pendingOrders = orderStore.orders?.filter(o => o.status === 'pending')?.length || 0;
+  const activeCampaigns = 
+    (couponStore.coupons?.filter(c => c.isActive)?.length || 0) +
+    (flashSaleStore.flashSales?.filter(fs => fs.isActive)?.length || 0);
+
   const stats = [
-    {
-      label: 'Total Products',
-      value: productStore.products?.length || 0,
-      icon: Package,
-      color: 'from-blue-500 to-blue-600',
-      textColor: 'text-blue-300',
-      bgColor: 'bg-blue-500/20',
-      borderColor: 'border-blue-500/30',
-    },
-    {
-      label: 'Total Categories',
-      value: categoryStore.categories?.length || 0,
-      icon: Tag,
-      color: 'from-purple-500 to-purple-600',
-      textColor: 'text-purple-300',
-      bgColor: 'bg-purple-500/20',
-      borderColor: 'border-purple-500/30',
-    },
-    {
-      label: 'Total Orders',
-      value: orderStore.orders?.length || 0,
-      icon: ShoppingCart,
-      color: 'from-green-500 to-green-600',
-      textColor: 'text-green-300',
-      bgColor: 'bg-green-500/20',
-      borderColor: 'border-green-500/30',
-    },
-    {
-      label: 'Active Coupons',
-      value: couponStore.coupons?.filter(c => c.isActive)?.length || 0,
-      icon: Ticket,
-      color: 'from-pink-500 to-pink-600',
-      textColor: 'text-pink-300',
-      bgColor: 'bg-pink-500/20',
-      borderColor: 'border-pink-500/30',
-    },
-    {
-      label: 'Active Flash Sales',
-      value: flashSaleStore.flashSales?.filter(fs => fs.isActive)?.length || 0,
-      icon: Zap,
-      color: 'from-yellow-500 to-yellow-600',
-      textColor: 'text-yellow-300',
-      bgColor: 'bg-yellow-500/20',
-      borderColor: 'border-yellow-500/30',
-    },
-    {
-      label: 'Active Banners',
-      value: bannerStore.banners?.filter(b => b.isActive)?.length || 0,
-      icon: Image,
-      color: 'from-indigo-500 to-indigo-600',
-      textColor: 'text-indigo-300',
-      bgColor: 'bg-indigo-500/20',
-      borderColor: 'border-indigo-500/30',
-    },
+    { label: 'Total Products', value: productStore.products?.length || 0, icon: Package, color: 'from-[#1A3C8A] to-blue-700' },
+    { label: 'Categories', value: categoryStore.categories?.length || 0, icon: Tag, color: 'from-purple-500 to-purple-700' },
+    { label: 'Total Orders', value: orderStore.orders?.length || 0, icon: ShoppingCart, color: 'from-emerald-500 to-emerald-700' },
+    { label: 'Active Coupons', value: couponStore.coupons?.filter(c => c.isActive)?.length || 0, icon: TicketPercent, color: 'from-pink-500 to-pink-700' },
+    { label: 'Flash Sales', value: flashSaleStore.flashSales?.filter(fs => fs.isActive)?.length || 0, icon: Zap, color: 'from-amber-500 to-orange-600' },
+    { label: 'Active Banners', value: bannerStore.banners?.filter(b => b.isActive)?.length || 0, icon: ImageIcon, color: 'from-indigo-500 to-indigo-700' },
   ];
 
-  const modules = [
-    {
-      title: 'Products',
-      description: 'Manage all products in your store',
-      icon: Package,
-      color: 'from-blue-500 to-blue-600',
-      path: '/admin/productcrud',
-      count: productStore.products?.length || 0,
-    },
-    {
-      title: 'Categories',
-      description: 'Manage product categories',
-      icon: Tag,
-      color: 'from-purple-500 to-purple-600',
-      path: '/admin/categorycrud',
-      count: categoryStore.categories?.length || 0,
-    },
-    {
-      title: 'Orders',
-      description: 'Manage customer orders',
-      icon: ShoppingCart,
-      color: 'from-green-500 to-green-600',
-      path: '/admin/ordercrud',
-      count: orderStore.orders?.length || 0,
-    },
-    {
-      title: 'Coupons',
-      description: 'Manage promotion codes',
-      icon: Ticket,
-      color: 'from-pink-500 to-pink-600',
-      path: '/admin/promocodecrud',
-      count: couponStore.coupons?.length || 0,
-    },
-    {
-      title: 'Flash Sales',
-      description: 'Manage flash sales',
-      icon: Zap,
-      color: 'from-yellow-500 to-yellow-600',
-      path: '/admin/flashsalecrud',
-      count: flashSaleStore.flashSales?.length || 0,
-    },
-    {
-      title: 'Banners',
-      description: 'Manage promotional banners',
-      icon: Image,
-      color: 'from-indigo-500 to-indigo-600',
-      path: '/admin/bannercrud',
-      count: bannerStore.banners?.length || 0,
-    },
+  const quickLinks = [
+    { title: 'Products', icon: Package, count: productStore.products?.length || 0, path: '/admin/productcrud', gradient: 'from-[#1A3C8A] to-blue-600' },
+    { title: 'Categories', icon: Tag, count: categoryStore.categories?.length || 0, path: '/admin/categorycrud', gradient: 'from-purple-500 to-purple-700' },
+    { title: 'Orders', icon: ShoppingCart, count: orderStore.orders?.length || 0, path: '/admin/ordercrud', gradient: 'from-emerald-500 to-teal-600' },
+    { title: 'Promo Codes', icon: TicketPercent, count: couponStore.coupons?.length || 0, path: '/admin/promocodecrud', gradient: 'from-pink-500 to-rose-600' },
+    { title: 'Flash Sales', icon: Zap, count: flashSaleStore.flashSales?.length || 0, path: '/admin/flashsalecrud', gradient: 'from-amber-500 to-[#FF6B35]' },
+    { title: 'Banners', icon: ImageIcon, count: bannerStore.banners?.length || 0, path: '/admin/bannercrud', gradient: 'from-indigo-500 to-indigo-700' },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-[#FF6B35] mx-auto mb-4" />
+          <p className="text-[#2E2E2E] font-medium">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Dashboard</h1>
-          <p className="text-gray-500">Welcome back! Here's what's happening with your store.</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-4xl font-bold text-[#1A3C8A] mb-2">Welcome back, Navin!</h1>
+        <p className="text-[#7A7A7A]">Here's what's happening with your store today</p>
+      </div>
+
+      {/* Hero Stats Cards */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {/* Revenue Card */}
+        <div className="bg-gradient-to-br from-[#1A3C8A] to-blue-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 -mt-16 -mr-16 bg-white rounded-full opacity-10"></div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="mb-2 text-lg text-blue-100">Total Revenue</p>
+              <p className="text-4xl font-bold">Rs. {totalRevenue.toLocaleString()}</p>
+              <p className="mt-2 text-sm text-blue-200">From {orderStore.orders?.length || 0} orders</p>
+            </div>
+            <TrendingUp className="w-12 h-12 text-blue-200" />
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-              {stats.map((stat, idx) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={`p-2.5 rounded-xl bg-gradient-to-br ${stat.color}`}>
-                        <Icon className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
-                    <p className="text-xs text-gray-500 font-medium">{stat.label}</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Quick Stats Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
-                <p className="text-indigo-100 text-sm font-medium mb-2">Total Revenue</p>
-                <p className="text-3xl font-bold mb-1">
-                  Rs. {orderStore.orders?.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toLocaleString() || 0}
-                </p>
-                <p className="text-indigo-200 text-sm">From {orderStore.orders?.length || 0} orders</p>
-              </div>
-              <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white">
-                <p className="text-emerald-100 text-sm font-medium mb-2">Pending Orders</p>
-                <p className="text-3xl font-bold mb-1">
-                  {orderStore.orders?.filter(o => o.status === 'pending')?.length || 0}
-                </p>
-                <p className="text-emerald-200 text-sm">Awaiting processing</p>
-              </div>
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white">
-                <p className="text-amber-100 text-sm font-medium mb-2">Active Campaigns</p>
-                <p className="text-3xl font-bold mb-1">
-                  {(couponStore.coupons?.filter(c => c.isActive)?.length || 0) + 
-                   (flashSaleStore.flashSales?.filter(fs => fs.isActive)?.length || 0)}
-                </p>
-                <p className="text-amber-200 text-sm">Running promotions</p>
-              </div>
-            </div>
-
-            {/* CRUD Modules */}
+        {/* Pending Orders */}
+        <div className="bg-gradient-to-br from-amber-500 to-[#FF6B35] rounded-3xl p-8 text-white shadow-xl">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Access</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {modules.map((module, idx) => {
-                  const Icon = module.icon;
-                  return (
-                    <Link
-                      key={idx}
-                      to={module.path}
-                      className="group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-lg hover:border-indigo-100 transition-all"
-                    >
-                      <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${module.color} mb-3`}>
-                        <Icon className="w-5 h-5 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors mb-1">{module.title}</h3>
-                      <p className="text-2xl font-bold text-gray-900">{module.count}</p>
-                    </Link>
-                  );
-                })}
-              </div>
+              <p className="mb-2 text-lg text-amber-100">Pending Orders</p>
+              <p className="text-4xl font-bold">{pendingOrders}</p>
+              <p className="mt-2 text-sm text-amber-200">Need attention</p>
             </div>
-          </>
-        )}
+            <AlertCircle className="w-12 h-12 text-amber-200" />
+          </div>
+        </div>
+
+        {/* Active Campaigns */}
+        <div className="p-8 text-white shadow-xl bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="mb-2 text-lg text-emerald-100">Active Campaigns</p>
+              <p className="text-4xl font-bold">{activeCampaigns}</p>
+              <p className="mt-2 text-sm text-emerald-200">Running promotions</p>
+            </div>
+            <Zap className="w-12 h-12 text-emerald-200" />
+          </div>
+        </div>
       </div>
+
+      {/* Stats Grid */}
+      <div>
+        <h2 className="text-2xl font-bold text-[#2E2E2E] mb-6">Store Overview</h2>
+        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-6">
+          {stats.map((stat, i) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={i}
+                className="group bg-white rounded-2xl p-6 shadow-md border border-[#EFEFEF] hover:shadow-xl hover:border-[#FF6B35]/30 transition-all duration-300"
+              >
+                <div className={`inline-flex p-4 rounded-2xl bg-gradient-to-br ${stat.color} mb-4 shadow-lg`}>
+                  <Icon className="text-white w-7 h-7" />
+                </div>
+                <p className="text-3xl font-bold text-[#2E2E2E]">{stat.value}</p>
+                <p className="text-sm text-[#7A7A7A] mt-1 font-medium">{stat.label}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+
     </div>
   );
 }

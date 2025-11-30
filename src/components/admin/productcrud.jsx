@@ -1,12 +1,15 @@
-// src/components/admin/ProductCRUD.jsx
+// src/pages/ProductCrud.jsx
 import { useState, useEffect } from 'react';
 import { useProductStore } from '../store/productstore';
 import { useCategoryStore } from '../store/categorystore';
 import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Edit, Trash2, Upload, Loader2, Search, X, Check } from 'lucide-react';
+import {
+  Plus, Edit2, Trash2, Upload, Loader2, Search, X,
+  Package, Tag, DollarSign, CheckCircle, AlertCircle, Eye, EyeOff
+} from 'lucide-react';
 import { getImageUrl } from '@/config';
 
-export default function ProductCRUD() {
+export default function ProductCrud() {
   const { products, loading, fetchProducts, addProduct, updateProduct, deleteProduct } = useProductStore();
   const { categories, fetchCategories } = useCategoryStore();
 
@@ -17,120 +20,68 @@ export default function ProductCRUD() {
   const [previewImage, setPreviewImage] = useState(null);
 
   const defaultForm = {
-    name: '',
-    description: '',
-    price: '',
-    discountPrice: 0,
-    stock: '',
-    category_id: '',
-    hasOffer: false,
-    isActive: true,
-    imageUrl: '',
+    name: '', description: '', price: '', discountPrice: 0,
+    stock: '', category_id: '', hasOffer: false, isActive: true, imageUrl: ''
   };
-
   const [form, setForm] = useState(defaultForm);
 
-  // Load products and categories on mount
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-  }, [fetchProducts, fetchCategories]);
+  }, []);
 
-  // File upload handler
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB');
-      return;
-    }
-
+    if (file.size > 5 * 1024 * 1024) return toast.error('Image must be under 5MB');
     setUploading(true);
     const reader = new FileReader();
-    
-    reader.onload = (event) => {
-      const base64 = event.target?.result;
-      setForm((prev) => ({ ...prev, imageUrl: base64 }));
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result;
+      setForm(prev => ({ ...prev, imageUrl: base64 }));
       setPreviewImage(base64);
       toast.success('Image selected');
       setUploading(false);
     };
-    
-    reader.onerror = () => {
-      toast.error('Failed to read file');
-      setUploading(false);
-    };
-    
     reader.readAsDataURL(file);
   };
 
-  // Form change handler
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
-  // Save product
   const handleSave = async () => {
-    if (!form.name.trim() || !form.price || !form.category_id) {
-      toast.error('Please fill in all required fields');
-      return;
+    if (!form.name || !form.price || !form.category_id) {
+      return toast.error('Name, Price & Category required');
     }
-
     try {
-      const productData = {
-        name: form.name.trim(),
-        description: form.description.trim(),
+      const data = {
+        ...form,
         price: parseFloat(form.price),
-        discountPrice: form.discountPrice ? parseFloat(form.discountPrice) : 0,
+        discountPrice: parseFloat(form.discountPrice) || 0,
         stock: parseInt(form.stock) || 0,
-        category_id: form.category_id,
-        hasOffer: form.hasOffer,
-        isActive: form.isActive,
-        imageUrl: form.imageUrl,
       };
-
-      if (editingProduct) {
-        await updateProduct(editingProduct.id || editingProduct._id, productData);
-        toast.success('Product updated successfully');
+      if (editingProduct?._id) {
+        await updateProduct(editingProduct._id, data);
+        toast.success('Product updated!');
       } else {
-        await addProduct(productData);
-        toast.success('Product added successfully');
+        await addProduct(data);
+        toast.success('Product created!');
       }
-
-      setShowModal(false);
-      resetForm();
-      fetchProducts();
-    } catch (error) {
-      toast.error(error.message || 'Failed to save product');
-    }
-  };
-
-  // Delete product
-  const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-
-    try {
-      await deleteProduct(id);
-      toast.success('Product deleted successfully');
+      closeModal();
       fetchProducts();
     } catch {
-      toast.error('Failed to delete product');
+      toast.error('Failed to save');
     }
   };
 
-  // Edit product
   const handleEdit = (product) => {
     setEditingProduct(product);
     setForm({
-      name: product.name,
+      name: product.name || '',
       description: product.description || '',
-      price: product.price,
+      price: product.price || '',
       discountPrice: product.discountPrice || 0,
       stock: product.stock || 0,
       category_id: product.category_id || '',
@@ -142,376 +93,286 @@ export default function ProductCRUD() {
     setShowModal(true);
   };
 
-  // Reset form
-  const resetForm = () => {
-    setForm(defaultForm);
-    setPreviewImage(null);
-    setEditingProduct(null);
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this product permanently?')) return;
+    try {
+      await deleteProduct(id);
+      toast.success('Product deleted');
+    } catch {
+      toast.error('Delete failed');
+    }
   };
 
-  // Close modal
   const closeModal = () => {
     setShowModal(false);
-    resetForm();
+    setEditingProduct(null);
+    setForm(defaultForm);
+    setPreviewImage(null);
   };
 
-  // Filter products by search
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+  const filtered = products.filter(p =>
+    p.name?.toLowerCase().includes(search.toLowerCase()) ||
+    getCategoryName(p.category_id)?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const getCategoryName = (categoryId) => {
-    return categories.find((c) => (c.id || c._id) === categoryId)?.name || 'N/A';
-  };
+  const getCategoryName = (id) => categories.find(c => c._id === id)?.name || '—';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4 md:p-8">
+    <>
       <Toaster position="top-right" />
 
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2">Product Management</h1>
-        <p className="text-gray-400">Manage your product catalog efficiently</p>
-      </div>
+      <div className="min-h-screen p-6 bg-gradient-to-br from-gray-50 to-gray-100 lg:p-10">
+        <div className="mx-auto max-w-7xl">
 
-      {/* Controls */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8">
-        {/* Search Bar */}
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none transition"
-          />
-        </div>
-
-        {/* Add Product Button */}
-        <button
-          onClick={() => {
-            resetForm();
-            setShowModal(true);
-          }}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition"
-        >
-          <Plus size={20} />
-          Add Product
-        </button>
-      </div>
-
-      {/* Products Table */}
-      <div className="overflow-x-auto bg-gray-800 rounded-lg border border-gray-700 shadow-lg">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="animate-spin text-blue-500" size={32} />
-            <span className="ml-3 text-gray-300">Loading products...</span>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">No products found</p>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead className="bg-gray-700 border-b border-gray-600">
-              <tr>
-                <th className="text-left px-6 py-4 text-white font-semibold">Product</th>
-                <th className="text-left px-6 py-4 text-white font-semibold">Category</th>
-                <th className="text-left px-6 py-4 text-white font-semibold">Price</th>
-                <th className="text-left px-6 py-4 text-white font-semibold">Stock</th>
-                <th className="text-left px-6 py-4 text-white font-semibold">Offer</th>
-                <th className="text-left px-6 py-4 text-white font-semibold">Status</th>
-                <th className="text-center px-6 py-4 text-white font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.map((product, index) => (
-                <tr
-                  key={product.id || product._id}
-                  className={`border-b border-gray-700 hover:bg-gray-700 transition ${
-                    index % 2 === 0 ? 'bg-gray-800' : 'bg-gray-750'
-                  }`}
-                >
-                  {/* Product Name */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {product.imageUrl && (
-                        <img
-                          src={getImageUrl(product.imageUrl)}
-                          alt={product.name}
-                          className="w-10 h-10 rounded-lg object-cover bg-gray-600"
-                          onError={(e) => (e.target.style.display = 'none')}
-                        />
-                      )}
-                      <div>
-                        <p className="text-white font-medium">{product.name}</p>
-                        <p className="text-gray-400 text-sm">{product.description?.substring(0, 30)}...</p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Category */}
-                  <td className="px-6 py-4">
-                    <span className="bg-purple-900 text-purple-200 px-3 py-1 rounded-full text-sm font-medium">
-                      {getCategoryName(product.category_id)}
-                    </span>
-                  </td>
-
-                  {/* Price */}
-                  <td className="px-6 py-4">
-                    <div className="text-white font-semibold">Rs. {product.price.toFixed(2)}</div>
-                    {product.discountPrice > 0 && (
-                      <div className="text-green-400 text-sm">-Rs. {product.discountPrice.toFixed(2)}</div>
-                    )}
-                  </td>
-
-                  {/* Stock */}
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        product.stock > 0
-                          ? 'bg-green-900 text-green-200'
-                          : 'bg-red-900 text-red-200'
-                      }`}
-                    >
-                      {product.stock} units
-                    </span>
-                  </td>
-
-                  {/* Offer Badge */}
-                  <td className="px-6 py-4">
-                    {product.hasOffer ? (
-                      <span className="bg-orange-900 text-orange-200 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 w-fit">
-                        <Check size={16} /> Yes
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-sm">No</span>
-                    )}
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        product.isActive
-                          ? 'bg-blue-900 text-blue-200'
-                          : 'bg-gray-700 text-gray-300'
-                      }`}
-                    >
-                      {product.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2 justify-center">
-                      <button
-                        onClick={() => handleEdit(product)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition"
-                        title="Edit"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product.id || product._id)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-screen overflow-y-auto border border-gray-700">
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between border-b border-gray-700 z-10">
-              <h2 className="text-2xl font-bold text-white">
-                {editingProduct ? 'Edit Product' : 'Add New Product'}
-              </h2>
-              <button
-                onClick={closeModal}
-                className="text-white hover:bg-blue-800 p-2 rounded-lg transition"
-              >
-                <X size={24} />
-              </button>
+          {/* Header */}
+          <div className="flex flex-col items-start justify-between gap-6 mb-10 sm:flex-row sm:items-center">
+            <div>
+              <h1 className="text-5xl font-bold text-[#1A3C8A] mb-2">Products</h1>
+              <p className="text-[#7A7A7A]">Manage your store inventory</p>
             </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+            >
+              <Plus className="w-6 h-6" />
+              Add New Product
+            </button>
+          </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-6">
-              {/* Image Upload Section */}
-              <div className="bg-gray-700 rounded-lg p-4">
-                <label className="block text-white font-semibold mb-3">Product Image</label>
-                <div className="flex items-center gap-4">
-                  {/* Preview */}
-                  <div className="w-24 h-24 bg-gray-600 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {previewImage ? (
-                      <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <Upload className="text-gray-400" size={32} />
-                    )}
-                  </div>
+          {/* Search */}
+          <div className="relative mb-8">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-[#7A7A7A]" />
+            <input
+              type="text"
+              placeholder="Search by product name or category..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-16 pr-8 py-5 bg-white rounded-2xl shadow-lg border border-[#EFEFEF] focus:border-[#FF6B35] focus:outline-none text-lg transition"
+            />
+          </div>
 
-                  {/* Upload Input */}
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploading}
-                      className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer disabled:opacity-50"
-                    />
-                    <p className="text-gray-400 text-sm mt-1">JPG, PNG, WebP up to 5MB</p>
-                  </div>
-                </div>
-              </div>
+          {/* Table */}
+          {loading ? (
+            <div className="flex justify-center py-32">
+              <Loader2 className="w-16 h-16 animate-spin text-[#FF6B35]" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-20 text-center bg-white shadow-lg rounded-3xl">
+              <Package className="w-24 h-24 text-[#1A3C8A]/20 mx-auto mb-6" />
+              <h3 className="text-2xl font-bold text-[#2E2E2E]">No products found</h3>
+              <p className="text-[#7A7A7A] mt-2">Add your first product to get started!</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl shadow-xl border border-[#EFEFEF] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] text-white">
+                      <th className="px-6 py-5 font-bold text-left">Product</th>
+                      <th className="px-6 py-5 font-bold text-left">Category</th>
+                      <th className="px-6 py-5 font-bold text-center">Price</th>
+                      <th className="px-6 py-5 font-bold text-center">Stock</th>
+                      <th className="px-6 py-5 font-bold text-center">Offer</th>
+                      <th className="px-6 py-5 font-bold text-center">Status</th>
+                      <th className="px-6 py-5 font-bold text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((product, i) => (
+                      <tr
+                        key={product._id}
+                        className={`border-b border-gray-100 hover:bg-orange-50/30 transition-all ${
+                          i % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'
+                        }`}
+                      >
+                        {/* Product */}
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="overflow-hidden border-2 border-gray-200 w-14 h-14 rounded-xl">
+                              {product.imageUrl ? (
+                                <img
+                                  src={getImageUrl(product.imageUrl)}
+                                  alt={product.name}
+                                  className="object-cover w-full h-full"
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center w-full h-full bg-gray-200">
+                                  <Package className="w-8 h-8 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-bold text-[#2E2E2E]">{product.name}</p>
+                              <p className="text-sm text-[#7A7A7A] line-clamp-1">{product.description || 'No description'}</p>
+                            </div>
+                          </div>
+                        </td>
 
-              {/* Grid Layout */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Product Name */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Product Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    placeholder="Enter product name"
-                    className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none transition"
-                  />
-                </div>
+                        {/* Category */}
+                        <td className="px-6 py-5">
+                          <span className="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-100 rounded-full">
+                            {getCategoryName(product.category_id)}
+                          </span>
+                        </td>
 
-                {/* Category Dropdown */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Category *</label>
-                  <select
-                    name="category_id"
-                    value={form.category_id}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none transition"
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id || cat._id} value={cat.id || cat._id}>
-                        {cat.name}
-                      </option>
+                        {/* Price */}
+                        <td className="px-6 py-5 text-center">
+                          <div className="font-bold text-[#1A3C8A]">Rs. {product.price}</div>
+                          {product.discountPrice > 0 && (
+                            <div className="text-sm text-gray-500 line-through">Rs. {product.discountPrice}</div>
+                          )}
+                        </td>
+
+                        {/* Stock */}
+                        <td className="px-6 py-5 text-center">
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${
+                            product.stock > 0
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {product.stock > 0 ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                            {product.stock}
+                          </span>
+                        </td>
+
+                        {/* Offer */}
+                        <td className="px-6 py-5 text-center">
+                          {product.hasOffer ? (
+                            <span className="inline-flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white rounded-full text-sm font-bold">
+                              Yes
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-6 py-5 text-center">
+                          {product.isActive ? (
+                            <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-full bg-emerald-100 text-emerald-700">
+                              <Eye className="w-4 h-4" /> Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-full">
+                              <EyeOff className="w-4 h-4" /> Inactive
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-6 py-5">
+                          <div className="flex justify-center gap-3">
+                            <button
+                              onClick={() => handleEdit(product)}
+                              className="p-3 bg-[#1A3C8A] text-white rounded-xl hover:bg-[#163180] transition shadow-md"
+                            >
+                              <Edit2 className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product._id)}
+                              className="p-3 text-white transition bg-red-500 shadow-md rounded-xl hover:bg-red-600"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </select>
-                </div>
-
-                {/* Price */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Price (Rs.) *</label>
-                  <input
-                    type="number"
-                    name="price"
-                    value={form.price}
-                    onChange={handleChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none transition"
-                  />
-                </div>
-
-                {/* Discount Price */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Discount (Rs.)</label>
-                  <input
-                    type="number"
-                    name="discountPrice"
-                    value={form.discountPrice}
-                    onChange={handleChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none transition"
-                  />
-                </div>
-
-                {/* Stock */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Stock Units</label>
-                  <input
-                    type="number"
-                    name="stock"
-                    value={form.stock}
-                    onChange={handleChange}
-                    placeholder="0"
-                    min="0"
-                    className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none transition"
-                  />
-                </div>
+                  </tbody>
+                </table>
               </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-              {/* Description - Full Width */}
+      {/* SAME BEAUTIFUL MODAL AS CATEGORY PAGE */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] text-white p-8 rounded-t-3xl relative">
+              <button onClick={closeModal} className="absolute p-2 transition rounded-full top-6 right-6 bg-white/20 hover:bg-white/30">
+                <X className="w-6 h-6" />
+              </button>
+              <h2 className="text-3xl font-bold">
+                {editingProduct ? 'Edit Product' : 'Create New Product'}
+              </h2>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="p-8 space-y-7">
+              {/* Same form fields as before — clean & branded */}
               <div>
-                <label className="block text-white font-semibold mb-2">Description</label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  placeholder="Enter product description"
-                  rows="4"
-                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none transition resize-none"
-                />
+                <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Product Name *</label>
+                <input required name="name" value={form.name} onChange={handleChange} placeholder="iPhone 15 Pro Max" className="w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition text-lg" />
+              </div>
+              <div>
+                <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Category *</label>
+                <select required name="category_id" value={form.category_id} onChange={handleChange} className="w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition text-lg">
+                  <option value="">Select category</option>
+                  {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Price (Rs.) *</label>
+                  <input required type="number" name="price" value={form.price} onChange={handleChange} placeholder="29999" className="w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition" />
+                </div>
+                <div>
+                  <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Discount Price</label>
+                  <input type="number" name="discountPrice" value={form.discountPrice} onChange={handleChange} placeholder="24999" className="w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Stock Quantity</label>
+                <input type="number" name="stock" value={form.stock} onChange={handleChange} placeholder="100" className="w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition" />
+              </div>
+              <div>
+                <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Description</label>
+                <textarea name="description" value={form.description} onChange={handleChange} rows={4} placeholder="Describe this product..." className="w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] resize-none transition" />
               </div>
 
-              {/* Checkboxes */}
-              <div className="grid grid-cols-2 gap-4">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="hasOffer"
-                    checked={form.hasOffer}
-                    onChange={handleChange}
-                    className="w-5 h-5 rounded bg-gray-700 border border-gray-600 cursor-pointer"
-                  />
-                  <span className="text-white">Has Special Offer</span>
-                </label>
+              <div>
+                <label className="block text-lg font-semibold text-[#2E2E2E] mb-4">Product Image</label>
+                <button type="button" onClick={() => document.getElementById('file-upload').click()} disabled={uploading}
+                  className="w-full py-5 bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] text-white font-bold rounded-2xl hover:shadow-xl transition flex items-center justify-center gap-3 disabled:opacity-70">
+                  {uploading ? <Loader2 className="animate-spin" /> : <Upload className="w-6 h-6" />}
+                  {uploading ? 'Uploading...' : 'Upload Image'}
+                </button>
+                <input id="file-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                {previewImage && (
+                  <div className="relative mt-6 overflow-hidden shadow-lg rounded-2xl">
+                    <img src={previewImage} alt="Preview" className="object-cover w-full h-64" />
+                    <button type="button" onClick={() => { setPreviewImage(null); setForm(p => ({ ...p, imageUrl: '' })); }}
+                      className="absolute top-3 right-3 p-2.5 bg-red-600 text-white rounded-full hover:bg-red-700">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+              </div>
 
+              <div className="flex flex-wrap gap-8 py-4">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    checked={form.isActive}
-                    onChange={handleChange}
-                    className="w-5 h-5 rounded bg-gray-700 border border-gray-600 cursor-pointer"
-                  />
-                  <span className="text-white">Active</span>
+                  <input type="checkbox" name="hasOffer" checked={form.hasOffer} onChange={handleChange} className="w-6 h-6 text-[#FF6B35] rounded" />
+                  <span className="text-lg font-medium">Has Special Offer</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" name="isActive" checked={form.isActive} onChange={handleChange} className="w-6 h-6 text-[#1A3C8A] rounded" />
+                  <span className="text-lg font-medium">Product is Active</span>
                 </label>
               </div>
-            </div>
 
-            {/* Modal Footer */}
-            <div className="sticky bottom-0 bg-gray-700 border-t border-gray-600 px-6 py-4 flex gap-3 justify-end">
-              <button
-                onClick={closeModal}
-                className="px-6 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={uploading || loading}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition disabled:opacity-50 flex items-center gap-2"
-              >
-                {uploading || loading ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-                {editingProduct ? 'Update Product' : 'Add Product'}
-              </button>
-            </div>
+              <div className="flex gap-4 pt-6">
+                <button type="submit" className="flex-1 py-5 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white text-xl font-bold rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+                  {editingProduct ? 'Update Product' : 'Create Product'}
+                </button>
+                <button type="button" onClick={closeModal} className="px-10 py-5 font-bold text-gray-700 transition border-2 border-gray-300 rounded-2xl hover:bg-gray-50">
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

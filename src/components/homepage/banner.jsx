@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useBannerStore } from '../store/bannerstore';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getImageUrl } from '@/config';
 
 const Banner = () => {
   const { banners, loading, fetchBanners } = useBannerStore();
@@ -37,7 +36,7 @@ const Banner = () => {
   // Map real banners to display format
   const displayBanners = (banners && banners.length > 0 && banners.filter(b => b.isActive))
     ? banners.filter(b => b.isActive).map(banner => ({
-        imageUrl: getImageUrl(banner.imageUrl, fallbackBanners[0].imageUrl),
+        imageUrl: banner.imageUrl ? (banner.imageUrl.startsWith('http') ? banner.imageUrl : `http://localhost:5000${banner.imageUrl}`) : fallbackBanners[0].imageUrl,
         title: banner.title || 'Special Offer',
         subtitle: banner.subtitle || 'Shop Now!',
         buttonText: banner.buttonText || 'Shop Now'

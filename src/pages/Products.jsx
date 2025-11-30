@@ -1,413 +1,352 @@
+// src/pages/Products.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Grid, LayoutGrid, X, ChevronDown, ChevronUp, ShoppingCart, Loader2, Heart, Check, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
+import {
+  Grid3x3, List, Filter, ShoppingCart, Heart, Zap,
+  ChevronRight, Sparkles, Loader2, X
+} from 'lucide-react';
 import { useProductStore } from '../components/store/productstore';
 import { useCategoryStore } from '../components/store/categorystore';
 import { useCart } from '../store/cartstore';
 import { getImageUrl as getImage } from '@/config';
+import toast from 'react-hot-toast';
 
 export default function Products() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  
   const { products, loading, fetchProducts } = useProductStore();
   const { categories, fetchCategories } = useCategoryStore();
   const { addToCart } = useCart();
 
-  // State
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [sortBy, setSortBy] = useState('popular');
   const [priceRange, setPriceRange] = useState([0, 300000]);
   const [viewMode, setViewMode] = useState('grid');
-  const [brandSearch, setBrandSearch] = useState('');
-  
-  // Filter panel states
-  const [showBrand, setShowBrand] = useState(true);
-  const [showPrice, setShowPrice] = useState(true);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  useEffect(() => { fetchProducts(); fetchCategories(); }, []);
 
-
-
-  // Fetch data on mount
-  useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, [fetchProducts, fetchCategories]);
-
-  // Update URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (searchQuery) params.set('search', searchQuery);
     if (selectedCategory !== 'all') params.set('category', selectedCategory);
     setSearchParams(params);
-  }, [searchQuery, selectedCategory, setSearchParams]);
+  }, [selectedCategory]);
 
-  // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let result = [...(products || [])];
+    let result = products ? [...products] : [];
 
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(product =>
-        product.name?.toLowerCase().includes(query) ||
-        product.description?.toLowerCase().includes(query)
-      );
-    }
-
-    // Filter by category
     if (selectedCategory !== 'all') {
-      result = result.filter(product => {
-        const productCategoryId = product.category?.id || product.category?._id || product.categoryId || product.category;
-        return productCategoryId === selectedCategory || product.category?.name === selectedCategory;
+      result = result.filter(p => {
+        const catId = p.category?.id || p.category?._id || p.category;
+        return catId === selectedCategory;
       });
     }
 
-    // Filter by price range
-    result = result.filter(product => {
-      const price = product.discountPrice || product.price;
+    result = result.filter(p => {
+      const price = p.discountPrice || p.price;
       return price >= priceRange[0] && price <= priceRange[1];
     });
 
-    // Sort products
-    switch (sortBy) {
-      case 'price-low':
-        result.sort((a, b) => (a.discountPrice || a.price) - (b.discountPrice || b.price));
-        break;
-      case 'price-high':
-        result.sort((a, b) => (b.discountPrice || b.price) - (a.discountPrice || a.price));
-        break;
-      case 'name':
-        result.sort((a, b) => a.name?.localeCompare(b.name));
-        break;
-      case 'newest':
-        result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        break;
-      case 'popular':
-      default:
-        // Keep original order for popular
-        break;
-    }
+    if (sortBy === 'price-low') result.sort((a, b) => (a.discountPrice || a.price) - (b.discountPrice || b.price));
+    if (sortBy === 'price-high') result.sort((a, b) => (b.discountPrice || b.price) - (a.discountPrice || a.price));
+    if (sortBy === 'name') result.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === 'newest') result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     return result;
-  }, [products, searchQuery, selectedCategory, priceRange, sortBy]);
+  }, [products, selectedCategory, priceRange, sortBy]);
+
+  const popularProducts = [...filteredProducts]
+    .sort((a, b) => (b.sold || 0) - (a.sold || 0))
+    .slice(0, 10);
 
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
-    if (product.stock > 0) {
-      addToCart({
-        id: product.id || product._id,
-        name: product.name,
-        price: product.discountPrice || product.price,
-        image: product.imageUrl,
-        quantity: 1,
-      });
-    }
+    if (product.stock <= 0) return toast.error('Out of stock');
+    addToCart({
+      id: product.id || product._id,
+      name: product.name,
+      price: product.discountPrice || product.price,
+      image: product.imageUrl,
+      quantity: 1
+    });
+    toast.success('Added to cart');
   };
 
-  const getImageUrl = (imageUrl) => {
-    return getImage(imageUrl, 'https://via.placeholder.com/400x400?text=No+Image');
-  };
-
-  const toggleSize = (size) => {
-    setSelectedSizes(prev => 
-      prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
-    );
-  };
-
-  const toggleColor = (color) => {
-    setSelectedColors(prev => 
-      prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color]
-    );
-  };
-
-  // Filter categories based on brand search
-  const filteredCategories = categories.filter(cat =>
-    cat.name?.toLowerCase().includes(brandSearch.toLowerCase())
-  );
+  const currentCategoryName = selectedCategory === 'all'
+    ? 'All Products'
+    : categories.find(c => (c.id || c._id) === selectedCategory)?.name || 'Collection';
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm mb-4">
-          <button onClick={() => navigate('/')} className="text-teal-600 hover:text-teal-700">Home</button>
-          <ChevronRight className="w-4 h-4 text-gray-400" />
-          <span className="text-gray-600">
-            {selectedCategory !== 'all' 
-              ? categories.find(c => (c.id || c._id) === selectedCategory)?.name || 'Products'
-              : 'All Products'
-            }
-          </span>
-        </div>
+    <MotionConfig transition={{ duration: 0.4, ease: "easeOut" }}>
+      <div className="min-h-screen bg-gray-50">
 
-        {/* Page Title */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          {filteredProducts.length} result{filteredProducts.length !== 1 ? 's' : ''} for {selectedCategory !== 'all' 
-            ? categories.find(c => (c.id || c._id) === selectedCategory)?.name || 'products'
-            : 'all products'
-          }
-        </h1>
+        {/* Clean Header */}
+        <header className="bg-white border-b border-gray-200">
+          <div className="px-6 py-10 mx-auto max-w-7xl">
+            <nav className="mb-6 text-sm text-gray-500">
+              <button onClick={() => navigate('/')} className="hover:text-gray-900">Home</button>
+              <ChevronRight className="inline w-4 h-4 mx-2" />
+              <span className="font-medium text-gray-900">{currentCategoryName}</span>
+            </nav>
 
-        <div className="flex gap-8">
-          {/* Sidebar Filters */}
-          <aside className="hidden md:block w-64 flex-shrink-0">
-            <div className="sticky top-24">
-              {/* Filter Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Filter</h2>
-                <button className="text-teal-600 hover:text-teal-700 text-sm font-medium">
-                  Advanced
-                </button>
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h1 className="text-5xl font-light tracking-tight text-gray-900 lg:text-6xl">
+                  {currentCategoryName}
+                </h1>
+                <p className="mt-4 text-xl text-gray-600">
+                  {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
+                </p>
               </div>
 
-              {/* Brand/Category Filter */}
-              <div className="border-b border-gray-200 pb-6 mb-6">
-                <button 
-                  onClick={() => setShowBrand(!showBrand)}
-                  className="flex items-center justify-between w-full text-left"
-                >
-                  <span className="font-semibold text-gray-900">Brand</span>
-                  {showBrand ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
-                </button>
-                
-                {showBrand && (
-                  <div className="mt-4 space-y-3">
-                    {/* Search Brand */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Search brand ..."
-                        value={brandSearch}
-                        onChange={(e) => setBrandSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-teal-500"
-                      />
-                    </div>
-                    
-                    {/* Brand List */}
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {filteredCategories.map((category) => {
-                        const isSelected = selectedCategory === (category.id || category._id);
-                        const productCount = products.filter(p => {
-                          const catId = p.category?.id || p.category?._id || p.categoryId || p.category;
-                          return catId === (category.id || category._id);
-                        }).length;
-                        
-                        return (
-                          <button
-                            key={category.id || category._id}
-                            onClick={() => setSelectedCategory(isSelected ? 'all' : (category.id || category._id))}
-                            className="flex items-center justify-between w-full py-1.5 text-left group"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-xs font-bold text-gray-500">
-                                {category.name?.charAt(0)}
-                              </div>
-                              <span className={`text-sm ${isSelected ? 'text-teal-600 font-medium' : 'text-gray-700'}`}>
-                                {category.name}
-                              </span>
-                              <span className="text-xs text-gray-400">{productCount}</span>
-                            </div>
-                            {isSelected && <Check className="w-4 h-4 text-teal-600" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Price Filter */}
-              <div className="border-b border-gray-200 pb-6 mb-6">
-                <button 
-                  onClick={() => setShowPrice(!showPrice)}
-                  className="flex items-center justify-between w-full text-left"
-                >
-                  <span className="font-semibold text-gray-900">Price</span>
-                  {showPrice ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
-                </button>
-                
-                {showPrice && (
-                  <div className="mt-4">
-                    {/* Price Range Slider */}
-                    <div className="relative pt-6 pb-2">
-                      <div className="relative h-2 bg-gray-200 rounded-full">
-                        <div 
-                          className="absolute h-2 bg-teal-500 rounded-full"
-                          style={{
-                            left: `${(priceRange[0] / 300000) * 100}%`,
-                            right: `${100 - (priceRange[1] / 300000) * 100}%`
-                          }}
-                        />
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="300000"
-                        value={priceRange[0]}
-                        onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                        className="absolute w-full h-2 opacity-0 cursor-pointer top-6"
-                      />
-                      <input
-                        type="range"
-                        min="0"
-                        max="300000"
-                        value={priceRange[1]}
-                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                        className="absolute w-full h-2 opacity-0 cursor-pointer top-6"
-                      />
-                    </div>
-                    
-                    {/* Price Labels */}
-                    <div className="flex justify-between text-xs text-gray-500 mt-2">
-                      <span>Rs. {priceRange[0].toLocaleString()}</span>
-                      <span>Rs. {priceRange[1].toLocaleString()}</span>
-                    </div>
-                    
-                    {/* Price Inputs */}
-                    <div className="flex items-center gap-2 mt-4">
-                      <input
-                        type="number"
-                        value={priceRange[0]}
-                        onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:border-teal-500"
-                      />
-                      <span className="text-gray-400">—</span>
-                      <input
-                        type="number"
-                        value={priceRange[1]}
-                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:border-teal-500"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-
-
-
+              <button
+                onClick={() => setShowMobileFilters(true)}
+                className="flex items-center gap-3 px-8 py-4 font-medium text-gray-700 transition border border-gray-300 rounded-full lg:hidden hover:bg-gray-50"
+              >
+                <Filter className="w-5 h-5" />
+                Filters
+              </button>
             </div>
-          </aside>
+          </div>
+        </header>
 
-          {/* Products Grid */}
-          <main className="flex-1">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6">
-              {/* View Toggle */}
-              <div className="flex items-center gap-1 border border-gray-200 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
-                >
-                  <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-teal-100 text-teal-600' : 'hover:bg-gray-50'}`}
-                >
-                  <LayoutGrid className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Sort Dropdown */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Sort by:</span>
-                <div className="relative">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none pl-3 pr-8 py-2 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:border-teal-500 bg-white cursor-pointer"
+        {/* Most Popular - Horizontal Luxury Rail */}
+        {popularProducts.length > 3 && (
+          <section className="py-12 bg-white border-b border-gray-200">
+            <div className="px-6 mx-auto max-w-7xl">
+              <h2 className="mb-8 text-2xl font-medium text-gray-900">Most Popular</h2>
+              <div className="flex gap-8 pb-4 overflow-x-auto scrollbar-hide">
+                {popularProducts.slice(0, 8).map(product => (
+                  <motion.div
+                    key={product._id}
+                    whileHover={{ y: -8 }}
+                    onClick={() => navigate(`/product/${product.id || product._id}`)}
+                    className="flex-shrink-0 cursor-pointer w-80"
                   >
-                    <option value="popular">Popular</option>
-                    <option value="newest">Newest</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="name">Name: A-Z</option>
-                  </select>
-                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* Loading */}
-            {loading ? (
-              <div className="flex justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              /* No Results */
-              <div className="text-center py-20">
-                <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
-                <p className="text-gray-500 mb-6">Try adjusting your filters</p>
-              </div>
-            ) : (
-              /* Products Grid */
-              <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                {filteredProducts.map((product) => (
-                  <div
-                    key={product.id || product._id}
-                    className="bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg hover:border-teal-100 transition-all duration-300 group"
-                  >
-                    {/* Image */}
-                    <div className="relative aspect-[4/5] overflow-hidden bg-gray-50">
+                    <div className="bg-gray-100 rounded-2xl overflow-hidden aspect-[4/3]">
                       <img
-                        src={getImageUrl(product.imageUrl)}
+                        src={getImage(product.imageUrl)}
                         alt={product.name}
-                        onClick={() => navigate(`/product/${product.id || product._id}`)}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                        className="object-cover w-full h-full transition-all duration-700 grayscale hover:grayscale-0"
+                        loading="lazy"
                       />
-                      
-                      {/* New Arrival Badge */}
-                      <span className="absolute top-3 left-3 px-2 py-1 bg-teal-600 text-white text-xs font-medium rounded">
-                        • New Arrival
-                      </span>
-
-                      {/* Wishlist Button */}
-                      <button className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-all">
-                        <Heart className="w-4 h-4" />
-                      </button>
                     </div>
-
-                    {/* Content */}
-                    <div className="p-4">
-                      {/* Brand/Category */}
-                      <p className="text-xs text-gray-500 mb-1">
-                        {product.category?.name || 'Brand'}
+                    <div className="mt-6">
+                      <h4 className="text-lg font-medium text-gray-900">{product.name}</h4>
+                      <p className="mt-2 text-2xl font-light text-gray-900">
+                        ₹{(product.discountPrice || product.price).toLocaleString()}
                       </p>
-                      
-                      {/* Product Name */}
-                      <h3 
-                        onClick={() => navigate(`/product/${product.id || product._id}`)}
-                        className="font-medium text-gray-900 mb-2 cursor-pointer hover:text-teal-600 transition-colors line-clamp-1"
-                      >
-                        {product.name}
-                      </h3>
-
-                      {/* Price & Stock */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-teal-600 font-semibold">
-                          Rs. {(product.discountPrice || product.price)?.toLocaleString()}
-                        </span>
-                        {product.stock > 0 && (
-                          <span className="text-xs text-red-500">
-                            {product.stock < 20 ? `${product.stock} items left!` : 'In Stock'}
-                          </span>
-                        )}
-                      </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-            )}
-          </main>
+            </div>
+          </section>
+        )}
+
+        <div className="px-6 py-12 mx-auto max-w-7xl">
+          <div className="grid grid-cols-1 gap-16 lg:grid-cols-4">
+
+            {/* Sticky Filters - Floating, No Card */}
+            <aside className="hidden lg:block">
+              <div className="sticky space-y-12 top-8">
+                {/* Categories */}
+                <div>
+                  <h3 className="mb-6 text-sm font-semibold tracking-wider text-gray-500 uppercase">Category</h3>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => setSelectedCategory('all')}
+                      className={`block w-full text-left py-3 px-4 rounded-lg font-medium transition ${
+                        selectedCategory === 'all'
+                          ? 'bg-gray-900 text-white'
+                          : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      All Products
+                    </button>
+                    {categories.map(cat => {
+                      const count = products?.filter(p => (p.category?.id || p.category?._id) === (cat.id || cat._id)).length || 0;
+                      const active = selectedCategory === (cat.id || cat._id);
+                      return (
+                        <button
+                          key={cat.id || cat._id}
+                          onClick={() => setSelectedCategory(cat.id || cat._id)}
+                          className={`block w-full text-left py-3 px-4 rounded-lg font-medium transition ${
+                            active ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {cat.name} <span className="text-gray-400">({count})</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div>
+                  <h3 className="mb-6 text-sm font-semibold tracking-wider text-gray-500 uppercase">Price Range</h3>
+                  <input
+                    type="range"
+                    min="0"
+                    max="300000"
+                    value={priceRange[1]}
+                    onChange={(e) => setPriceRange([0, Number(e.target.value)])}
+                    className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-gray-900"
+                  />
+                  <div className="flex justify-between mt-4 text-sm font-medium text-gray-700">
+                    <span>₹0</span>
+                    <span>₹{priceRange[1].toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="lg:col-span-3">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between pb-6 mb-12 border-b border-gray-200">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-3 rounded-lg transition ${viewMode === 'grid' ? 'bg-gray-900 text-white' : 'bg-gray-100'}`}
+                  >
+                    <Grid3x3 className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-3 rounded-lg transition ${viewMode === 'list' ? 'bg-gray-900 text-white' : 'bg-gray-100'}`}
+                  >
+                    <List className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-6 py-3 font-medium text-gray-700 transition border border-gray-300 rounded-lg focus:outline-none focus:border-gray-900"
+                >
+                  <option value="popular">Most Popular</option>
+                  <option value="newest">Newest First</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="name">Name A–Z</option>
+                </select>
+              </div>
+
+              {/* Products Grid */}
+              {loading ? (
+                <div className="flex justify-center py-32">
+                  <Loader2 className="w-12 h-12 text-gray-400 animate-spin" />
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="py-32 text-center">
+                  <div className="w-32 h-32 mx-auto mb-8 bg-gray-200 border-2 border-dashed rounded-xl" />
+                  <h3 className="text-2xl font-medium text-gray-900">No products found</h3>
+                  <p className="mt-2 text-gray-500">Try adjusting your filters</p>
+                </div>
+              ) : (
+                <div className={`grid gap-12 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
+                  {filteredProducts.map((product) => (
+                    <motion.article
+                      key={product.id || product._id}
+                      layout
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      whileHover={{ y: -16 }}
+                      onClick={() => navigate(`/product/${product.id || product._id}`)}
+                      className="cursor-pointer group"
+                    >
+                      <div className="overflow-hidden transition bg-white border border-gray-200 rounded-2xl hover:border-gray-300">
+                        <div className="overflow-hidden aspect-square bg-gray-50">
+                          <img
+                            src={getImage(product.imageUrl)}
+                            alt={product.name}
+                            className="object-cover w-full h-full transition-all duration-1000 grayscale group-hover:grayscale-0"
+                            loading="lazy"
+                          />
+                          {product.stock < 20 && product.stock > 0 && (
+                            <div className="absolute px-3 py-1 text-xs font-semibold text-white bg-gray-900 rounded-full top-4 left-4">
+                              Only {product.stock} left
+                            </div>
+                          )}
+                          <button
+                            onClick={(e) => handleAddToCart(e, product)}
+                            className="absolute p-4 transition bg-white rounded-full shadow-lg opacity-0 bottom-4 right-4 group-hover:opacity-100 opacity"
+                          >
+                            <ShoppingCart className="w-6 h-6 text-gray-900" />
+                          </button>
+                        </div>
+
+                        <div className="p-8">
+                          <p className="text-sm font-medium tracking-wider text-gray-500 uppercase">
+                            {product.category?.name || 'Collection'}
+                          </p>
+                          <h3 className="mt-3 text-xl font-medium text-gray-900 transition group-hover:text-gray-700">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center justify-between mt-6">
+                            <div>
+                              {product.discountPrice ? (
+                                <>
+                                  <span className="text-2xl font-light text-gray-900">
+                                    ₹{product.discountPrice.toLocaleString()}
+                                  </span>
+                                  <span className="ml-4 text-lg text-gray-400 line-through">
+                                    ₹{product.price.toLocaleString()}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-2xl font-light text-gray-900">
+                                  ₹{product.price.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                            <span className={`px-4 py-2 text-xs font-semibold rounded-full ${
+                              product.stock > 0 ? 'bg-gray-100 text-gray-700' : 'bg-gray-200 text-gray-500'
+                            }`}>
+                              {product.stock > 0 ? 'In Stock' : 'Sold Out'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.article>
+                  ))}
+                </div>
+              )}
+            </main>
+          </div>
         </div>
+
+        {/* Mobile Filters Sheet */}
+        <AnimatePresence>
+          {showMobileFilters && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/40 lg:hidden"
+              onClick={() => setShowMobileFilters(false)}
+            >
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                onClick={(e) => e.stopPropagation()}
+                className="absolute bottom-0 left-0 right-0 p-8 bg-white rounded-t-3xl"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-medium">Filters</h2>
+                  <button onClick={() => setShowMobileFilters(false)}>
+                    <X className="w-8 h-8 text-gray-600" />
+                  </button>
+                </div>
+                {/* Same filter UI as desktop */}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </MotionConfig>
   );
 }

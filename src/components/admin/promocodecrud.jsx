@@ -1,13 +1,21 @@
+// src/pages/PromoCodeCRUD.jsx
 import { useState, useEffect } from 'react';
 import { useCouponStore } from '../store/promocodestore';
 import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Edit, Trash2, Loader2, X, Check, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, X, CheckCircle, AlertCircle, Calendar, Tag } from 'lucide-react';
 
 export default function PromoCodeCRUD() {
   const { coupons, loading, fetchCoupons, addCoupon, updateCoupon, deleteCoupon } = useCouponStore();
+
   const [showModal, setShowModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
-  const [form, setForm] = useState({ code: '', discountAmount: '', validFrom: '', validTo: '', isActive: true });
+  const [form, setForm] = useState({
+    code: '',
+    discountAmount: '',
+    validFrom: '',
+    validTo: '',
+    isActive: true
+  });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -17,12 +25,13 @@ export default function PromoCodeCRUD() {
   const validateForm = () => {
     const newErrors = {};
     if (!form.code?.trim()) newErrors.code = 'Coupon code is required';
-    if (!form.discountAmount || Number(form.discountAmount) <= 0) newErrors.discountAmount = 'Discount amount must be greater than 0';
+    if (!form.discountAmount || Number(form.discountAmount) <= 0)
+      newErrors.discountAmount = 'Discount must be greater than 0';
     if (!form.validFrom) newErrors.validFrom = 'Valid from date is required';
     if (!form.validTo) newErrors.validTo = 'Valid to date is required';
-    if (form.validFrom && form.validTo && new Date(form.validTo) <= new Date(form.validFrom)) {
-      newErrors.validTo = 'Valid to date must be after valid from date';
-    }
+    if (form.validFrom && form.validTo && new Date(form.validTo) <= new Date(form.validFrom))
+      newErrors.validTo = 'End date must be after start date';
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -45,19 +54,24 @@ export default function PromoCodeCRUD() {
 
       if (editingCoupon) {
         await updateCoupon(editingCoupon.code, payload);
-        toast.success('Coupon updated!');
+        toast.success('Coupon updated successfully!');
       } else {
         await addCoupon(payload);
-        toast.success('Coupon created!');
+        toast.success('Coupon created successfully!');
       }
 
-      setShowModal(false);
-      setEditingCoupon(null);
-      setForm({ code: '', discountAmount: '', validFrom: '', validTo: '', isActive: true });
-      setErrors({});
+      closeModal();
+      fetchCoupons();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save coupon');
     }
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingCoupon(null);
+    setForm({ code: '', discountAmount: '', validFrom: '', validTo: '', isActive: true });
+    setErrors({});
   };
 
   const handleEdit = (coupon) => {
@@ -67,235 +81,259 @@ export default function PromoCodeCRUD() {
       discountAmount: coupon.discountAmount || '',
       validFrom: coupon.validFrom ? coupon.validFrom.split('T')[0] : '',
       validTo: coupon.validTo ? coupon.validTo.split('T')[0] : '',
-      isActive: coupon.isActive !== undefined ? coupon.isActive : true,
+      isActive: coupon.isActive ?? true,
     });
-    setErrors({});
     setShowModal(true);
   };
 
   const handleDelete = async (coupon) => {
-    if (!window.confirm(`Delete coupon ${coupon.code}?`)) return;
+    if (!window.confirm(`Delete coupon "${coupon.code}" permanently?`)) return;
     try {
       await deleteCoupon(coupon.code);
-      toast.success('Coupon deleted!');
+      toast.success('Coupon deleted');
     } catch {
       toast.error('Failed to delete coupon');
     }
   };
 
-  const handleOpenModal = () => {
-    setEditingCoupon(null);
-    setForm({ code: '', discountAmount: '', validFrom: '', validTo: '', isActive: true });
-    setErrors({});
-    setShowModal(true);
-  };
-
   const isExpired = (coupon) => new Date(coupon.validTo) < new Date();
-  const isActive = (coupon) => coupon.isActive && !isExpired(coupon);
+  const getStatus = (coupon) => {
+    if (!coupon.isActive) return { label: 'Inactive', color: 'gray' };
+    if (isExpired(coupon)) return { label: 'Expired', color: 'red' };
+    return { label: 'Active', color: 'emerald' };
+  };
 
   return (
     <>
-      <Toaster />
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
-        <div className="max-w-7xl mx-auto">
+      <Toaster position="top-right" />
+
+      <div className="min-h-screen p-6 bg-gradient-to-br from-gray-50 to-gray-100 lg:p-10">
+        <div className="mx-auto max-w-7xl">
+
           {/* Header */}
-          <div className="flex justify-between items-center mb-12">
+          <div className="flex flex-col items-start justify-between gap-6 mb-10 sm:flex-row sm:items-center">
             <div>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 bg-clip-text text-transparent mb-2">Promo Codes</h1>
-              <p className="text-gray-400">Manage coupon codes and discount offers</p>
+              <h1 className="text-5xl font-bold text-[#1A3C8A] mb-2">Promo Codes</h1>
+              <p className="text-[#7A7A7A]">Create and manage discount coupons</p>
             </div>
             <button
-              onClick={handleOpenModal}
-              className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold"
+              onClick={() => {
+                setEditingCoupon(null);
+                setForm({ code: '', discountAmount: '', validFrom: '', validTo: '', isActive: true });
+                setErrors({});
+                setShowModal(true);
+              }}
+              className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
             >
-              <Plus className="w-5 h-5" /> Create Code
+              <Plus className="w-6 h-6" />
+              Create Coupon
             </button>
           </div>
 
-          {/* Coupons Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {loading ? (
-              <div className="col-span-full flex justify-center py-12">
-                <Loader2 className="w-12 h-12 animate-spin text-purple-500" />
+          {/* Table */}
+          {loading ? (
+            <div className="flex justify-center py-32">
+              <Loader2 className="w-16 h-16 animate-spin text-[#FF6B35]" />
+            </div>
+          ) : coupons.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-3xl shadow-xl border border-[#EFEFEF]">
+              <Tag className="w-24 h-24 text-[#1A3C8A]/20 mx-auto mb-6" />
+              <h3 className="text-2xl font-bold text-[#2E2E2E]">No coupons yet</h3>
+              <p className="text-[#7A7A7A] mt-2">Create your first discount code!</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl shadow-xl border border-[#EFEFEF] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] text-white">
+                      <th className="px-8 py-6 font-bold text-left">Coupon Code</th>
+                      <th className="px-8 py-6 font-bold text-center">Discount</th>
+                      <th className="px-8 py-6 font-bold text-center">Valid From</th>
+                      <th className="px-8 py-6 font-bold text-center">Valid To</th>
+                      <th className="px-8 py-6 font-bold text-center">Status</th>
+                      <th className="px-8 py-6 font-bold text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {coupons.map((coupon, i) => {
+                      const status = getStatus(coupon);
+                      return (
+                        <tr
+                          key={coupon.code}
+                          className={`border-b border-gray-100 hover:bg-orange-50/30 transition-all ${
+                            i % 2 === 0 ? 'bg-gray-50/30' : 'bg-white'
+                          }`}
+                        >
+                          <td className="px-8 py-6">
+                            <code className="px-5 py-3 bg-gradient-to-r from-[#1A3C8A]/10 to-[#FF6B35]/10 text-[#1A3C8A] font-bold rounded-xl text-lg tracking-wider">
+                              {coupon.code}
+                            </code>
+                          </td>
+                          <td className="px-8 py-6 text-center font-bold text-[#1A3C8A]">
+                            Rs. {Number(coupon.discountAmount).toLocaleString()}
+                          </td>
+                          <td className="px-8 py-6 text-center text-[#2E2E2E]">
+                            {new Date(coupon.validFrom).toLocaleDateString('en-NP', {
+                              year: 'numeric', month: 'short', day: 'numeric'
+                            })}
+                          </td>
+                          <td className="px-8 py-6 text-center text-[#2E2E2E]">
+                            {new Date(coupon.validTo).toLocaleDateString('en-NP', {
+                              year: 'numeric', month: 'short', day: 'numeric'
+                            })}
+                          </td>
+                          <td className="px-8 py-6 text-center">
+                            <span className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm
+                              ${status.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' : 
+                                status.color === 'red' ? 'bg-red-100 text-red-700' : 
+                                'bg-gray-100 text-gray-600'}`}
+                            >
+                              {status.color === 'emerald' ? <CheckCircle className="w-5 h-5" /> :
+                               status.color === 'red' ? <AlertCircle className="w-5 h-5" /> : null}
+                              {status.label}
+                            </span>
+                          </td>
+                          <td className="px-8 py-6">
+                            <div className="flex justify-center gap-3">
+                              <button
+                                onClick={() => handleEdit(coupon)}
+                                className="p-3 bg-[#1A3C8A] text-white rounded-xl hover:bg-[#163180] transition shadow-md"
+                              >
+                                <Edit2 className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(coupon)}
+                                className="p-3 text-white transition bg-red-500 shadow-md rounded-xl hover:bg-red-600"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ) : coupons && coupons.length > 0 ? (
-              coupons.map(coupon => (
-                <div key={coupon.code} className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur-lg opacity-0 group-hover:opacity-75 transition-all" />
-                  <div className="relative bg-gray-800 border border-gray-700 group-hover:border-purple-500 rounded-2xl p-8 transition-all shadow-xl">
-                    {/* Status Badge */}
-                    <div className="absolute top-4 right-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                        isActive(coupon)
-                          ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                          : isExpired(coupon)
-                          ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                          : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
-                      }`}>
-                        {isExpired(coupon) ? '❌ Expired' : isActive(coupon) ? '✓ Active' : '⏸️ Inactive'}
-                      </span>
-                    </div>
-
-                    {/* Coupon Code */}
-                    <div className="mb-6">
-                      <p className="text-gray-400 text-sm mb-1">Code</p>
-                      <p className="text-4xl font-black text-transparent bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text tracking-wider">{coupon.code}</p>
-                    </div>
-
-                    {/* Discount */}
-                    <div className="mb-6">
-                      <p className="text-gray-400 text-sm mb-1">Discount</p>
-                      <p className="text-3xl font-bold text-purple-300">Rs. {coupon.discountAmount?.toFixed(2)}</p>
-                    </div>
-
-                    {/* Valid Dates */}
-                    <div className="space-y-3 mb-6 pb-6 border-b border-gray-700">
-                      <div>
-                        <p className="text-gray-500 text-xs">Valid From</p>
-                        <p className="text-gray-300 text-sm">{new Date(coupon.validFrom).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 text-xs">Valid To</p>
-                        <p className="text-gray-300 text-sm">{new Date(coupon.validTo).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleEdit(coupon)}
-                        className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition"
-                      >
-                        <Edit className="w-4 h-4 inline mr-2" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(coupon)}
-                        className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition"
-                      >
-                        <Trash2 className="w-4 h-4 inline mr-2" /> Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-16">
-                <p className="text-gray-400 text-lg">No coupons yet. Create one to get started!</p>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-2xl shadow-2xl">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-bold text-white">{editingCoupon ? 'Edit' : 'Create'} Coupon</h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="p-2 hover:bg-gray-800 rounded-lg transition"
-                >
-                  <X className="w-6 h-6 text-gray-400" />
-                </button>
+      {/* Premium Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] text-white p-8 rounded-t-3xl relative">
+              <button
+                onClick={closeModal}
+                className="absolute p-2 transition rounded-full top-6 right-6 bg-white/20 hover:bg-white/30"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <h2 className="text-3xl font-bold">
+                {editingCoupon ? 'Edit Coupon' : 'Create New Coupon'}
+              </h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-8 space-y-7">
+              <div>
+                <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Coupon Code *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. WELCOME100"
+                  value={form.code}
+                  onChange={(e) => {
+                    setForm({ ...form, code: e.target.value.toUpperCase() });
+                    setErrors({ ...errors, code: '' });
+                  }}
+                  disabled={!!editingCoupon}
+                  className={`w-full px-6 py-4 border-2 rounded-2xl text-lg font-mono tracking-wider uppercase transition
+                    ${editingCoupon ? 'bg-gray-100 cursor-not-allowed' : 'bg-white focus:border-[#FF6B35]'}
+                    ${errors.code ? 'border-red-400' : 'border-[#EFEFEF]'}`}
+                />
+                {errors.code && <p className="mt-2 text-sm text-red-600">{errors.code}</p>}
+                {editingCoupon && <p className="mt-2 text-sm text-gray-500">Coupon code cannot be changed after creation</p>}
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Coupon Code */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Coupon Code *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., WELCOME50"
-                    value={form.code}
-                    onChange={e => { setForm({ ...form, code: e.target.value.toUpperCase() }); setErrors({ ...errors, code: '' }); }}
-                    disabled={!!editingCoupon}
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition uppercase font-bold tracking-wider ${
-                      errors.code ? 'border-red-500' : 'border-gray-600'
-                    } ${editingCoupon ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  />
-                  {errors.code && <p className="text-red-400 text-sm mt-1">{errors.code}</p>}
-                </div>
+              <div>
+                <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Discount Amount (Rs.) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="500"
+                  value={form.discountAmount}
+                  onChange={(e) => {
+                    setForm({ ...form, discountAmount: e.target.value });
+                    setErrors({ ...errors, discountAmount: '' });
+                  }}
+                  className={`w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition ${errors.discountAmount ? 'border-red-400' : ''}`}
+                />
+                {errors.discountAmount && <p className="mt-2 text-sm text-red-600">{errors.discountAmount}</p>}
+              </div>
 
-                {/* Discount Amount */}
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Discount Amount (Rs.) *</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    min="0"
-                    step="0.01"
-                    value={form.discountAmount}
-                    onChange={e => { setForm({ ...form, discountAmount: e.target.value }); setErrors({ ...errors, discountAmount: '' }); }}
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition ${
-                      errors.discountAmount ? 'border-red-500' : 'border-gray-600'
-                    }`}
-                  />
-                  {errors.discountAmount && <p className="text-red-400 text-sm mt-1">{errors.discountAmount}</p>}
-                </div>
-
-                {/* Valid From */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Valid From *</label>
+                  <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Valid From *</label>
                   <input
                     type="date"
                     value={form.validFrom}
-                    onChange={e => { setForm({ ...form, validFrom: e.target.value }); setErrors({ ...errors, validFrom: '' }); }}
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition ${
-                      errors.validFrom ? 'border-red-500' : 'border-gray-600'
-                    }`}
+                    onChange={(e) => {
+                      setForm({ ...form, validFrom: e.target.value });
+                      setErrors({ ...errors, validFrom: '', validTo: '' });
+                    }}
+                    className={`w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition ${errors.validFrom ? 'border-red-400' : ''}`}
                   />
-                  {errors.validFrom && <p className="text-red-400 text-sm mt-1">{errors.validFrom}</p>}
+                  {errors.validFrom && <p className="mt-2 text-sm text-red-600">{errors.validFrom}</p>}
                 </div>
-
-                {/* Valid To */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Valid To *</label>
+                  <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Valid To *</label>
                   <input
                     type="date"
                     value={form.validTo}
-                    onChange={e => { setForm({ ...form, validTo: e.target.value }); setErrors({ ...errors, validTo: '' }); }}
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition ${
-                      errors.validTo ? 'border-red-500' : 'border-gray-600'
-                    }`}
+                    onChange={(e) => {
+                      setForm({ ...form, validTo: e.target.value });
+                      setErrors({ ...errors, validTo: '' });
+                    }}
+                    className={`w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition ${errors.validTo ? 'border-red-400' : ''}`}
                   />
-                  {errors.validTo && <p className="text-red-400 text-sm mt-1">{errors.validTo}</p>}
+                  {errors.validTo && <p className="mt-2 text-sm text-red-600">{errors.validTo}</p>}
                 </div>
+              </div>
 
-                {/* Active Toggle */}
-                <div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.isActive}
-                      onChange={e => setForm({ ...form, isActive: e.target.checked })}
-                      className="w-5 h-5 rounded border-gray-600 text-purple-600 cursor-pointer"
-                    />
-                    <span className="text-gray-300 font-medium">Active</span>
-                  </label>
-                </div>
+              <div className="flex items-center gap-4 py-4">
+                <input
+                  type="checkbox"
+                  id="active"
+                  checked={form.isActive}
+                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                  className="w-6 h-6 text-[#FF6B35] rounded focus:ring-[#FF6B35]"
+                />
+                <label htmlFor="active" className="text-lg font-medium cursor-pointer">
+                  Coupon is Active
+                </label>
+              </div>
 
-                {/* Actions */}
-                <div className="flex gap-4 pt-6 border-t border-gray-700">
-                  <button
-                    type="submit"
-                    className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all shadow-lg"
-                  >
-                    {editingCoupon ? 'Update Coupon' : 'Create Coupon'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-lg transition border border-gray-600"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex gap-4 pt-6">
+                <button
+                  type="submit"
+                  className="flex-1 py-5 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white text-xl font-bold rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all"
+                >
+                  {editingCoupon ? 'Update Coupon' : 'Create Coupon'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-10 py-5 font-bold text-gray-700 transition border-2 border-gray-300 rounded-2xl hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
