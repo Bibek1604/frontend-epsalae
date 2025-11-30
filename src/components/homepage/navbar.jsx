@@ -130,12 +130,13 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
+                /* Track Order - visible to guests (no login link) */
                 <Link 
-                  to="/admin/login"
+                  to="/track-order"
                   className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium"
                 >
-                  <LogIn className="h-4 w-4" />
-                  <span>Login</span>
+                  <Package className="h-4 w-4" />
+                  <span>Track Order</span>
                 </Link>
               )}
 
@@ -220,13 +221,14 @@ export default function Navbar() {
                     </Link>
                   </>
                 ) : (
+                  /* Track Order - visible to guests (no login link) */
                   <Link
-                    to="/admin/login"
+                    to="/track-order"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-medium"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all font-medium"
                   >
-                    <LogIn className="h-5 w-5" />
-                    Login
+                    <Package className="h-5 w-5" />
+                    Track Order
                   </Link>
                 )}
               </nav>

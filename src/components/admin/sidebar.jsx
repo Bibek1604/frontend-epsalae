@@ -1,6 +1,7 @@
 // src/components/Sidebar.jsx
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authstore';
 import { 
   Home, 
   Package, 
@@ -19,6 +20,8 @@ import {
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuthStore();
 
   const menuItems = [
     { path: '/admin', label: 'Dashboard', icon: Home },
@@ -131,7 +134,13 @@ const Sidebar = () => {
           </li>
 
           <li>
-            <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-[#2E2E2E] hover:bg-red-50 hover:text-[#E63946] transition-all">
+            <button 
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
+              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-[#2E2E2E] hover:bg-red-50 hover:text-[#E63946] transition-all"
+            >
               <LogOut className="w-5 h-5" />
               <span>Logout</span>
             </button>

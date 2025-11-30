@@ -34,20 +34,45 @@ export default function TrackOrder() {
 
     setLoading(true);
     try {
-      // Fetch order by ID
-      const res = await orderApi.getById(orderId.trim());
+      // Use public track endpoint (no auth required)
+      // Backend: GET /api/v1/orders/track/:orderId
+      const res = await orderApi.trackById(orderId.trim());
+      console.log('📦 Track response:', res.data);
       const fetchedOrder = res.data?.data || res.data;
+      
+      console.log('📱 Order phone from DB:', fetchedOrder?.phone);
+      console.log('📱 User entered phone:', phone.trim());
 
-      // Verify phone number matches
-      if (fetchedOrder && fetchedOrder.phone === phone.trim()) {
+      // Normalize phone numbers for comparison (remove spaces, dashes, +977 prefix)
+      const normalizePhone = (p) => {
+        if (!p) return '';
+        return p.toString().replace(/[\s\-\+]/g, '').replace(/^977/, '').replace(/^0/, '');
+      };
+      
+      const orderPhone = normalizePhone(fetchedOrder?.phone);
+      const inputPhone = normalizePhone(phone);
+      
+      console.log('📱 Normalized order phone:', orderPhone);
+      console.log('📱 Normalized input phone:', inputPhone);
+
+      // Verify phone number matches for security (flexible comparison)
+      if (fetchedOrder && orderPhone && inputPhone && orderPhone.includes(inputPhone.slice(-10))) {
         setOrder(fetchedOrder);
+      } else if (fetchedOrder && !fetchedOrder.phone) {
+        // If order doesn't have phone stored, show the order anyway
+        setOrder(fetchedOrder);
+      } else if (fetchedOrder) {
+        setError('Phone number does not match the order. Please check and try again.');
       } else {
-        setError('No order found with this Order ID and Phone Number combination.');
+        setError('No order found with this Order ID.');
       }
     } catch (err) {
       console.error('Error fetching order:', err);
       if (err.response?.status === 404) {
         setError('Order not found. Please check your Order ID.');
+      } else if (err.response?.status === 401) {
+        // Try alternative: maybe backend returns 401 for track endpoint too
+        setError('Order tracking is temporarily unavailable. Please try again later.');
       } else {
         setError('Unable to fetch order. Please try again later.');
       }

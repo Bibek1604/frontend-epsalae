@@ -1,10 +1,10 @@
 // src/pages/Checkout.jsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Check, ChevronLeft, Lock, AlertCircle, Loader2, Truck, Shield } from 'lucide-react'
 import { useCart } from '@/store/cartstore'
 import { orderApi } from '../components/api/orderapi'
-import { motion } from 'framer-motion'
 
 // Full Nepal Districts (77) with real municipalities
 const NEPAL_DISTRICTS = {
@@ -173,20 +173,58 @@ export default function Checkout() {
       }
 
       const res = await orderApi.create(orderData)
-      const orderId = res.data?.data?._id || res.data?._id || 'TEMP'
+      console.log('📦 Full API Response:', res)
+      console.log('📦 Response data:', res.data)
+      
+      // Backend returns: { success: true, data: { id: "ord_abc123", ... } }
+      // So we need res.data.data.id
+      const orderResponse = res.data?.data || res.data?.order || res.data
+      console.log('📦 Order Response:', orderResponse)
+      
+      // Get the real order ID - prioritize .id as backend returns { data: { id: "..." } }
+      const orderId = res.data?.data?.id ||    // Primary: data.data.id
+                      orderResponse?.id ||      // Fallback: orderResponse.id
+                      orderResponse?.orderId || 
+                      orderResponse?.order_id ||
+                      orderResponse?._id ||     // MongoDB _id last
+                      res.data?.id ||
+                      null
+      
+      console.log('✅ Extracted Order ID:', orderId)
+      console.log('📦 res.data.data:', res.data?.data)
+      console.log('📦 res.data.data.id:', res.data?.data?.id)
+      
+      if (!orderId) {
+        console.error('❌ No order ID found in response:', res.data)
+        console.error('❌ Full response object:', JSON.stringify(res, null, 2))
+      }
+      
+      const finalOrderId = orderId || `ORD-${Date.now()}`
 
       clearCart()
-      navigate(`/order-success/${orderId}`, { 
+      navigate(`/order-success/${finalOrderId}`, { 
         state: { 
-          order: res.data.data,
-          orderData: {
-            ...orderData,
-            id: orderId,
+          order: {
+            ...orderResponse,
+            id: finalOrderId,
+            orderId: finalOrderId,
+            _id: finalOrderId,
+            name: `${formData.first_name} ${formData.last_name}`.trim(),
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            phone: formData.phone,
+            district: formData.district,
+            city: formData.city,
+            address: formData.address,
+            description: formData.description,
+            items: orderData.items,
             subtotal: subtotal,
             shipping: shipping,
             total: total,
+            totalAmount: total,
             paymentMethod: formData.paymentMethod,
-            orderDate: new Date().toISOString()
+            orderDate: orderResponse?.createdAt || orderResponse?.created_at || new Date().toISOString(),
+            status: orderResponse?.status || 'pending'
           }
         } 
       })

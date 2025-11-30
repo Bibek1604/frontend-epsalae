@@ -7,7 +7,7 @@ export default function OrderSuccess() {
   const navigate = useNavigate()
   const orderData = location.state?.orderData
   const paymentMethod = location.state?.paymentMethod || 'cod'
-
+  
   // Use order data from navigation state or fallback
   const order = orderData || {
     id: orderId,

@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Check, Download, Home, Truck, CreditCard, Package, MapPin, Phone, Calendar, FileText, Copy, CheckCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { API_URL } from '../config'
 
 // Print styles - injected into head for clean invoice printing
@@ -67,6 +67,13 @@ export default function OrderSuccess() {
   const location = useLocation()
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
+  
+  // Debug: Log what we receive
+  useEffect(() => {
+    console.log('🎉 OrderSuccess - URL orderId:', orderId)
+    console.log('🎉 OrderSuccess - location.state:', location.state)
+    console.log('🎉 OrderSuccess - order data:', location.state?.order || location.state?.orderData)
+  }, [orderId, location.state])
   
   // Get order data from navigation state
   const orderData = location.state?.orderData || location.state?.order
