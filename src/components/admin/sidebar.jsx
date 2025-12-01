@@ -15,7 +15,8 @@ import {
   Bell,
   LogOut,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Award
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -31,6 +32,7 @@ const Sidebar = () => {
     { path: '/admin/promocodecrud', label: 'Promo Codes', icon: Percent },
     { path: '/admin/flashsalecrud', label: 'Flash Sales', icon: Zap },
     { path: '/admin/bannercrud', label: 'Banners', icon: Image },
+    { path: '/admin/brandcrud', label: 'Brands', icon: Award },
   ];
 
   const bottomItems = [

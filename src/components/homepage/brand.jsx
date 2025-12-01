@@ -1,65 +1,98 @@
-// BrandsSection.jsx
-import React from 'react';
+// src/components/BrandsSection.jsx → ULTRA-PREMIUM GOOGLE-STYLE NEPALI BRANDS (2025 FINAL)
+// Now uses localStorage via brandstore for admin management
+import React from 'react'
+import { motion } from 'framer-motion'
+import { useBrandStore } from '../store/brandstore'
 
 export default function BrandsSection() {
-  const brands = [
-    { name: "Apple", logo: "https://cdn.worldvectorlogo.com/logos/apple-11.svg" },
-    { name: "Samsung", logo: "https://cdn.worldvectorlogo.com/logos/samsung-6.svg" },
-    { name: "Nike", logo: "https://cdn.worldvectorlogo.com/logos/nike-4.svg" },
-    { name: "Adidas", logo: "https://cdn.worldvectorlogo.com/logos/adidas-8.svg" },
-    { name: "Sony", logo: "https://cdn.worldvectorlogo.com/logos/sony-2.svg" },
-    { name: "LG", logo: "https://cdn.worldvectorlogo.com/logos/lg-6.svg" },
-    { name: "Dell", logo: "https://cdn.worldvectorlogo.com/logos/dell-11.svg" },
-    { name: "HP", logo: "https://cdn.worldvectorlogo.com/logos/hewlett-packard-enterprise-1.svg" },
-    { name: "Google", logo: "https://cdn.worldvectorlogo.com/logos/google-2.svg" },
-    { name: "Microsoft", logo: "https://cdn.worldvectorlogo.com/logos/microsoft-6.svg" },
-  ];
+  // Get brands from localStorage store
+  const { brands } = useBrandStore()
 
-  // Duplicate array for seamless infinite scroll
-  const duplicatedBrands = [...brands, ...brands];
+  // If no brands, don't render section
+  if (!brands || brands.length === 0) return null
+
+  const duplicated = [...brands, ...brands]
 
   return (
-    <section className="py-16 bg-gray-50 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-4xl font-bold text-center mb-12 text-[#2A2F4F]">
-          Shop by Top Brands
-        </h2>
+    <section className="py-20 overflow-hidden bg-white border-t border-b border-gray-100">
+      <div className="px-6 mx-auto max-w-7xl">
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-4 text-5xl font-black text-center text-gray-900 md:text-6xl"
+        >
+          Trusted Global Brands
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="mb-16 text-xl text-center text-gray-600"
+        >
+          Authentic • Original • Delivered Across Nepal
+        </motion.p>
 
-        {/* Infinite Scrolling Marquee */}
+        {/* Main Infinite Marquee */}
         <div className="relative">
           <div className="flex animate-marquee whitespace-nowrap">
-            {duplicatedBrands.map((brand, index) => (
-              <div
-                key={`${brand.name}-${index}`}
-                className="mx-8 flex-shrink-0"
+            {duplicated.map((brand, i) => (
+              <motion.div
+                key={`${brand.id}-${i}`}
+                whileHover={{ scale: 1.15 }}
+                className="flex-shrink-0 mx-10"
               >
-                <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-8 w-40 h-40 flex items-center justify-center border-2 border-transparent hover:border-[#FFB200] hover:scale-110">
+                <div className="relative flex items-center justify-center w-48 h-48 overflow-hidden transition-all duration-500 bg-white border border-gray-200 shadow-lg group rounded-3xl hover:shadow-2xl hover:border-gray-300">
                   <img
                     src={brand.logo}
-                    alt={brand.name}
-                    className="max-w-full max-h-full object-contain filter grayscale hover:grayscale-0 transition-all duration-500"
+                    alt={brand.name || 'Brand'}
+                    className="object-contain w-32 h-32 transition-all duration-700 filter grayscale group-hover:grayscale-0"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/100?text=Brand';
+                    }}
                   />
+                  <div className="absolute inset-0 transition-opacity duration-500 opacity-0 bg-gradient-to-t from-black/5 to-transparent group-hover:opacity-100" />
+                  {brand.name && (
+                    <div className="absolute transition-opacity duration-300 -translate-x-1/2 opacity-0 bottom-3 left-1/2 group-hover:opacity-100">
+                      <span className="px-3 py-1 text-xs font-bold text-gray-700 rounded-full shadow bg-white/90">
+                        {brand.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
 
-        {/* Optional: Second row moving opposite direction (for cool effect) */}
-        <div className="mt-12">
-          <div className="flex animate-marquee-reverse">
-            {duplicatedBrands.slice(0, 8).map((brand, index) => (
-              <div key={`reverse-${index}`} className="mx-8 flex-shrink-0">
-                <div className="bg-white rounded-2xl shadow-lg p-6 w-36 h-36 flex items-center justify-center opacity-60 hover:opacity-100 transition-all">
-                  <img src={brand.logo} alt={brand.name} className="max-w-full max-h-full object-contain" />
-                </div>
-              </div>
-            ))}
+        {/* Reverse Row */}
+        {brands.length >= 4 && (
+          <div className="mt-16">
+            <div className="flex animate-marquee-reverse whitespace-nowrap">
+              {duplicated.slice(0, Math.min(8, brands.length * 2)).map((brand, i) => (
+                <motion.div
+                  key={`rev-${brand.id}-${i}`}
+                  whileHover={{ scale: 1.1 }}
+                  className="flex-shrink-0 mx-12"
+                >
+                  <div className="flex items-center justify-center w-40 h-40 p-8 transition-all border border-gray-100 shadow-md bg-gray-50/80 backdrop-blur-sm rounded-2xl hover:shadow-xl duration-400">
+                    <img
+                      src={brand.logo}
+                      alt={brand.name || 'Brand'}
+                      className="object-contain transition-opacity duration-500 w-28 h-28 opacity-70 hover:opacity-100"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/100?text=Brand';
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Tailwind Animation Keyframes */}
+      {/* Tailwind + Custom Animation */}
       <style jsx>{`
         @keyframes marquee {
           0% { transform: translateX(0%); }
@@ -70,10 +103,10 @@ export default function BrandsSection() {
           100% { transform: translateX(0%); }
         }
         .animate-marquee {
-          animation: marquee 25s linear infinite;
+          animation: marquee 40s linear infinite;
         }
         .animate-marquee-reverse {
-          animation: marquee-reverse 20s linear infinite;
+          animation: marquee-reverse 35s linear infinite;
         }
         .animate-marquee:hover,
         .animate-marquee-reverse:hover {
@@ -81,5 +114,5 @@ export default function BrandsSection() {
         }
       `}</style>
     </section>
-  );
+  )
 }

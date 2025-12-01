@@ -44,9 +44,9 @@ export default function ProductsGrid() {
   if (loading) {
     return (
       <section className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 flex justify-center">
+        <div className="flex justify-center px-4 mx-auto max-w-7xl">
           <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+            <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
             <p className="text-gray-500">Loading products...</p>
           </div>
         </div>
@@ -60,7 +60,7 @@ export default function ProductsGrid() {
 
   return (
     <section className="py-12 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6">
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold text-gray-900">
@@ -68,7 +68,7 @@ export default function ProductsGrid() {
           </h2>
           <Link 
             to="/products" 
-            className="text-teal-600 hover:text-teal-700 font-medium text-sm flex items-center gap-1"
+            className="flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-700"
           >
             View All
             <span>→</span>
@@ -76,36 +76,36 @@ export default function ProductsGrid() {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 md:gap-6">
           {displayProducts.map((product) => (
             <div
               key={product.id}
-              className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-teal-200 transition-all duration-300"
+              className="overflow-hidden transition-all duration-300 bg-white border border-gray-200 group rounded-xl hover:shadow-lg hover:border-teal-200"
             >
               {/* Image Container */}
-              <div className="relative aspect-square overflow-hidden bg-gray-50">
+              <div className="relative overflow-hidden aspect-square bg-gray-50">
                 <img
                   src={product.imageUrl}
                   alt={product.name}
                   onClick={() => navigate(`/product/${product.id}`)}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                  className="object-cover w-full h-full transition-transform duration-500 cursor-pointer group-hover:scale-105"
                 />
                 
                 {/* Discount Badge */}
                 {product.discountPrice && product.discountPrice < product.price && (
-                  <span className="absolute top-3 left-3 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded">
+                  <span className="absolute px-2 py-1 text-xs font-bold text-white bg-red-500 rounded top-3 left-3">
                     -{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
                   </span>
                 )}
 
                 {/* Wishlist Button */}
-                <button className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-all">
+                <button className="absolute p-2 transition-all bg-white rounded-full shadow-md opacity-0 top-3 right-3 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500">
                   <Heart className="w-4 h-4" />
                 </button>
 
                 {/* Out of Stock Overlay */}
                 {product.stock === 0 && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                     <span className="px-3 py-1.5 bg-white text-gray-900 text-sm font-medium rounded">
                       Out of Stock
                     </span>
@@ -115,21 +115,15 @@ export default function ProductsGrid() {
 
               {/* Content */}
               <div className="p-4">
-                <p className="text-xs text-teal-600 font-medium mb-1">{product.category}</p>
+                <p className="mb-1 text-xs font-medium text-teal-600">{product.category}</p>
                 <h3 
                   onClick={() => navigate(`/product/${product.id}`)}
-                  className="font-medium text-gray-900 line-clamp-2 mb-2 cursor-pointer hover:text-teal-600 transition-colors text-sm"
+                  className="mb-2 text-sm font-medium text-gray-900 transition-colors cursor-pointer line-clamp-2 hover:text-teal-600"
                 >
                   {product.name}
                 </h3>
                 
-                {/* Rating */}
-                <div className="flex items-center gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className={`w-3 h-3 ${i < 4 ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}`} />
-                  ))}
-                  <span className="text-xs text-gray-500 ml-1">(4.0)</span>
-                </div>
+
 
                 {/* Price */}
                 <div className="flex items-center gap-2 mb-3">

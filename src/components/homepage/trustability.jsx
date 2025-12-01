@@ -36,21 +36,21 @@ export default function Trustability() {
 
   return (
     <section className="py-8 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6">
         <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
           {features.map((feature, index) => (
             <div 
               key={index} 
               className="flex items-center gap-3 text-center md:text-left"
             >
-              <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 bg-teal-100 rounded-full">
                 <feature.icon className="w-6 h-6 text-teal-600" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900 text-sm">
+                <h4 className="text-sm font-semibold text-gray-900">
                   {feature.title}
                 </h4>
-                <p className="text-gray-500 text-xs">
+                <p className="text-xs text-gray-500">
                   {feature.desc}
                 </p>
               </div>
@@ -60,4 +60,4 @@ export default function Trustability() {
       </div>
     </section>
   );
-}
+} 

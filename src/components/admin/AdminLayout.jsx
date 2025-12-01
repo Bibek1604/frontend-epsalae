@@ -7,6 +7,7 @@ import OrderCrud from './ordercrud'
 import PromoCodCrud from './promocodecrud'
 import FlashSaleCrud from './flashsale'
 import BannerCrud from './bannercrud'
+import BrandCrud from './brandcrud'
 
 export default function AdminLayout() {
   return (
@@ -23,6 +24,7 @@ export default function AdminLayout() {
           <Route path="/promocodecrud" element={<PromoCodCrud />} />
           <Route path="/flashsalecrud" element={<FlashSaleCrud />} />
           <Route path="/bannercrud" element={<BannerCrud />} />
+          <Route path="/brandcrud" element={<BrandCrud />} />
         </Routes>
       </div>
     </div>
