@@ -5,6 +5,7 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, AlertCircle, CheckCircle, 
 import { useCart } from '@/store/cartstore'
 import { promocode } from '../components/api/promocode'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getImageUrl } from '@/config'
 
 export default function Cart() {
   const navigate = useNavigate()
@@ -102,16 +103,17 @@ export default function Cart() {
                 className="p-6 transition bg-white border border-gray-200 rounded- rounded-2xl hover:border-gray-300"
               >
                 <div className="flex gap-6">
-                  <div className="flex-shrink-0 w-32 h-32 overflow-hidden bg-gray-100 rounded-xl">
+                  <div className="shrink-0 w-32 h-32 overflow-hidden bg-gray-100 rounded-xl">
                     <img
-                      src={item.image || 'https://via.placeholder.com/150'}
+                      src={getImageUrl(item.image, 'https://via.placeholder.com/150')}
                       alt={item.name}
-                      className="object-cover w-full h-full transition duration-700 grayscale hover:grayscale-0"
+                      className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
+                      onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=No+Image' }}
                     />
                   </div>
 
-                  <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-medium text-gray-900">{item.name}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="mb-2 text-xl font-medium text-gray-900 line-clamp-2">{item.name}</h3>
                     
                     {(item.color || item.size) && (
                       <p className="mb-3 text-sm text-gray-500">

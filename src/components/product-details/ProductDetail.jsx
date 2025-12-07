@@ -7,13 +7,16 @@ import {
 } from 'lucide-react'
 import { useCart } from '@/store/cartstore'
 import { productApi } from '../api/productapi'
+import { useCategoryStore } from '../store/categorystore'
 import { getImageUrl } from '@/config'
 import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 
 export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { addToCart } = useCart()
+  const { categories, fetchCategories } = useCategoryStore()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -23,6 +26,8 @@ export default function ProductDetail() {
   const [isAdded, setIsAdded] = useState(false)
 
   useEffect(() => {
+    fetchCategories() // Fetch categories to get category name
+    
     const fetchProductDetail = async () => {
       try {
         const res = await productApi.getById(id)
@@ -40,8 +45,32 @@ export default function ProductDetail() {
     fetchProductDetail()
   }, [id])
 
+  // Helper to get category name
+  const getCategoryName = () => {
+    if (!product) return 'General'
+    
+    // If category is populated as object with name
+    if (product.category?.name) return product.category.name
+    
+    // Get category ID from various possible fields
+    const catId = product.category_id || product.categoryId || product.category?._id || product.category?.id || product.category
+    
+    if (!catId) return 'General'
+    
+    // Find category by ID
+    const foundCat = categories.find(c => 
+      c._id === catId || c.id === catId || 
+      String(c._id) === String(catId) || String(c.id) === String(catId)
+    )
+    
+    return foundCat?.name || 'General'
+  }
+
   const handleAddToCart = () => {
-    if (!product || product.stock === 0) return
+    if (!product || product.stock === 0) {
+      toast.error('This product is out of stock')
+      return
+    }
     
     addToCart({
       id: product._id || product.id,
@@ -138,7 +167,7 @@ export default function ProductDetail() {
               <img
                 src={mainImage}
                 alt={product.name}
-                className="object-contain w-full h-full transition-all duration-1000 grayscale hover:grayscale-0"
+                className="object-contain w-full h-full transition-transform duration-500 hover:scale-105"
                 onError={(e) => e.target.src = 'https://via.placeholder.com/800'}
               />
             </motion.div>
@@ -159,7 +188,7 @@ export default function ProductDetail() {
               {/* Category & Stock */}
               <div className="flex items-center gap-3 mb-6">
                 <span className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-full">
-                  {product.category?.name || 'Uncategorized'}
+                  {getCategoryName()}
                 </span>
                 {product.stock > 0 ? (
                   <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-full">
@@ -243,7 +272,7 @@ export default function ProductDetail() {
                 <button
                   onClick={handleAddToCart}
                   disabled={product.stock === 0}
-                  className={`py-5 rounded-xl font-semibold text-white rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-3 text-lg ${
+                  className={`py-5 rounded-xl font-semibold text-white transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-3 text-lg ${
                     isAdded 
                       ? 'bg-emerald-600 hover:bg-emerald-700' 
                       : 'bg-emerald-600 hover:bg-emerald-700'

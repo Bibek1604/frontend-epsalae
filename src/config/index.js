@@ -1,13 +1,43 @@
 // Global Configuration
-// Change this URL when deploying to production
+// Uses environment variables for flexibility across deployments
 
-export const API_BASE_URL = 'http://localhost:5000';
+// API Configuration - Uses environment variable with fallback
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://backend-epasal.onrender.com';
 export const API_URL = `${API_BASE_URL}/api/v1`;
 
+// App Configuration
+export const APP_NAME = import.meta.env.VITE_APP_NAME || 'Epasaley';
+export const APP_DESCRIPTION = import.meta.env.VITE_APP_DESCRIPTION || "Nepal's Trusted Online Store";
+
+// Environment check
+export const isDevelopment = import.meta.env.DEV;
+export const isProduction = import.meta.env.PROD;
+
+// Default placeholder image
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600';
+
 // Helper function to get full image URL
-export const getImageUrl = (imageUrl, placeholder = 'https://via.placeholder.com/400x400?text=No+Image') => {
-  if (!imageUrl) return placeholder;
-  return imageUrl.startsWith('http') ? imageUrl : `${API_BASE_URL}${imageUrl}`;
+// Handles: Cloudinary URLs, old local paths, and missing images
+export const getImageUrl = (imagePath, placeholder = PLACEHOLDER) => {
+  if (!imagePath) return placeholder;
+  
+  // Already a full URL (Cloudinary, Unsplash, etc.) - use directly
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+  
+  // Old local path (/uploads/...) - these images are lost, show placeholder
+  // User needs to re-upload via admin panel to get Cloudinary URL
+  if (imagePath.startsWith('/uploads')) {
+    // Only warn in development to keep production console clean
+    if (isDevelopment) {
+      console.warn('⚠️ Old local image path detected. Please re-upload this image:', imagePath);
+    }
+    return placeholder;
+  }
+  
+  // Fallback for any other paths
+  return placeholder;
 };
 
 // ============================================

@@ -47,15 +47,22 @@ export const categoryApi = {
   update: (id, data) => {
     const formData = new FormData();
     formData.append('name', data.name);
-    formData.append('description', data.description);
-    formData.append('isActive', data.isActive);
+    formData.append('description', data.description || '');
+    formData.append('isActive', data.isActive?.toString() || 'true');
     
-    // Convert base64 to File if present
-    if (data.imageUrl && data.imageUrl.includes('data:image')) {
-      const file = base64ToFile(data.imageUrl, 'category-image.png');
-      if (file) {
-        console.log('📤 Uploading updated image file:', { name: file.name, size: file.size, type: file.type });
-        formData.append('image', file); // Backend expects 'image' field name
+    // Handle image - either new base64/file upload or existing URL
+    if (data.imageUrl) {
+      if (data.imageUrl.includes('data:image')) {
+        // New image uploaded as base64 - convert to file
+        const file = base64ToFile(data.imageUrl, 'category-image.png');
+        if (file) {
+          console.log('📤 Uploading new category image:', { name: file.name, size: file.size, type: file.type });
+          formData.append('image', file);
+        }
+      } else if (data.imageUrl.startsWith('http')) {
+        // Existing Cloudinary URL - pass it to backend to preserve
+        console.log('📤 Keeping existing image URL:', data.imageUrl);
+        formData.append('imageUrl', data.imageUrl);
       }
     }
     
@@ -65,5 +72,8 @@ export const categoryApi = {
     });
   },
   
-  remove: (id) => api.delete(`/categories/${id}`),
+  remove: (id) => {
+    console.log('🗑️ API: Deleting category with ID:', id);
+    return api.delete(`/categories/${id}`);
+  },
 };

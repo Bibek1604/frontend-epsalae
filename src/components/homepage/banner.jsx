@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useBannerStore } from '../store/bannerstore'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Zap } from 'lucide-react'
+import { API_BASE_URL } from '@/config'
 
 export default function Banner() {
   const { banners, loading, fetchBanners } = useBannerStore()
@@ -32,22 +33,14 @@ export default function Banner() {
         return {
           imageUrl: banner.imageUrl?.startsWith('http')
             ? banner.imageUrl
-            : `http://localhost:5000${banner.imageUrl}`,
+            : `${API_BASE_URL}${banner.imageUrl}`,
           title: banner.title || "EPASALEY",
           subtitle: banner.subtitle || "Premium • Authentic • Delivered Fast",
           badge: banner.badge || "EXCLUSIVE",
           cta: banner.buttonText || "SHOP NOW"
         }
       })
-    : [
-        {
-          imageUrl: "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=2000&h=1000&fit=crop",
-          title: "EPASALEY",
-          subtitle: "Luxury Redefined • Nepal's #1",
-          badge: "NEW SEASON",
-          cta: "EXPLORE NOW"
-        }
-      ]
+    : []  // No fallback - only show banners from backend
 
   useEffect(() => {
     if (slides.length < 2) return
@@ -61,6 +54,9 @@ export default function Banner() {
   const next = () => setCurrent(c => (c + 1) % slides.length)
 
   if (loading) return null
+  
+  // Don't show banner section if no banners from backend
+  if (slides.length === 0) return null
 
   return (
     <div className="relative h-96 md:h-[520px] lg:h-[560px] overflow-hidden bg-black">
@@ -92,8 +88,8 @@ export default function Banner() {
             alt={slides[current].title}
             className="w-full h-full object-cover brightness-[0.45] scale-110"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-black/10" />
 
           <div className="relative flex items-center justify-start h-full px-6 md:px-16 lg:px-24">
             <div className="max-w-5xl">
@@ -136,24 +132,22 @@ export default function Banner() {
                 {slides[current].subtitle}
               </motion.p>
 
-              {/* CTA FROM BACKEND – SAME BUTTON */}
+              {/* CTA FROM BACKEND – Enhanced Button */}
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 2.2, type: "spring", stiffness: 80 }}
                 className="mt-16"
               >
-                <button className="relative px-24 py-12 overflow-hidden text-4xl font-black text-black bg-white rounded-full group md:text-5xl shadow-4xl">
-                  <span className="relative z-10 flex items-center gap-6">
+                <button 
+                  onClick={() => window.location.href = '/products'}
+                  className="relative px-16 py-8 overflow-hidden text-2xl font-black text-black bg-white rounded-full md:px-24 md:py-10 md:text-4xl group shadow-2xl hover:shadow-[0_20px_60px_rgba(255,107,53,0.4)] transition-all duration-500"
+                >
+                  <span className="relative z-10 flex items-center gap-4 transition-colors duration-500 group-hover:text-white">
                     {slides[current].cta}
-                    <ChevronRight className="w-12 h-12 transition-transform duration-300 group-hover:translate-x-6" />
+                    <ChevronRight className="w-8 h-8 transition-transform duration-300 md:w-12 md:h-12 group-hover:translate-x-4" />
                   </span>
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-[#FF6B35] to-[#1A3C8A]"
-                    initial={{ x: "-100%" }}
-                    whileHover={{ x: 0 }}
-                    transition={{ duration: 0.6 }}
-                  />
+                  <div className="absolute inset-0 transition-transform duration-500 origin-left scale-x-0 bg-gradient-to-r from-[#FF6B35] to-[#1A3C8A] group-hover:scale-x-100" />
                 </button>
               </motion.div>
             </div>

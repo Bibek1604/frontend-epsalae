@@ -67,11 +67,15 @@ export default function BrandCrud() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={resetBrands}
-            className="flex items-center gap-2 px-4 py-2 text-gray-700 transition bg-gray-100 rounded-lg hover:bg-gray-200"
+            onClick={() => {
+              if (window.confirm('Are you sure you want to delete ALL brands?')) {
+                resetBrands();
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-red-700 transition bg-red-100 rounded-lg hover:bg-red-200"
           >
-            <RefreshCw className="w-4 h-4" />
-            Reset to Default
+            <Trash2 className="w-4 h-4" />
+            Clear All
           </button>
           <button
             onClick={openAddModal}

@@ -1,34 +1,67 @@
 // src/components/Footer.jsx
 import { Link } from "react-router-dom"
-import { HelpCircle, Phone, Mail, Linkedin, Twitter, Facebook, ChevronRight, Package, Truck, Shield, CreditCard } from "lucide-react"
+import { HelpCircle, Phone, Mail, ChevronRight, Package, Truck, Shield, CreditCard, Instagram, MapPin, Clock } from "lucide-react"
 import logo from "../../assets/logo1080.png"
+import { motion } from "framer-motion"
+
+// TikTok Icon Component
+const TikTokIcon = ({ className }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+  </svg>
+)
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-gray-200 bg-gray-50">
-      {/* Top Help Section - Premium Dark */}
- 
+    <footer className="border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
+      {/* Newsletter Section */}
+      <div className="px-6 py-16 mx-auto max-w-7xl">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="relative p-8 overflow-hidden md:p-12 rounded-3xl bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35]"
+        >
+          {/* Decorative circles */}
+          <div className="absolute w-64 h-64 rounded-full -top-20 -right-20 bg-white/10" />
+          <div className="absolute w-32 h-32 rounded-full -bottom-10 -left-10 bg-white/10" />
+          
+          <div className="relative flex flex-col items-center justify-between gap-8 md:flex-row">
+            <div className="text-center md:text-left">
+              <h3 className="mb-2 text-2xl font-bold text-white md:text-3xl">Stay Updated!</h3>
+              <p className="text-white/80">Subscribe for exclusive deals and updates</p>
+            </div>
+            <form className="flex w-full max-w-md gap-3">
+              <input 
+                type="email" 
+                placeholder="Enter your email" 
+                className="flex-1 px-6 py-4 text-gray-900 bg-white rounded-xl focus:outline-none focus:ring-4 focus:ring-white/30"
+              />
+              <button className="px-8 py-4 font-bold text-[#1A3C8A] transition-all bg-white rounded-xl hover:shadow-lg hover:scale-105 btn-press">
+                Subscribe
+              </button>
+            </form>
+          </div>
+        </motion.div>
+      </div>
 
-      {/* Main Footer - Clean White */}
+      {/* Main Footer */}
       <div className="bg-white">
-        <div className="px-6 py-20 mx-auto max-w-7xl">
+        <div className="px-6 py-16 mx-auto max-w-7xl">
 
           <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-5">
 
             {/* Brand Column */}
             <div className="lg:col-span-2">
               {/* Logo */}
-              <Link to="/" className="flex items-center gap-3 mb-8 group">
-                <div className="relative">
-                  <img 
-                    src={logo} 
-                    alt="Epasaley Logo" 
-                    className="object-contain w-20 h-20"
-                  />
-                </div>
-                <span className="text-3xl font-light tracking-tight text-gray-900">Epasaley</span>
+              <Link to="/" className="flex items-center mb-8 group">
+                <img 
+                  src={logo} 
+                  alt="Epasaley Logo" 
+                  className="object-contain w-36 h-36"
+                />
               </Link>
 
               <p className="max-w-md mb-10 text-lg leading-relaxed text-gray-600">
@@ -51,16 +84,13 @@ export default function Footer() {
                 </div>
               </div>
 
-              {/* Social Icons */}
-              <div className="flex gap-4">
-                <a href="#" className="p-3 transition bg-gray-100 rounded-xl hover:bg-gray-200">
-                  <Facebook className="w-5 h-5 text-gray-700" />
+              {/* Social Icons - Enhanced */}
+              <div className="flex gap-3">
+                <a href="https://www.instagram.com/selection.clo?igsh=MW1oNGMwdWc0OHp4ag==" target="_blank" rel="noopener noreferrer" className="p-3 transition-all bg-gray-100 rounded-xl hover:bg-gradient-to-tr hover:from-[#833AB4] hover:via-[#FD1D1D] hover:to-[#F77737] hover:text-white group">
+                  <Instagram className="w-5 h-5" />
                 </a>
-                <a href="#" className="p-3 transition bg-gray-100 rounded-xl hover:bg-gray-200">
-                  <Twitter className="w-5 h-5 text-gray-700" />
-                </a>
-                <a href="#" className="p-3 transition bg-gray-100 rounded-xl hover:bg-gray-200">
-                  <Linkedin className="w-5 h-5 text-gray-700" />
+                <a href="https://www.tiktok.com/@selection.clo?_r=1&_t=ZS-921wQD0ntWS" target="_blank" rel="noopener noreferrer" className="p-3 transition-all bg-gray-100 rounded-xl hover:bg-black hover:text-white group">
+                  <TikTokIcon className="w-5 h-5" />
                 </a>
               </div>
             </div>
@@ -113,17 +143,20 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom Bar */}
-      <div className="text-gray-400 bg-gray-900">
+      {/* Bottom Bar - Enhanced */}
+      <div className="bg-gray-900">
         <div className="px-6 py-8 mx-auto max-w-7xl">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <p className="text-sm">
-              © {currentYear} Epasaley. All rights reserved. Made with love in Nepal
-            </p>
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-[#FF6B35]" />
+              <p className="text-sm text-gray-400">
+                © {currentYear} <span className="font-semibold text-white">Epasaley</span>. All rights reserved. Made with ❤️ in Nepal
+              </p>
+            </div>
             <div className="flex items-center gap-8 text-sm">
-              <a href="#" className="transition hover:text-white">Privacy Policy</a>
-              <a href="#" className="transition hover:text-white">Terms of Service</a>
-              <a href="#" className="transition hover:text-white">Cookie Policy</a>
+              <a href="#" className="text-gray-400 transition hover:text-white">Privacy Policy</a>
+              <a href="#" className="text-gray-400 transition hover:text-white">Terms of Service</a>
+              <a href="#" className="text-gray-400 transition hover:text-white">Cookie Policy</a>
             </div>
           </div>
         </div>

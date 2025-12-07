@@ -12,6 +12,23 @@ import { useCart } from '../store/cartstore';
 import { getImageUrl as getImage } from '@/config';
 import toast from 'react-hot-toast';
 
+// Fallback image for failed loads
+const PRODUCT_PLACEHOLDER = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600';
+
+// Image component with error handling
+function ProductImg({ src, alt, className }) {
+  const [imgSrc, setImgSrc] = useState(src);
+  return (
+    <img
+      src={imgSrc}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      onError={() => setImgSrc(PRODUCT_PLACEHOLDER)}
+    />
+  );
+}
+
 export default function Products() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,10 +53,11 @@ export default function Products() {
   const filteredProducts = useMemo(() => {
     let result = products ? [...products] : [];
 
+    // Filter by selected category (if not 'all')
     if (selectedCategory !== 'all') {
       result = result.filter(p => {
-        const catId = p.category?.id || p.category?._id || p.category;
-        return catId === selectedCategory;
+        const catId = p.category_id || p.categoryId || p.category?._id || p.category?.id || p.category;
+        return catId === selectedCategory || String(catId) === String(selectedCategory);
       });
     }
 
@@ -60,9 +78,29 @@ export default function Products() {
     .sort((a, b) => (b.sold || 0) - (a.sold || 0))
     .slice(0, 10);
 
+  // Helper to get category name for a product
+  const getCategoryName = (product) => {
+    if (product.category?.name) return product.category.name;
+    const catId = product.category_id || product.categoryId || product.category?._id || product.category?.id || product.category;
+    if (!catId) return 'General';
+    const foundCat = categories.find(c => 
+      c._id === catId || c.id === catId || 
+      String(c._id) === String(catId) || String(c.id) === String(catId)
+    );
+    return foundCat?.name || 'General';
+  };
+
+  // Helper to count products in a category
+  const getProductCountForCategory = (categoryId) => {
+    return products?.filter(p => {
+      const catId = p.category_id || p.categoryId || p.category?._id || p.category?.id || p.category;
+      return catId === categoryId || String(catId) === String(categoryId);
+    }).length || 0;
+  };
+
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
-    if (product.stock <= 0) return toast.error('Out of stock');
+    if (product.stock <= 0) return toast.error('Out of stock', { icon: '❌' });
     addToCart({
       id: product.id || product._id,
       name: product.name,
@@ -70,7 +108,6 @@ export default function Products() {
       image: product.imageUrl,
       quantity: 1
     });
-    toast.success('Added to cart');
   };
 
   const currentCategoryName = selectedCategory === 'all'
@@ -111,39 +148,7 @@ export default function Products() {
           </div>
         </header>
 
-        {/* Most Popular - Horizontal Luxury Rail */}
-        {popularProducts.length > 3 && (
-          <section className="py-12 bg-white border-b border-gray-200">
-            <div className="px-6 mx-auto max-w-7xl">
-              <h2 className="mb-8 text-2xl font-medium text-gray-900">Most Popular</h2>
-              <div className="flex gap-8 pb-4 overflow-x-auto scrollbar-hide">
-                {popularProducts.slice(0, 8).map(product => (
-                  <motion.div
-                    key={product._id}
-                    whileHover={{ y: -8 }}
-                    onClick={() => navigate(`/product/${product.id || product._id}`)}
-                    className="flex-shrink-0 cursor-pointer w-80"
-                  >
-                    <div className="bg-gray-100 rounded-2xl overflow-hidden aspect-[4/3]">
-                      <img
-                        src={getImage(product.imageUrl)}
-                        alt={product.name}
-                        className="object-cover w-full h-full transition-all duration-700 grayscale hover:grayscale-0"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="mt-6">
-                      <h4 className="text-lg font-medium text-gray-900">{product.name}</h4>
-                      <p className="mt-2 text-2xl font-light text-gray-900">
-                        ₹{(product.discountPrice || product.price).toLocaleString()}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+
 
         <div className="px-6 py-12 mx-auto max-w-7xl">
           <div className="grid grid-cols-1 gap-16 lg:grid-cols-4">
@@ -166,12 +171,13 @@ export default function Products() {
                       All Products
                     </button>
                     {categories.map(cat => {
-                      const count = products?.filter(p => (p.category?.id || p.category?._id) === (cat.id || cat._id)).length || 0;
-                      const active = selectedCategory === (cat.id || cat._id);
+                      const catId = cat.id || cat._id;
+                      const count = getProductCountForCategory(catId);
+                      const active = selectedCategory === catId || String(selectedCategory) === String(catId);
                       return (
                         <button
-                          key={cat.id || cat._id}
-                          onClick={() => setSelectedCategory(cat.id || cat._id)}
+                          key={catId}
+                          onClick={() => setSelectedCategory(catId)}
                           className={`block w-full text-left py-3 px-4 rounded-lg font-medium transition ${
                             active ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-700'
                           }`}
@@ -258,12 +264,11 @@ export default function Products() {
                       className="cursor-pointer group"
                     >
                       <div className="overflow-hidden transition bg-white border border-gray-200 rounded-2xl hover:border-gray-300">
-                        <div className="overflow-hidden aspect-square bg-gray-50">
-                          <img
+                        <div className="relative overflow-hidden aspect-square bg-gray-50">
+                          <ProductImg
                             src={getImage(product.imageUrl)}
                             alt={product.name}
-                            className="object-cover w-full h-full transition-all duration-1000 grayscale group-hover:grayscale-0"
-                            loading="lazy"
+                            className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                           />
                           {product.stock < 20 && product.stock > 0 && (
                             <div className="absolute px-3 py-1 text-xs font-semibold text-white bg-gray-900 rounded-full top-4 left-4">
@@ -280,9 +285,9 @@ export default function Products() {
 
                         <div className="p-8">
                           <p className="text-sm font-medium tracking-wider text-gray-500 uppercase">
-                            {product.category?.name || 'Collection'}
+                            {getCategoryName(product)}
                           </p>
-                          <h3 className="mt-3 text-xl font-medium text-gray-900 transition group-hover:text-gray-700">
+                          <h3 className="mt-3 text-xl font-medium text-gray-900 transition group-hover:text-gray-700 line-clamp-2" title={product.name}>
                             {product.name}
                           </h3>
                           <div className="flex items-center justify-between mt-6">

@@ -59,6 +59,8 @@ export default function FlashSaleCRUD() {
         isActive: form.isActive,
       };
 
+      console.log('📤 Saving flash sale with payload:', payload);
+
       if (editingFlashSale) {
         await updateFlashSale(editingFlashSale._id || editingFlashSale.id, payload);
         toast.success('Flash sale updated!');
@@ -70,7 +72,8 @@ export default function FlashSaleCRUD() {
       closeModal();
       fetchFlashSales();
     } catch (err) {
-      toast.error(err.message || 'Failed to save');
+      console.error('❌ Flash sale save error:', err);
+      toast.error(err.message || 'Failed to save flash sale');
     }
   };
 
@@ -204,7 +207,12 @@ export default function FlashSaleCRUD() {
                           <td className="px-8 py-6">
                             <div className="flex items-center gap-4">
                               {product?.imageUrl ? (
-                                <img src={getImageUrl(product.imageUrl)} alt={product.name} className="object-cover shadow w-14 h-14 rounded-xl" />
+                                <img 
+                                  src={getImageUrl(product.imageUrl)} 
+                                  alt={product.name} 
+                                  className="object-cover shadow w-14 h-14 rounded-xl"
+                                  onError={(e) => { e.target.style.display = 'none' }}
+                                />
                               ) : (
                                 <div className="flex items-center justify-center bg-gray-200 w-14 h-14 rounded-xl">
                                   <Package className="w-8 h-8 text-gray-400" />

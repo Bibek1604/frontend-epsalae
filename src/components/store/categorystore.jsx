@@ -13,6 +13,11 @@ export const useCategoryStore = create((set) => ({
       const res = await categoryApi.getAll();
       // Handle both direct array and wrapped response
       const data = res.data?.data || res.data || [];
+      console.log('📦 Categories fetched:', { count: data.length });
+      // Log first category to see the FULL structure
+      if (data.length > 0) {
+        console.log('📦 FULL Category structure:', JSON.stringify(data[0], null, 2));
+      }
       set({ categories: Array.isArray(data) ? data : [] });
     } catch (err) {
       console.error('❌ Error fetching categories:', err);
@@ -48,17 +53,26 @@ export const useCategoryStore = create((set) => ({
   updateCategory: async (id, data) => {
     set({ loading: true });
     try {
+      console.log('✏️ Updating category with ID:', id);
       const res = await categoryApi.update(id, data);
       // Handle both direct data and wrapped response
       const category = res.data?.data || res.data;
+      console.log('✅ Category updated:', category);
       if (category) {
         set((state) => ({
-          categories: state.categories.map((c) => ((c.id || c._id) === id ? category : c)),
+          categories: state.categories.map((c) => {
+            const catId = c.id || c._id;
+            if (catId === id) {
+              return category;
+            }
+            return c;
+          }),
         }));
       }
       return category;
     } catch (err) {
       console.error('❌ Error updating category:', err);
+      console.error('❌ Error response:', err.response?.data);
       throw err;
     } finally {
       set({ loading: false });
@@ -68,13 +82,15 @@ export const useCategoryStore = create((set) => ({
   deleteCategory: async (id) => {
     set({ loading: true });
     try {
+      console.log('🗑️ Store: Deleting category:', id);
       const res = await categoryApi.remove(id);
-      console.log('🗑️ Delete response:', res);
+      console.log('✅ Delete response:', res);
       set((state) => ({ categories: state.categories.filter((c) => (c.id || c._id) !== id) }));
       return res;
     } catch (err) {
       console.error('❌ Error deleting category:', err);
-      set({ error: err.message || 'Failed to delete category' });
+      console.error('❌ Error response:', err.response?.data);
+      set({ error: err.response?.data?.message || err.message || 'Failed to delete category' });
       throw err;
     } finally {
       set({ loading: false });

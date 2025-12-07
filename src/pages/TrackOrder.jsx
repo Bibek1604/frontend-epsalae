@@ -1,7 +1,96 @@
-import { useState } from 'react';
-import { Search, Package, Truck, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Search, Package, Truck, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, ShoppingBag, ArrowLeft, FileText, Download, Printer, Calendar, CreditCard, Hash } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { orderApi } from '../components/api/orderapi';
+import { API_URL } from '../config';
+
+// Helper function to normalize order data from backend
+const normalizeOrder = (rawOrder) => {
+  if (!rawOrder) return null;
+  
+  // Get customer name
+  const customerName = rawOrder.name || 
+    (rawOrder.first_name && rawOrder.last_name ? `${rawOrder.first_name} ${rawOrder.last_name}` : null) ||
+    (rawOrder.firstName && rawOrder.lastName ? `${rawOrder.firstName} ${rawOrder.lastName}` : null) ||
+    rawOrder.customerName || 
+    rawOrder.customer?.name || 
+    'N/A';
+  
+  // Get phone
+  const customerPhone = rawOrder.phone || 
+    rawOrder.customerPhone || 
+    rawOrder.customer?.phone || 
+    rawOrder.mobile || 
+    'N/A';
+  
+  // Get address
+  const customerAddress = rawOrder.address || 
+    rawOrder.shippingAddress || 
+    rawOrder.shipping_address || 
+    rawOrder.customer?.address || 
+    'N/A';
+  
+  // Get city and district
+  const city = rawOrder.city || rawOrder.customer?.city || '';
+  const district = rawOrder.district || rawOrder.customer?.district || '';
+  
+  // Get order ID
+  const orderId = rawOrder.orderId || rawOrder.order_id || rawOrder.id || rawOrder._id || '';
+  
+  // Get order date
+  const orderDate = rawOrder.created_at || rawOrder.createdAt || rawOrder.orderDate || rawOrder.order_date || null;
+  
+  // Get items - handle different possible structures
+  let items = [];
+  if (Array.isArray(rawOrder.items)) {
+    items = rawOrder.items;
+  } else if (Array.isArray(rawOrder.orderItems)) {
+    items = rawOrder.orderItems;
+  } else if (Array.isArray(rawOrder.products)) {
+    items = rawOrder.products;
+  }
+  
+  // Normalize items
+  const normalizedItems = items.map(item => ({
+    name: item.name || item.productName || item.product?.name || 'Product',
+    quantity: item.quantity || item.qty || 1,
+    price: item.price || item.unitPrice || item.product?.price || 0,
+    imageUrl: item.imageUrl || item.image || item.product?.imageUrl || item.product?.image || '',
+  }));
+  
+  // Get total
+  const totalAmount = rawOrder.totalAmount || rawOrder.total || rawOrder.total_amount || rawOrder.grandTotal || 0;
+  
+  // Get payment method
+  const paymentMethod = rawOrder.paymentMethod || rawOrder.payment_method || 'cod';
+  
+  // Get status
+  const status = rawOrder.status || 'pending';
+  
+  // Get shipping
+  const shipping = rawOrder.shipping || rawOrder.shippingFee || rawOrder.shipping_fee || 0;
+  
+  // Get description/notes
+  const description = rawOrder.description || rawOrder.notes || rawOrder.note || '';
+
+  return {
+    ...rawOrder,
+    // Normalized fields
+    customerName,
+    customerPhone,
+    customerAddress,
+    city,
+    district,
+    orderId,
+    orderDate,
+    items: normalizedItems,
+    totalAmount,
+    paymentMethod,
+    status,
+    shipping,
+    description,
+  };
+};
 
 export default function TrackOrder() {
   const [orderId, setOrderId] = useState('');
@@ -10,6 +99,8 @@ export default function TrackOrder() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const [showBill, setShowBill] = useState(false);
+  const billRef = useRef(null);
 
   const statusConfig = {
     pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300', icon: Clock, label: 'Pending', description: 'Your order has been received and is being reviewed.' },
@@ -38,30 +129,43 @@ export default function TrackOrder() {
       // Backend: GET /api/v1/orders/track/:orderId
       const res = await orderApi.trackById(orderId.trim());
       console.log('📦 Track response:', res.data);
-      const fetchedOrder = res.data?.data || res.data;
+      console.log('📦 Full response object:', JSON.stringify(res.data, null, 2));
       
-      console.log('📱 Order phone from DB:', fetchedOrder?.phone);
+      // Handle different response structures
+      let fetchedOrder = res.data?.data || res.data?.order || res.data;
+      
+      // If the order data is nested further
+      if (fetchedOrder && typeof fetchedOrder === 'object') {
+        console.log('📦 Fetched order keys:', Object.keys(fetchedOrder));
+        console.log('📦 Fetched order:', JSON.stringify(fetchedOrder, null, 2));
+      }
+      
+      // Normalize the order data
+      const normalizedOrder = normalizeOrder(fetchedOrder);
+      console.log('📦 Normalized order:', normalizedOrder);
+      
+      // Get phone for verification
+      const dbPhone = normalizedOrder?.customerPhone;
+      console.log('📱 Order phone from DB:', dbPhone);
       console.log('📱 User entered phone:', phone.trim());
 
       // Normalize phone numbers for comparison (remove spaces, dashes, +977 prefix)
-      const normalizePhone = (p) => {
-        if (!p) return '';
+      const normalizePhoneNumber = (p) => {
+        if (!p || p === 'N/A') return '';
         return p.toString().replace(/[\s\-\+]/g, '').replace(/^977/, '').replace(/^0/, '');
       };
       
-      const orderPhone = normalizePhone(fetchedOrder?.phone);
-      const inputPhone = normalizePhone(phone);
+      const orderPhone = normalizePhoneNumber(dbPhone);
+      const inputPhone = normalizePhoneNumber(phone);
       
       console.log('📱 Normalized order phone:', orderPhone);
       console.log('📱 Normalized input phone:', inputPhone);
 
       // Verify phone number matches for security (flexible comparison)
-      if (fetchedOrder && orderPhone && inputPhone && orderPhone.includes(inputPhone.slice(-10))) {
-        setOrder(fetchedOrder);
-      } else if (fetchedOrder && !fetchedOrder.phone) {
-        // If order doesn't have phone stored, show the order anyway
-        setOrder(fetchedOrder);
-      } else if (fetchedOrder) {
+      // Also allow if no phone is in database or phones match
+      if (normalizedOrder && (!orderPhone || orderPhone.includes(inputPhone.slice(-10)) || inputPhone.includes(orderPhone.slice(-10)))) {
+        setOrder(normalizedOrder);
+      } else if (normalizedOrder) {
         setError('Phone number does not match the order. Please check and try again.');
       } else {
         setError('No order found with this Order ID.');
@@ -90,6 +194,58 @@ export default function TrackOrder() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Print Bill Function
+  const handlePrintBill = () => {
+    const printContent = billRef.current;
+    if (!printContent) return;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Order Invoice - #${(order.orderId || order.id || order._id)}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: #fff; }
+            .invoice-container { max-width: 800px; margin: 0 auto; }
+            .header { text-align: center; border-bottom: 2px solid #16a34a; padding-bottom: 20px; margin-bottom: 20px; }
+            .header h1 { color: #16a34a; font-size: 28px; margin-bottom: 5px; }
+            .header p { color: #666; font-size: 12px; }
+            .order-id { background: #f0fdf4; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+            .order-id h2 { color: #16a34a; font-size: 24px; font-family: monospace; }
+            .order-id p { color: #666; font-size: 12px; margin-top: 5px; }
+            .section { margin-bottom: 20px; }
+            .section-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .info-box { background: #f9fafb; padding: 15px; border-radius: 8px; }
+            .info-box label { font-size: 11px; color: #666; text-transform: uppercase; }
+            .info-box p { font-size: 14px; color: #111; margin-top: 5px; }
+            .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .items-table th { background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; color: #666; }
+            .items-table td { padding: 12px 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+            .items-table .item-name { font-weight: 500; }
+            .items-table .item-price { text-align: right; font-weight: 600; }
+            .summary { background: #f0fdf4; padding: 15px; border-radius: 8px; margin-top: 20px; }
+            .summary-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+            .summary-row.total { border-top: 2px solid #16a34a; margin-top: 10px; padding-top: 10px; font-size: 16px; font-weight: bold; color: #16a34a; }
+            .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 11px; }
+            .status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+            .status-pending { background: #fef3c7; color: #92400e; }
+            .status-processing { background: #dbeafe; color: #1e40af; }
+            .status-shipped { background: #e9d5ff; color: #7c3aed; }
+            .status-delivered { background: #dcfce7; color: #16a34a; }
+            .status-cancelled { background: #fee2e2; color: #dc2626; }
+          </style>
+        </head>
+        <body>${printContent.innerHTML}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   };
 
   const getStatusIndex = (status) => statusFlow.indexOf(status);
@@ -228,93 +384,182 @@ export default function TrackOrder() {
               )}
             </div>
 
-            {/* Order Info */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Customer & Shipping */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5 text-green-600" />
-                  Shipping Details
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-gray-500">Name</p>
-                    <p className="font-medium text-gray-900">
-                      {order.first_name && order.last_name 
-                        ? `${order.first_name} ${order.last_name}` 
-                        : order.name || 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Phone</p>
-                    <p className="font-medium text-gray-900">{order.phone || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Address</p>
-                    <p className="font-medium text-gray-900">{order.address || 'N/A'}</p>
-                    <p className="text-gray-600">{order.city}, {order.district}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Order Summary */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-green-600" />
-                  Order Summary
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Order ID</span>
-                    <span className="font-mono text-gray-900">#{(order.id || order._id)?.toString().slice(-8)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Order Date</span>
-                    <span className="text-gray-900">{formatDate(order.created_at)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Items</span>
-                    <span className="text-gray-900">{order.items?.length || 0} items</span>
-                  </div>
-                  <div className="border-t pt-3 flex justify-between">
-                    <span className="font-semibold text-gray-900">Total</span>
-                    <span className="font-bold text-green-600 text-lg">Rs. {(order.totalAmount || 0).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Order Items */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Order Items</h3>
-              <div className="space-y-4">
-                {order.items?.map((item, index) => (
-                  <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                    {item.imageUrl && (
-                      <img 
-                        src={item.imageUrl} 
-                        alt={item.name} 
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{item.name || 'Product'}</p>
-                      <p className="text-gray-500 text-sm">Qty: {item.quantity || 1}</p>
+            {/* Animated Status Section */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 overflow-hidden">
+              {/* Status Animation Based on Current Status */}
+              {order.status === 'pending' && (
+                <div className="relative">
+                  <div className="flex flex-col items-center py-8">
+                    {/* Pulsing Clock Animation */}
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 bg-yellow-400 rounded-full animate-ping opacity-25"></div>
+                      <div className="absolute inset-0 bg-yellow-300 rounded-full animate-pulse"></div>
+                      <div className="relative w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                        <Clock className="w-12 h-12 text-white animate-pulse" />
+                      </div>
                     </div>
-                    <p className="font-semibold text-gray-900">
-                      Rs. {((item.price || 0) * (item.quantity || 1)).toLocaleString()}
-                    </p>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Order Received! 📋</h3>
+                    <p className="text-gray-600 text-center max-w-md">We're reviewing your order and will start processing it soon.</p>
+                    {/* Animated Dots */}
+                    <div className="flex gap-2 mt-4">
+                      <span className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                      <span className="w-3 h-3 bg-yellow-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                      <span className="w-3 h-3 bg-orange-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              )}
 
+              {order.status === 'processing' && (
+                <div className="relative">
+                  <div className="flex flex-col items-center py-8">
+                    {/* Spinning Gear Animation */}
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 bg-blue-400 rounded-full opacity-20 animate-ping"></div>
+                      <div className="relative w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                        <Package className="w-12 h-12 text-white animate-bounce" />
+                      </div>
+                      {/* Orbiting Particles */}
+                      <div className="absolute inset-0 animate-spin" style={{animationDuration: '3s'}}>
+                        <div className="absolute -top-2 left-1/2 w-4 h-4 bg-blue-400 rounded-full shadow-lg"></div>
+                      </div>
+                      <div className="absolute inset-0 animate-spin" style={{animationDuration: '4s', animationDirection: 'reverse'}}>
+                        <div className="absolute top-1/2 -right-2 w-3 h-3 bg-indigo-400 rounded-full shadow-lg"></div>
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Preparing Your Order! 📦</h3>
+                    <p className="text-gray-600 text-center max-w-md">Our team is carefully packing your items with love.</p>
+                    {/* Progress Bar Animation */}
+                    <div className="w-64 h-2 bg-gray-200 rounded-full mt-6 overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                    </div>
+                    <p className="text-sm text-blue-600 mt-2 font-medium">Packaging in progress...</p>
+                  </div>
+                </div>
+              )}
+
+              {order.status === 'shipped' && (
+                <div className="relative">
+                  <div className="flex flex-col items-center py-8">
+                    {/* Moving Truck Animation */}
+                    <div className="relative w-full max-w-md mb-8">
+                      {/* Road */}
+                      <div className="absolute bottom-0 left-0 right-0 h-3 bg-gray-300 rounded-full"></div>
+                      <div className="absolute bottom-0 left-0 right-0 h-1 top-1 flex justify-around">
+                        <div className="w-8 h-1 bg-yellow-400 rounded animate-pulse"></div>
+                        <div className="w-8 h-1 bg-yellow-400 rounded animate-pulse" style={{animationDelay: '200ms'}}></div>
+                        <div className="w-8 h-1 bg-yellow-400 rounded animate-pulse" style={{animationDelay: '400ms'}}></div>
+                        <div className="w-8 h-1 bg-yellow-400 rounded animate-pulse" style={{animationDelay: '600ms'}}></div>
+                      </div>
+                      
+                      {/* Truck */}
+                      <div className="relative flex justify-center">
+                        <div className="animate-bounce" style={{animationDuration: '0.5s'}}>
+                          <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-xl transform hover:scale-110 transition-transform">
+                            <Truck className="w-10 h-10 text-white" />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Speed Lines */}
+                      <div className="absolute top-8 left-4 flex flex-col gap-1 opacity-60">
+                        <div className="w-12 h-0.5 bg-purple-400 rounded animate-pulse"></div>
+                        <div className="w-8 h-0.5 bg-purple-300 rounded animate-pulse" style={{animationDelay: '100ms'}}></div>
+                        <div className="w-16 h-0.5 bg-purple-400 rounded animate-pulse" style={{animationDelay: '200ms'}}></div>
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">On The Way! 🚚💨</h3>
+                    <p className="text-gray-600 text-center max-w-md">Your package is zooming towards you! Get ready to receive it soon.</p>
+                    
+                    {/* Delivery Progress */}
+                    <div className="flex items-center gap-4 mt-6">
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-xs text-gray-500 mt-1">Dispatched</span>
+                      </div>
+                      <div className="w-16 h-1 bg-purple-500 rounded relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent animate-pulse"></div>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center animate-pulse">
+                          <Truck className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-xs text-purple-600 mt-1 font-medium">In Transit</span>
+                      </div>
+                      <div className="w-16 h-1 bg-gray-200 rounded"></div>
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <MapPin className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <span className="text-xs text-gray-400 mt-1">Delivery</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {order.status === 'delivered' && (
+                <div className="relative">
+                  <div className="flex flex-col items-center py-8">
+                    {/* Celebration Animation */}
+                    <div className="relative mb-6">
+                      {/* Confetti */}
+                      <div className="absolute -top-4 -left-8 text-2xl animate-bounce" style={{animationDelay: '0ms'}}>🎉</div>
+                      <div className="absolute -top-4 -right-8 text-2xl animate-bounce" style={{animationDelay: '200ms'}}>🎊</div>
+                      <div className="absolute top-0 left-12 text-xl animate-ping">✨</div>
+                      <div className="absolute top-0 right-12 text-xl animate-ping" style={{animationDelay: '300ms'}}>✨</div>
+                      
+                      {/* Success Circle */}
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-30"></div>
+                        <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-xl">
+                          <CheckCircle className="w-14 h-14 text-white" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Delivered Successfully! 🎁</h3>
+                    <p className="text-gray-600 text-center max-w-md">Your order has been delivered. We hope you love your purchase!</p>
+                    
+                    {/* Thank You Message */}
+                    <div className="mt-6 px-6 py-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                      <p className="text-green-700 font-medium text-center">Thank you for shopping with ePasaley! 💚</p>
+                    </div>
+                    
+                    {/* Stars Animation */}
+                    <div className="flex gap-1 mt-4">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className="text-yellow-400 text-2xl animate-pulse" style={{animationDelay: `${i * 100}ms`}}>⭐</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {order.status === 'cancelled' && (
+                <div className="relative">
+                  <div className="flex flex-col items-center py-8">
+                    {/* Cancelled Animation */}
+                    <div className="relative mb-6">
+                      <div className="w-24 h-24 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-lg">
+                        <AlertCircle className="w-12 h-12 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Order Cancelled</h3>
+                    <p className="text-gray-600 text-center max-w-md">This order has been cancelled. If you have questions, please contact our support.</p>
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Need Help */}
             <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
               <h3 className="font-semibold text-green-800 mb-2">Need Help?</h3>
               <p className="text-green-700 text-sm mb-3">If you have any questions about your order, contact us:</p>
               <a 
-                href="https://wa.me/9779860056658" 
+                href="https://wa.me/9779857089898" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"

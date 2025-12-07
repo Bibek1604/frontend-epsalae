@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Check, ChevronLeft, Lock, AlertCircle, Loader2, Truck, Shield } from 'lucide-react'
 import { useCart } from '@/store/cartstore'
 import { orderApi } from '../components/api/orderapi'
+import { getImageUrl } from '@/config'
 
 // Full Nepal Districts (77) with real municipalities
 const NEPAL_DISTRICTS = {
@@ -420,10 +421,15 @@ export default function Checkout() {
               <div className="mb-8 space-y-5 overflow-y-auto max-h-96">
                 {cart.map(item => (
                   <div key={item.id} className="flex gap-4">
-                    <div className="flex-shrink-0 w-20 h-20 overflow-hidden bg-gray-100 rounded-xl">
-                      <img src={item.image} alt={item.name} className="object-cover w-full h-full grayscale" />
+                    <div className="shrink-0 w-20 h-20 overflow-hidden bg-gray-100 rounded-xl">
+                      <img 
+                        src={getImageUrl(item.image)} 
+                        alt={item.name} 
+                        className="object-cover w-full h-full"
+                        onError={(e) => { e.target.src = 'https://via.placeholder.com/100?text=No+Image' }}
+                      />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 line-clamp-2">{item.name}</p>
                       <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                       <p className="mt-2 font-semibold text-gray-900">Rs. {(item.price * item.quantity).toLocaleString()}</p>

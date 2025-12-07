@@ -23,17 +23,21 @@ export const useFlashSaleStore = create((set) => ({
   },
 
   addFlashSale: async (data) => {
-    set({ loading: true });
+    set({ loading: true, error: null });
     try {
+      console.log('🔥 Creating flash sale with data:', data);
       const res = await flashSaleApi.create(data);
+      console.log('🔥 Flash sale API response:', res);
       const flashSale = res.data?.data || res.data;
       console.log('✅ Flash sale created:', flashSale);
       set((state) => ({ flashSales: [...state.flashSales, flashSale] }));
       return flashSale;
     } catch (err) {
       console.error('❌ Error adding flash sale:', err);
-      set({ error: err.message || 'Failed to create flash sale' });
-      throw err;
+      console.error('❌ Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to create flash sale';
+      set({ error: errorMessage });
+      throw new Error(errorMessage);
     } finally {
       set({ loading: false });
     }

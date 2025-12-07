@@ -1,6 +1,7 @@
 // src/pages/CategoryCrud.jsx
 import { useState, useEffect } from 'react';
 import { useCategoryStore } from '../store/categorystore';
+import { useProductStore } from '../store/productstore';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   Plus, Edit2, Trash2, Search, Upload, X, Loader2,
@@ -11,6 +12,7 @@ import { getImageUrl } from '@/config';
 
 export default function CategoryCrud() {
   const { categories, loading, fetchCategories, addCategory, updateCategory, deleteCategory } = useCategoryStore();
+  const { products, fetchProducts, deleteProduct } = useProductStore();
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -27,7 +29,21 @@ export default function CategoryCrud() {
 
   useEffect(() => {
     fetchCategories();
+    fetchProducts(); // Fetch products to count per category
   }, []);
+
+  // Get product count for a category
+  const getProductCount = (categoryId) => {
+    if (!categoryId || !products.length) return 0;
+    
+    const count = products.filter(p => {
+      // Check all possible field names for category reference
+      const prodCatId = p.category_id || p.categoryId || p.category?._id || p.category?.id || p.category;
+      return prodCatId === categoryId;
+    }).length;
+    
+    return count;
+  };
 
   // Auto-generate slug from name
   const handleNameChange = (name) => {
@@ -86,17 +102,21 @@ export default function CategoryCrud() {
     };
 
     try {
-      if (editingCat?._id) {
-        await updateCategory(editingCat._id, payload);
+      const categoryId = editingCat?._id || editingCat?.id;
+      console.log('💾 Saving category:', { categoryId, isEdit: !!categoryId, payload });
+      
+      if (categoryId) {
+        await updateCategory(categoryId, payload);
         toast.success('Category updated successfully!');
       } else {
         await addCategory(payload);
         toast.success('Category created successfully!');
       }
       closeModal();
-      fetchCategories();
-    } catch {
-      toast.error('Failed to save category');
+      await fetchCategories();
+    } catch (error) {
+      console.error('❌ Save failed:', error);
+      toast.error(error?.response?.data?.message || 'Failed to save category');
     }
   };
 
@@ -119,12 +139,27 @@ export default function CategoryCrud() {
   };
 
   const handleDelete = async (id, name) => {
-    if (!confirm(`Delete "${name}" permanently?`)) return;
+    // Get count of products in this category
+    const productCount = getProductCount(id);
+    
+    // Show warning with product count
+    const message = productCount > 0 
+      ? `Delete "${name}"? The ${productCount} product${productCount === 1 ? '' : 's'} in this category will be hidden until reassigned.`
+      : `Delete "${name}" permanently?`;
+    
+    if (!confirm(message)) return;
+    
     try {
+      console.log('🗑️ Deleting category:', id);
       await deleteCategory(id);
       toast.success('Category deleted');
-    } catch {
-      toast.error('Delete failed');
+      
+      // Refresh both lists
+      await fetchCategories();
+      await fetchProducts();
+    } catch (error) {
+      console.error('❌ Delete failed:', error);
+      toast.error(error?.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -200,7 +235,7 @@ export default function CategoryCrud() {
                   <tbody>
                     {filtered.map((cat, i) => (
                       <tr
-                        key={cat._id}
+                        key={cat._id || cat.id}
                         className={`border-b border-gray-100 hover:bg-orange-50/40 transition-all ${
                           i % 2 === 0 ? 'bg-gray-50/30' : 'bg-white'
                         }`}
@@ -235,11 +270,18 @@ export default function CategoryCrud() {
                           </code>
                         </td>
 
-                        {/* Product Count (you can pass count from backend later) */}
+                        {/* Product Count */}
                         <td className="px-8 py-6 text-center">
-                          <span className="px-4 py-2 text-sm font-bold text-blue-700 bg-blue-100 rounded-full">
-                            24 Products
-                          </span>
+                          {(() => {
+                            const count = cat.productCount ?? getProductCount(cat._id || cat.id);
+                            return (
+                              <span className={`px-4 py-2 text-sm font-bold rounded-full ${
+                                count > 0 ? 'text-blue-700 bg-blue-100' : 'text-gray-500 bg-gray-100'
+                              }`}>
+                                {count} {count === 1 ? 'Product' : 'Products'}
+                              </span>
+                            );
+                          })()}
                         </td>
 
                         {/* Status */}
@@ -265,7 +307,7 @@ export default function CategoryCrud() {
                               <Edit2 className="w-5 h-5" />
                             </button>
                             <button
-                              onClick={() => handleDelete(cat._id, cat.name)}
+                              onClick={() => handleDelete(cat._id || cat.id, cat.name)}
                               className="p-3.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition shadow-lg"
                             >
                               <Trash2 className="w-5 h-5" />

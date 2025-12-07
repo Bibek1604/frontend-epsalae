@@ -98,20 +98,27 @@ export const productApi = {
     const formData = new FormData();
     
     if (data.name) formData.append('name', data.name);
-    if (data.description) formData.append('description', data.description);
+    if (data.description !== undefined) formData.append('description', data.description);
     if (data.price !== undefined) formData.append('price', data.price.toString());
     if (data.stock !== undefined) formData.append('stock', data.stock.toString());
     if (data.category_id) formData.append('category_id', data.category_id);
-    if (data.discountPrice !== undefined && data.discountPrice > 0) formData.append('discountPrice', data.discountPrice.toString());
-    if (data.hasOffer !== undefined) formData.append('hasOffer', data.hasOffer);
-    if (data.isActive !== undefined) formData.append('isActive', data.isActive);
+    if (data.discountPrice !== undefined) formData.append('discountPrice', data.discountPrice.toString());
+    if (data.hasOffer !== undefined) formData.append('hasOffer', data.hasOffer.toString());
+    if (data.isActive !== undefined) formData.append('isActive', data.isActive.toString());
 
-    // Convert base64 to File if present
-    if (data.imageUrl && data.imageUrl.includes('data:image')) {
-      const file = base64ToFile(data.imageUrl, 'product-image.png');
-      if (file) {
-        console.log('📤 Uploading updated product image file:', { name: file.name, size: file.size, type: file.type });
-        formData.append('image', file); // Backend expects 'image' field name
+    // Handle image - either new base64 upload or existing URL
+    if (data.imageUrl) {
+      if (data.imageUrl.includes('data:image')) {
+        // New image uploaded as base64 - convert to file
+        const file = base64ToFile(data.imageUrl, 'product-image.png');
+        if (file) {
+          console.log('📤 Uploading new product image:', { name: file.name, size: file.size, type: file.type });
+          formData.append('image', file);
+        }
+      } else if (data.imageUrl.startsWith('http')) {
+        // Existing Cloudinary URL - pass it to backend to preserve
+        console.log('📤 Keeping existing image URL:', data.imageUrl);
+        formData.append('imageUrl', data.imageUrl);
       }
     }
 
@@ -124,5 +131,8 @@ export const productApi = {
   /**
    * Delete product (admin)
    */
-  remove: (id) => api.delete(`/products/${id}`),
+  remove: (id) => {
+    console.log('🗑️ API: Deleting product with ID:', id);
+    return api.delete(`/products/${id}`);
+  },
 };

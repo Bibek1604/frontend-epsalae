@@ -16,6 +16,10 @@ export const useProductStore = create((set) => ({
       const pagination = res.data?.pagination || null;
       
       console.log('📦 Products fetched:', { count: data.length, pagination });
+      // Log first product to see the FULL structure including category
+      if (data.length > 0) {
+        console.log('📦 FULL Product structure:', JSON.stringify(data[0], null, 2));
+      }
       set({ products: Array.isArray(data) ? data : [], pagination });
     } catch (err) {
       console.error('❌ Error fetching products:', err);
@@ -80,17 +84,27 @@ export const useProductStore = create((set) => ({
   updateProduct: async (id, data) => {
     set({ loading: true });
     try {
+      console.log('✏️ Updating product with ID:', id);
       const res = await productApi.update(id, data);
-      const product = res.data?.data || res.data;
+      const updatedProduct = res.data?.data || res.data;
       
-      console.log('✏️ Product updated:', product);
+      console.log('✅ Product updated:', updatedProduct);
+      
+      // Update the product in the local state
       set((state) => ({
-        products: state.products.map((p) => ((p.id || p._id) === id ? product : p)),
+        products: state.products.map((p) => {
+          const productId = p.id || p._id;
+          if (productId === id) {
+            return updatedProduct;
+          }
+          return p;
+        }),
       }));
-      return product;
+      return updatedProduct;
     } catch (err) {
       console.error('❌ Error updating product:', err);
-      set({ error: err.message || 'Failed to update product' });
+      console.error('❌ Error response:', err.response?.data);
+      set({ error: err.response?.data?.message || err.message || 'Failed to update product' });
       throw err;
     } finally {
       set({ loading: false });
@@ -100,13 +114,17 @@ export const useProductStore = create((set) => ({
   deleteProduct: async (id) => {
     set({ loading: true });
     try {
-      await productApi.remove(id);
+      console.log('🗑️ Store: Attempting to delete product:', id);
+      const response = await productApi.remove(id);
+      console.log('✅ Delete response:', response);
       
       console.log('🗑️ Product deleted:', id);
       set((state) => ({ products: state.products.filter((p) => (p.id || p._id) !== id) }));
+      return response;
     } catch (err) {
       console.error('❌ Error deleting product:', err);
-      set({ error: err.message || 'Failed to delete product' });
+      console.error('❌ Error response:', err.response?.data);
+      set({ error: err.response?.data?.message || err.message || 'Failed to delete product' });
       throw err;
     } finally {
       set({ loading: false });

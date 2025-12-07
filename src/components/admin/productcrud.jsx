@@ -62,29 +62,37 @@ export default function ProductCrud() {
         discountPrice: parseFloat(form.discountPrice) || 0,
         stock: parseInt(form.stock) || 0,
       };
-      if (editingProduct?._id) {
-        await updateProduct(editingProduct._id, data);
+      
+      const productId = editingProduct?._id || editingProduct?.id;
+      console.log('💾 Saving product:', { productId, isEdit: !!productId, data });
+      
+      if (productId) {
+        await updateProduct(productId, data);
         toast.success('Product updated!');
       } else {
         await addProduct(data);
         toast.success('Product created!');
       }
       closeModal();
-      fetchProducts();
-    } catch {
-      toast.error('Failed to save');
+      // Refresh products list to show updated data
+      await fetchProducts();
+    } catch (error) {
+      console.error('❌ Save failed:', error);
+      toast.error(error?.response?.data?.message || 'Failed to save');
     }
   };
 
   const handleEdit = (product) => {
     setEditingProduct(product);
+    // Get category ID from various possible fields
+    const catId = product.category_id || product.categoryId || product.category?._id || product.category?.id || product.category || '';
     setForm({
       name: product.name || '',
       description: product.description || '',
       price: product.price || '',
       discountPrice: product.discountPrice || 0,
       stock: product.stock || 0,
-      category_id: product.category_id || '',
+      category_id: catId,
       hasOffer: product.hasOffer || false,
       isActive: product.isActive !== false,
       imageUrl: product.imageUrl || '',
@@ -96,10 +104,13 @@ export default function ProductCrud() {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this product permanently?')) return;
     try {
+      console.log('🗑️ Attempting to delete product:', id);
       await deleteProduct(id);
       toast.success('Product deleted');
-    } catch {
-      toast.error('Delete failed');
+      fetchProducts(); // Refresh the list after delete
+    } catch (error) {
+      console.error('❌ Delete failed:', error);
+      toast.error(error?.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -110,12 +121,20 @@ export default function ProductCrud() {
     setPreviewImage(null);
   };
 
+  // Helper to get category name by ID (checks both id and _id)
+  const getCategoryName = (catId) => {
+    if (!catId) return '—';
+    const found = categories.find(c => 
+      c._id === catId || c.id === catId || 
+      String(c._id) === String(catId) || String(c.id) === String(catId)
+    );
+    return found?.name || '—';
+  };
+
   const filtered = products.filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase()) ||
-    getCategoryName(p.category_id)?.toLowerCase().includes(search.toLowerCase())
+    getCategoryName(p.category_id || p.categoryId)?.toLowerCase().includes(search.toLowerCase())
   );
-
-  const getCategoryName = (id) => categories.find(c => c._id === id)?.name || '—';
 
   return (
     <>
@@ -180,7 +199,7 @@ export default function ProductCrud() {
                   <tbody>
                     {filtered.map((product, i) => (
                       <tr
-                        key={product._id}
+                        key={product._id || product.id}
                         className={`border-b border-gray-100 hover:bg-orange-50/30 transition-all ${
                           i % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'
                         }`}
@@ -194,6 +213,7 @@ export default function ProductCrud() {
                                   src={getImageUrl(product.imageUrl)}
                                   alt={product.name}
                                   className="object-cover w-full h-full"
+                                  onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<div class="flex items-center justify-center w-full h-full bg-gray-200"><svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>' }}
                                 />
                               ) : (
                                 <div className="flex items-center justify-center w-full h-full bg-gray-200">
@@ -211,7 +231,7 @@ export default function ProductCrud() {
                         {/* Category */}
                         <td className="px-6 py-5">
                           <span className="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-100 rounded-full">
-                            {getCategoryName(product.category_id)}
+                            {getCategoryName(product.category_id || product.categoryId || product.category?._id || product.category?.id || product.category)}
                           </span>
                         </td>
 
@@ -269,7 +289,7 @@ export default function ProductCrud() {
                               <Edit2 className="w-5 h-5" />
                             </button>
                             <button
-                              onClick={() => handleDelete(product._id)}
+                              onClick={() => handleDelete(product._id || product.id)}
                               className="p-3 text-white transition bg-red-500 shadow-md rounded-xl hover:bg-red-600"
                             >
                               <Trash2 className="w-5 h-5" />
@@ -309,7 +329,10 @@ export default function ProductCrud() {
                 <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Category *</label>
                 <select required name="category_id" value={form.category_id} onChange={handleChange} className="w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition text-lg">
                   <option value="">Select category</option>
-                  {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  {categories.map(c => {
+                    const catId = c._id || c.id;
+                    return <option key={catId} value={catId}>{c.name}</option>;
+                  })}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-6">

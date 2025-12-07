@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import Home from './components/homepage/home'
 import ProductDetail from './components/product-details/ProductDetail'
 import Products from './pages/Products'
@@ -16,6 +17,18 @@ import NotFound from './pages/NotFound'
 function App() {
   return (
     <BrowserRouter>
+      {/* Global Toast Notifications */}
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#fff',
+            color: '#333',
+          },
+        }}
+      />
+      
       <Routes>
         {/* Admin routes - no header/footer */}
         <Route path="/admin/login" element={<AdminLogin />} />

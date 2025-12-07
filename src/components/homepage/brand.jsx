@@ -92,8 +92,8 @@ export default function BrandsSection() {
         )}
       </div>
 
-      {/* Tailwind + Custom Animation */}
-      <style jsx>{`
+      {/* Custom Animation Styles */}
+      <style>{`
         @keyframes marquee {
           0% { transform: translateX(0%); }
           100% { transform: translateX(-50%); }

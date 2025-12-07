@@ -130,7 +130,7 @@ export default function BannerCRUD() {
               <p className="text-[#7A7A7A]">Manage hero banners & promotional sliders</p>
             </div>
             <button
-              onClick={closeModal}
+              onClick={() => setShowModal(true)}
               className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
             >
               <Plus className="w-6 h-6" />

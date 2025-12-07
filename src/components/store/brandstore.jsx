@@ -3,17 +3,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Default brands to show initially
-const defaultBrands = [
-  { id: '1', name: "Apple", logo: "https://cdn.worldvectorlogo.com/logos/apple-11.svg" },
-  { id: '2', name: "Samsung", logo: "https://cdn.worldvectorlogo.com/logos/samsung-6.svg" },
-  { id: '3', name: "Nike", logo: "https://cdn.worldvectorlogo.com/logos/nike-4.svg" },
-  { id: '4', name: "Adidas", logo: "https://cdn.worldvectorlogo.com/logos/adidas-8.svg" },
-  { id: '5', name: "Sony", logo: "https://cdn.worldvectorlogo.com/logos/sony-2.svg" },
-  { id: '6', name: "LG", logo: "https://cdn.worldvectorlogo.com/logos/lg-6.svg" },
-  { id: '7', name: "Dell", logo: "https://cdn.worldvectorlogo.com/logos/dell-11.svg" },
-  { id: '8', name: "HP", logo: "https://cdn.worldvectorlogo.com/logos/hewlett-packard-enterprise-1.svg" },
-];
+// No default brands - user adds them via admin panel
+const defaultBrands = [];
 
 export const useBrandStore = create(
   persist(

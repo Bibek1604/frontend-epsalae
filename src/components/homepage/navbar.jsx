@@ -1,5 +1,5 @@
 // src/components/Navbar.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, ShoppingBag, Heart, Menu, Package, LogIn, X, Grid, Home, ChevronDown, User, Zap } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '@/store/cartstore'
@@ -15,6 +15,16 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  // Scroll effect for navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -32,24 +42,27 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Ultra-Premium Sticky Navbar */}
-      <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-xl">
+      {/* Ultra-Premium Sticky Navbar with Scroll Effect */}
+      <header className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled 
+          ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-100' 
+          : 'bg-white/80 backdrop-blur-xl border-b border-gray-100'
+      }`}>
         <div className="px-6 mx-auto max-w-7xl">
 
-          <div className="flex items-center justify-between h-20">
+          <div className={`flex items-center justify-between transition-all duration-300 ${
+            scrolled ? 'h-16' : 'h-20'
+          }`}>
 
-            {/* Logo - Premium Gradient */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="relative">
-                <img 
-                  src={logo} 
-                  alt="Epasaley Logo" 
-                  className="object-contain w-16 h-16"
-                />
-              </div>
-              <span className="text-2xl font-light tracking-tight text-gray-900">
-                Epasaley
-              </span>
+            {/* Logo with scale on scroll */}
+            <Link to="/" className="flex items-center group">
+              <img 
+                src={logo} 
+                alt="Epasaley Logo" 
+                className={`object-contain transition-all duration-300 ${
+                  scrolled ? 'w-24 h-24' : 'w-32 h-32'
+                }`}
+              />
             </Link>
 
             {/* Desktop Search - Clean & Elegant */}
