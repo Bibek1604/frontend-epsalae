@@ -10,10 +10,11 @@ import { useProductStore } from '../components/store/productstore';
 import { useCategoryStore } from '../components/store/categorystore';
 import { useCart } from '../store/cartstore';
 import { getImageUrl as getImage } from '@/config';
+import { formatProductName } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
-// Fallback image for failed loads
-const PRODUCT_PLACEHOLDER = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600';
+// Fallback image for failed loads - Generic product placeholder
+const PRODUCT_PLACEHOLDER = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600';
 
 // Image component with error handling
 function ProductImg({ src, alt, className }) {
@@ -201,8 +202,8 @@ export default function Products() {
                     className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-gray-900"
                   />
                   <div className="flex justify-between mt-4 text-sm font-medium text-gray-700">
-                    <span>₹0</span>
-                    <span>₹{priceRange[1].toLocaleString()}</span>
+                    <span>Rs. 0</span>
+                    <span>Rs. {priceRange[1].toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -252,67 +253,98 @@ export default function Products() {
                   <p className="mt-2 text-gray-500">Try adjusting your filters</p>
                 </div>
               ) : (
-                <div className={`grid gap-12 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
+                <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                   {filteredProducts.map((product) => (
                     <motion.article
                       key={product.id || product._id}
                       layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      whileHover={{ y: -16 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ y: -8 }}
                       onClick={() => navigate(`/product/${product.id || product._id}`)}
                       className="cursor-pointer group"
                     >
-                      <div className="overflow-hidden transition bg-white border border-gray-200 rounded-2xl hover:border-gray-300">
-                        <div className="relative overflow-hidden aspect-square bg-gray-50">
+                      <div className="overflow-hidden transition-all duration-300 bg-white border border-gray-100 shadow-sm rounded-2xl hover:shadow-xl hover:border-transparent">
+                        {/* Image Container */}
+                        <div className="relative overflow-hidden bg-gradient-to-b from-gray-50 to-white aspect-square">
                           <ProductImg
                             src={getImage(product.imageUrl)}
                             alt={product.name}
-                            className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                            className="object-contain w-full h-full p-4 transition-transform duration-500 group-hover:scale-105"
                           />
-                          {product.stock < 20 && product.stock > 0 && (
-                            <div className="absolute px-3 py-1 text-xs font-semibold text-white bg-gray-900 rounded-full top-4 left-4">
+                          
+                          {/* Discount Badge */}
+                          {product.discountPrice && product.discountPrice < product.price && (
+                            <div className="absolute px-2.5 py-1 text-xs font-bold text-white bg-gradient-to-r from-red-500 to-pink-500 rounded-lg top-3 left-3 shadow-lg">
+                              -{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
+                            </div>
+                          )}
+                          
+                          {/* Low Stock Badge */}
+                          {product.stock < 20 && product.stock > 0 && !product.discountPrice && (
+                            <div className="absolute px-2.5 py-1 text-xs font-semibold text-white bg-gray-900 rounded-lg top-3 left-3">
                               Only {product.stock} left
                             </div>
                           )}
-                          <button
-                            onClick={(e) => handleAddToCart(e, product)}
-                            className="absolute p-4 transition bg-white rounded-full shadow-lg opacity-0 bottom-4 right-4 group-hover:opacity-100 opacity"
-                          >
-                            <ShoppingCart className="w-6 h-6 text-gray-900" />
-                          </button>
+                          
+                          {/* Quick Actions */}
+                          <div className="absolute transition-all duration-300 opacity-0 bottom-3 right-3 group-hover:opacity-100">
+                            <button
+                              onClick={(e) => handleAddToCart(e, product)}
+                              disabled={product.stock === 0}
+                              className="flex items-center justify-center w-11 h-11 transition-all bg-white rounded-full shadow-lg hover:bg-[#FF6B35] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <ShoppingCart className="w-5 h-5" />
+                            </button>
+                          </div>
+                          
+                          {/* Out of Stock Overlay */}
+                          {product.stock === 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+                              <span className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-full">
+                                Sold Out
+                              </span>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="p-8">
-                          <p className="text-sm font-medium tracking-wider text-gray-500 uppercase">
+                        {/* Content */}
+                        <div className="p-4">
+                          {/* Category */}
+                          <p className="text-xs font-medium tracking-wide text-[#1A3C8A] uppercase mb-1.5">
                             {getCategoryName(product)}
                           </p>
-                          <h3 className="mt-3 text-xl font-medium text-gray-900 transition group-hover:text-gray-700 line-clamp-2" title={product.name}>
-                            {product.name}
+                          
+                          {/* Product Name */}
+                          <h3 className="font-semibold text-gray-900 transition-colors line-clamp-2 group-hover:text-[#FF6B35]" title={product.name}>
+                            {formatProductName(product.name)}
                           </h3>
-                          <div className="flex items-center justify-between mt-6">
-                            <div>
-                              {product.discountPrice ? (
-                                <>
-                                  <span className="text-2xl font-light text-gray-900">
-                                    ₹{product.discountPrice.toLocaleString()}
-                                  </span>
-                                  <span className="ml-4 text-lg text-gray-400 line-through">
-                                    ₹{product.price.toLocaleString()}
-                                  </span>
-                                </>
-                              ) : (
-                                <span className="text-2xl font-light text-gray-900">
-                                  ₹{product.price.toLocaleString()}
+                          
+                          {/* Price */}
+                          <div className="flex items-center gap-2 mt-3">
+                            {product.discountPrice ? (
+                              <>
+                                <span className="text-lg font-bold text-gray-900">
+                                  Rs. {product.discountPrice.toLocaleString()}
                                 </span>
-                              )}
-                            </div>
-                            <span className={`px-4 py-2 text-xs font-semibold rounded-full ${
-                              product.stock > 0 ? 'bg-gray-100 text-gray-700' : 'bg-gray-200 text-gray-500'
-                            }`}>
-                              {product.stock > 0 ? 'In Stock' : 'Sold Out'}
-                            </span>
+                                <span className="text-sm text-gray-400 line-through">
+                                  Rs. {product.price.toLocaleString()}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-lg font-bold text-gray-900">
+                                Rs. {product.price.toLocaleString()}
+                              </span>
+                            )}
                           </div>
+                          
+                          {/* Stock Status */}
+                          {product.stock > 0 && (
+                            <div className="flex items-center gap-1.5 mt-3">
+                              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                              <span className="text-xs text-green-600 font-medium">In Stock</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </motion.article>

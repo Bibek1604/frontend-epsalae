@@ -5,11 +5,12 @@ import { useCategoryStore } from "../store/categorystore";
 import { Loader2, ShoppingCart, Heart, Star, ArrowRight, Sparkles } from "lucide-react";
 import { useCart } from "@/store/cartstore";
 import { getImageUrl } from "@/config";
+import { formatProductName } from "@/lib/utils";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
-// Placeholder for failed images
-const PLACEHOLDER = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600';
+// Placeholder for failed images - Generic product placeholder
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600';
 
 // Image component with error handling and loading state
 function ProductImage({ src, alt, className, onClick }) {
@@ -191,12 +192,12 @@ export default function ProductsGrid() {
               className="overflow-hidden transition-all duration-500 bg-white border border-gray-100 shadow-sm group rounded-2xl hover:shadow-xl hover:border-transparent hover-lift card-shine"
             >
               {/* Image Container */}
-              <div className="relative overflow-hidden aspect-square bg-gray-50">
+              <div className="relative overflow-hidden aspect-square bg-white">
                 <ProductImage
                   src={product.imageUrl}
                   alt={product.name}
                   onClick={() => navigate(`/product/${product.id}`)}
-                  className="object-cover w-full h-full transition-transform duration-700 cursor-pointer group-hover:scale-110"
+                  className="object-contain w-full h-full p-2 transition-transform duration-700 cursor-pointer group-hover:scale-105"
                 />
                 
                 {/* Discount Badge - Enhanced */}
@@ -242,7 +243,7 @@ export default function ProductsGrid() {
                   onClick={() => navigate(`/product/${product.id}`)}
                   className="mb-3 font-semibold text-gray-900 transition-colors cursor-pointer line-clamp-2 hover:text-[#1A3C8A]"
                 >
-                  {product.name}
+                  {formatProductName(product.name)}
                 </h3>
 
                 {/* Price - Enhanced */}

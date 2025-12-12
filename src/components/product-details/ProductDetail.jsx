@@ -9,6 +9,7 @@ import { useCart } from '@/store/cartstore'
 import { productApi } from '../api/productapi'
 import { useCategoryStore } from '../store/categorystore'
 import { getImageUrl } from '@/config'
+import { formatProductName } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 
@@ -204,64 +205,19 @@ export default function ProductDetail() {
 
               {/* Title */}
               <h1 className="mb-6 text-4xl font-light leading-tight text-gray-900 lg:text-5xl">
-                {product.name}
+                {formatProductName(product.name)}
               </h1>
-
-              {/* Rating */}
-              <div className="flex items-center gap-3 mb-8">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className={`w-6 h-6 ${i < 4 ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}`} />
-                  ))}
-                </div>
-                <span className="text-gray-600">(4.0 • 128 reviews)</span>
-              </div>
 
               {/* Price */}
               <div className="pb-8 mb-10 border-b border-gray-200">
                 <div className="flex items-baseline gap-4">
                   <span className="text-5xl font-light text-gray-900">
-                    ₹{(product.discountPrice > 0 ? product.discountPrice : product.price).toLocaleString()}
+                    Rs. {(product.discountPrice > 0 ? product.discountPrice : product.price).toLocaleString()}
                   </span>
                   {product.discountPrice > 0 && (
                     <span className="text-2xl text-gray-400 line-through">
-                      ₹{product.price.toLocaleString()}
+                      Rs. {product.price.toLocaleString()}
                     </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Description */}
-              {product.description && (
-                <div className="mb-10">
-                  <h3 className="mb-4 text-lg font-medium text-gray-900">About this item</h3>
-                  <p className="text-lg leading-relaxed text-gray-600">{product.description}</p>
-                </div>
-              )}
-
-              {/* Quantity Selector */}
-              <div className="mb-10">
-                <p className="mb-4 text-sm font-medium text-gray-700">Quantity</p>
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center overflow-hidden border-2 border-gray-300 rounded-xl">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="p-4 transition hover:bg-gray-50"
-                      disabled={product.stock === 0}
-                    >
-                      <Minus className="w-5 h-5" />
-                    </button>
-                    <span className="w-20 text-xl font-semibold text-center">{quantity}</span>
-                    <button
-                      onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}
-                      className="p-4 transition hover:bg-gray-50"
-                      disabled={product.stock === 0}
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  </div>
-                  {product.stock > 0 && (
-                    <span className="text-gray-500">{product.stock} available</span>
                   )}
                 </div>
               </div>
@@ -297,6 +253,41 @@ export default function ProductDetail() {
                 >
                   <Zap className="w-6 h-6" /> Buy Now
                 </button>
+              </div>
+
+              {/* Description */}
+              {product.description && (
+                <div className="mb-10">
+                  <h3 className="mb-4 text-lg font-medium text-gray-900">About this item</h3>
+                  <p className="text-lg leading-relaxed text-gray-600">{product.description}</p>
+                </div>
+              )}
+
+              {/* Quantity Selector */}
+              <div className="mb-10">
+                <p className="mb-4 text-sm font-medium text-gray-700">Quantity</p>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center overflow-hidden border-2 border-gray-300 rounded-xl">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="p-4 transition hover:bg-gray-50"
+                      disabled={product.stock === 0}
+                    >
+                      <Minus className="w-5 h-5" />
+                    </button>
+                    <span className="w-20 text-xl font-semibold text-center">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}
+                      className="p-4 transition hover:bg-gray-50"
+                      disabled={product.stock === 0}
+                    >
+                      <Plus className="w-5 h-5" />
+                    </button>
+                  </div>
+                  {product.stock > 0 && (
+                    <span className="text-gray-500">{product.stock} available</span>
+                  )}
+                </div>
               </div>
 
               {/* Trust Badges */}

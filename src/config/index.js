@@ -13,8 +13,8 @@ export const APP_DESCRIPTION = import.meta.env.VITE_APP_DESCRIPTION || "Nepal's 
 export const isDevelopment = import.meta.env.DEV;
 export const isProduction = import.meta.env.PROD;
 
-// Default placeholder image
-const PLACEHOLDER = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600';
+// Default placeholder image - Generic product placeholder
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600';
 
 // Helper function to get full image URL
 // Handles: Cloudinary URLs, old local paths, and missing images

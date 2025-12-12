@@ -51,7 +51,20 @@ export const useCategoryStore = create((set) => ({
   },
 
   updateCategory: async (id, data) => {
-    set({ loading: true });
+    // Optimistic update - update UI immediately
+    const previousCategories = useCategoryStore.getState().categories;
+    
+    // Immediately update the UI with new data
+    set((state) => ({
+      categories: state.categories.map((c) => {
+        const catId = c.id || c._id;
+        if (catId === id) {
+          return { ...c, ...data, id: catId, _id: catId };
+        }
+        return c;
+      }),
+    }));
+
     try {
       console.log('✏️ Updating category with ID:', id);
       const res = await categoryApi.update(id, data);
@@ -59,6 +72,7 @@ export const useCategoryStore = create((set) => ({
       const category = res.data?.data || res.data;
       console.log('✅ Category updated:', category);
       if (category) {
+        // Update with server response
         set((state) => ({
           categories: state.categories.map((c) => {
             const catId = c.id || c._id;
@@ -73,9 +87,9 @@ export const useCategoryStore = create((set) => ({
     } catch (err) {
       console.error('❌ Error updating category:', err);
       console.error('❌ Error response:', err.response?.data);
+      // Rollback on error
+      set({ categories: previousCategories });
       throw err;
-    } finally {
-      set({ loading: false });
     }
   },
 

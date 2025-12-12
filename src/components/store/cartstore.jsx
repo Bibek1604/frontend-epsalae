@@ -21,27 +21,56 @@ export const useCartStore = create(
           return { items: [...state.items, { ...product, quantity: product.quantity || 1 }] };
         });
         
-        // Show toast notification
-        toast.success(
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full shrink-0">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
+        // Show animated toast notification
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? 'animate-enter' : 'animate-leave'
+              } max-w-sm w-full bg-white shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 overflow-hidden`}
+              style={{
+                animation: t.visible 
+                  ? 'slideIn 0.3s ease-out, pulse 0.5s ease-in-out 0.3s 2'
+                  : 'slideOut 0.3s ease-in'
+              }}
+            >
+              {/* Green accent bar */}
+              <div className="w-2 bg-gradient-to-b from-green-400 to-green-600" />
+              
+              <div className="flex items-center flex-1 gap-4 p-4">
+                {/* Animated checkmark */}
+                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full shrink-0">
+                  <svg 
+                    className="w-6 h-6 text-green-600" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                    style={{ animation: 'checkmark 0.4s ease-out 0.2s both' }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-bold text-gray-900">Added to Cart! 🛒</p>
+                  <p className="mt-0.5 text-sm text-gray-500 truncate">{product.name}</p>
+                </div>
+                
+                {/* Close button */}
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="flex items-center justify-center w-8 h-8 text-gray-400 transition-colors rounded-full shrink-0 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="font-semibold text-gray-900">Added to Cart!</p>
-              <p className="text-sm text-gray-500 truncate max-w-[180px]">{product.name}</p>
-            </div>
-          </div>,
+          ),
           {
-            duration: 2500,
-            style: {
-              padding: '12px 16px',
-              borderRadius: '12px',
-              background: '#fff',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
-            },
+            duration: 3000,
+            position: 'top-right',
           }
         );
       },

@@ -5,10 +5,11 @@ import { Zap, Clock, ShoppingCart, Heart, ArrowRight, Loader2 } from 'lucide-rea
 import { useFlashSaleStore } from '../store/flashsalestore'
 import { useCart } from '@/store/cartstore'
 import { getImageUrl } from '@/config'
+import { formatProductName } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
-// Placeholder for failed images
-const PLACEHOLDER = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'
+// Placeholder for failed images - Generic product placeholder
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600'
 
 export default function FlashSale() {
   const navigate = useNavigate()
@@ -150,11 +151,11 @@ export default function FlashSale() {
               className="flex-shrink-0 overflow-hidden transition-all bg-white shadow-xl cursor-pointer w-72 rounded-2xl hover:shadow-2xl group"
             >
               {/* Image */}
-              <div className="relative overflow-hidden aspect-square bg-gray-50">
+              <div className="relative overflow-hidden aspect-square bg-white">
                 <img
                   src={getImageUrl(product.imageUrl) || PLACEHOLDER}
                   alt={product.name}
-                  className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
+                  className="object-contain w-full h-full p-2 transition-transform duration-500 group-hover:scale-105"
                   onError={(e) => { e.target.src = PLACEHOLDER }}
                 />
                 
@@ -176,7 +177,7 @@ export default function FlashSale() {
 
               {/* Content */}
               <div className="p-5">
-                <h3 className="mb-2 font-bold text-gray-900 line-clamp-2">{product.name}</h3>
+                <h3 className="mb-2 font-bold text-gray-900 line-clamp-2">{formatProductName(product.name)}</h3>
                 
                 <div className="flex items-baseline gap-2 mb-4">
                   <span className="text-xl font-black text-[#FF6B35]">

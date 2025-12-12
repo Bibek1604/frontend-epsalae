@@ -33,13 +33,13 @@ export default function Footer() {
               <h3 className="mb-2 text-2xl font-bold text-white md:text-3xl">Stay Updated!</h3>
               <p className="text-white/80">Subscribe for exclusive deals and updates</p>
             </div>
-            <form className="flex w-full max-w-md gap-3">
+            <form className="flex flex-col w-full max-w-md gap-3 sm:flex-row">
               <input 
                 type="email" 
                 placeholder="Enter your email" 
                 className="flex-1 px-6 py-4 text-gray-900 bg-white rounded-xl focus:outline-none focus:ring-4 focus:ring-white/30"
               />
-              <button className="px-8 py-4 font-bold text-[#1A3C8A] transition-all bg-white rounded-xl hover:shadow-lg hover:scale-105 btn-press">
+              <button className="px-8 py-4 font-bold text-[#1A3C8A] transition-all bg-white rounded-xl hover:shadow-lg hover:scale-105 btn-press whitespace-nowrap">
                 Subscribe
               </button>
             </form>
