@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast'
 import Home from './components/homepage/home'
 import ProductDetail from './components/product-details/ProductDetail'
@@ -13,10 +13,11 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Navbar from './components/homepage/navbar'
 import Footer from './components/homepage/Footer'
 import NotFound from './pages/NotFound'
+//include goto top button
 
 function App() {
   return (
-    <BrowserRouter>
+    <>
       {/* Global Toast Notifications */}
       <Toaster 
         position="top-right"
@@ -28,7 +29,6 @@ function App() {
           },
         }}
       />
-      
       <Routes>
         {/* Admin routes - no header/footer */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -37,7 +37,6 @@ function App() {
             <AdminLayout />
           </ProtectedRoute>
         } />
-        
         {/* Public routes - with header/footer */}
         <Route path="/*" element={
           <div className="flex flex-col min-h-screen bg-white">
@@ -59,8 +58,8 @@ function App() {
           </div>
         } />
       </Routes>
-    </BrowserRouter>
-  )
+    </>
+  );
 }
 
 export default App

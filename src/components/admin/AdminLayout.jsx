@@ -16,6 +16,7 @@ export default function AdminLayout() {
       <Sidebar />
       {/* Main Content - changes based on route */}
       <div className="flex-1 p-6 ml-64 overflow-auto">
+        
         <Routes>
           <Route path="/" element={<AdminDashboard />} />
           <Route path="/categorycrud" element={<CategoryCrud />} />
