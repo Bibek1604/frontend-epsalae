@@ -1,8 +1,13 @@
 // Global Configuration
 // Uses environment variables for flexibility across deployments
 
+// Environment check
+export const isDevelopment = import.meta.env.DEV;
+export const isProduction = import.meta.env.PROD;
+
 // API Configuration - Uses environment variable with fallback
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://backend-epasal.onrender.com';
+// In development default to relative path so Vite proxy can forward requests
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (isDevelopment ? '' : 'https://backend-epasal.onrender.com');
 export const API_URL = `${API_BASE_URL}/api/v1`;
 
 // App Configuration

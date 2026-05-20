@@ -57,5 +57,14 @@ export default defineConfig({
     port: 5174,
     strictPort: false,
     open: true,
+    proxy: {
+      // Forward local /api/v1 requests to the deployed backend to avoid CORS during development
+      '/api/v1': {
+        target: 'https://backend-epasal.onrender.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1'),
+      },
+    },
   },
 })
