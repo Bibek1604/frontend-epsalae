@@ -10,9 +10,12 @@ import TrackOrder from './pages/TrackOrder'
 import AdminLogin from './pages/AdminLogin'
 import AdminLayout from './components/admin/AdminLayout'
 import ProtectedRoute from './components/ProtectedRoute'
+import UserProtectedRoute from './components/UserProtectedRoute'
 import Navbar from './components/homepage/navbar'
 import Footer from './components/homepage/Footer'
 import NotFound from './pages/NotFound'
+import ProfileSetup from './pages/ProfileSetup'
+import AccountDashboard from './pages/AccountDashboard'
 //include goto top button
 
 function App() {
@@ -39,7 +42,7 @@ function App() {
         } />
         {/* Public routes - with header/footer */}
         <Route path="/*" element={
-          <div className="flex flex-col min-h-screen bg-white">
+          <div className="relative flex flex-col min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_48%,_#eef3ff_100%)] text-slate-900">
             <Navbar />
             <main className="flex-1">
               <Routes>
@@ -48,6 +51,8 @@ function App() {
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
+                <Route path="/profile-setup" element={<UserProtectedRoute><ProfileSetup /></UserProtectedRoute>} />
+                <Route path="/account/*" element={<UserProtectedRoute><AccountDashboard /></UserProtectedRoute>} />
                 <Route path="/order-success/:orderId" element={<OrderSuccess />} />
                 <Route path="/track-order" element={<TrackOrder />} />
                 {/* 404 - Catch all unknown routes */}

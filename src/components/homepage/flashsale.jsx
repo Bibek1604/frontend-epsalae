@@ -120,7 +120,7 @@ export default function FlashSale() {
             whileInView={{ opacity: 1, scale: 1 }}
             className="flex items-center gap-4"
           >
-            <Clock className="w-8 h-8 text-yellow-400" />
+            <Clock className="w-8 h-8 text-yellow-400 animate-pulse" />
             <div className="flex gap-3">
               {[
                 { value: timeLeft.hours, label: 'HRS' },
@@ -128,10 +128,10 @@ export default function FlashSale() {
                 { value: timeLeft.seconds, label: 'SEC' }
               ].map((item, i) => (
                 <div key={i} className="text-center">
-                  <div className="flex items-center justify-center w-16 h-16 text-2xl font-black text-[#1A3C8A] bg-white rounded-xl shadow-lg">
+                  <div className="flex items-center justify-center w-16 h-16 text-2xl font-black text-[#1A3C8A] bg-white rounded-2xl shadow-[0_10px_25px_-5px_rgba(255,107,53,0.15)] ring-4 ring-white/10">
                     {String(item.value).padStart(2, '0')}
                   </div>
-                  <span className="mt-1 text-xs font-bold text-white/80">{item.label}</span>
+                  <span className="mt-2 block text-xs font-bold text-white/80 tracking-wider">{item.label}</span>
                 </div>
               ))}
             </div>
@@ -139,7 +139,7 @@ export default function FlashSale() {
         </div>
 
         {/* Products Horizontal Scroll */}
-        <div className="flex gap-6 pb-4 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-6 pb-6 overflow-x-auto scrollbar-hide">
           {saleProducts.slice(0, 6).map((product, index) => (
             <motion.div
               key={product._id || product.id || index}
@@ -148,14 +148,14 @@ export default function FlashSale() {
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -10 }}
               onClick={() => navigate(`/product/${product.id || product._id}`)}
-              className="flex-shrink-0 overflow-hidden transition-all bg-white shadow-xl cursor-pointer w-72 rounded-2xl hover:shadow-2xl group"
+              className="flex-shrink-0 overflow-hidden transition-all bg-white shadow-xl cursor-pointer w-72 rounded-3xl hover:shadow-2xl group border border-gray-50 hover:border-orange-100"
             >
               {/* Image */}
-              <div className="relative overflow-hidden aspect-square bg-white">
+              <div className="relative overflow-hidden aspect-square bg-gradient-to-b from-gray-50/50 to-white flex items-center justify-center p-4">
                 <img
                   src={getImageUrl(product.imageUrl) || PLACEHOLDER}
                   alt={product.name}
-                  className="object-contain w-full h-full p-2 transition-transform duration-500 group-hover:scale-105"
+                  className="object-contain w-full h-full p-2 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-1"
                   onError={(e) => { e.target.src = PLACEHOLDER }}
                 />
                 
@@ -169,7 +169,7 @@ export default function FlashSale() {
                 {/* Wishlist */}
                 <button 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute p-2 transition-all bg-white rounded-full shadow-lg opacity-0 top-3 right-3 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500"
+                  className="absolute p-2.5 transition-all bg-white rounded-full shadow-lg opacity-0 top-3 right-3 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 hover:scale-110"
                 >
                   <Heart className="w-5 h-5" />
                 </button>
@@ -177,9 +177,9 @@ export default function FlashSale() {
 
               {/* Content */}
               <div className="p-5">
-                <h3 className="mb-2 font-bold text-gray-900 line-clamp-2">{formatProductName(product.name)}</h3>
+                <h3 className="mb-2 font-bold text-gray-900 line-clamp-1 group-hover:text-[#1A3C8A] transition-colors">{formatProductName(product.name)}</h3>
                 
-                <div className="flex items-baseline gap-2 mb-4">
+                <div className="flex items-baseline gap-2 mb-3">
                   <span className="text-xl font-black text-[#FF6B35]">
                     Rs. {(product.salePrice || product.discountPrice || product.price).toLocaleString()}
                   </span>
@@ -190,9 +190,23 @@ export default function FlashSale() {
                   )}
                 </div>
 
+                {/* Stock Urgency Bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between text-[11px] font-semibold text-gray-500 mb-1">
+                    <span>Stock Left: {product.stock || 0}</span>
+                    {product.stock <= 5 && <span className="text-red-500 animate-pulse font-bold">Almost Sold Out!</span>}
+                  </div>
+                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-red-500 to-[#FF6B35] rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(100, Math.max(10, ((product.stock || 5) / 25) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+
                 <button
                   onClick={(e) => handleAddToCart(e, product)}
-                  className="w-full py-3 font-bold text-white transition-all rounded-xl bg-gradient-to-r from-[#FF6B35] to-orange-500 hover:shadow-lg hover:shadow-orange-500/30 btn-press flex items-center justify-center gap-2"
+                  className="w-full py-3.5 font-bold text-white transition-all rounded-xl bg-gradient-to-r from-[#1A3C8A] to-[#2d4a9a] hover:from-[#FF6B35] hover:to-orange-500 hover:shadow-lg hover:shadow-orange-500/20 btn-press flex items-center justify-center gap-2"
                 >
                   <ShoppingCart className="w-5 h-5" />
                   Add to Cart

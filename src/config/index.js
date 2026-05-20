@@ -41,40 +41,44 @@ export const getImageUrl = (imagePath, placeholder = PLACEHOLDER) => {
 };
 
 // ============================================
-// DESIGN SYSTEM - Premium Blue-Green Theme
+// DESIGN SYSTEM - Premium Deep Blue & Orange Theme
 // ============================================
 
 export const theme = {
   // Primary Colors
   colors: {
-    primary: '#4A90E2',      // Light Blue - Main brand color
-    primaryDark: '#357ABD',  // Darker blue for hover states
-    primaryLight: '#6BA5E7', // Lighter blue for backgrounds
+    primary: '#1A3C8A',      // Deep Blue - Main brand color
+    primaryDark: '#112960',  // Darker blue for hover states
+    primaryLight: '#2D52B2', // Lighter blue for backgrounds
     
-    success: '#34C759',      // Green - Success, active states
-    successDark: '#2DB14C',  // Darker green for hover
-    successLight: '#4CD964', // Lighter green
+    brandOrange: '#FF6B35',  // Vibrant Orange - Branding & accents
+    brandOrangeDark: '#E0531F', // Darker orange
+    brandOrangeLight: '#FF885B', // Lighter orange
+    
+    success: '#10B981',      // Emerald Green - Success, checkout
+    successDark: '#059669',  // Darker green
+    successLight: '#34D399', // Lighter green
     
     // Neutrals
     white: '#FFFFFF',
-    background: '#F7F9FA',   // Soft gray background
+    background: '#F9FAFB',   // Soft gray background
     surface: '#FFFFFF',      // Card backgrounds
-    border: '#E8ECF0',       // Border color
+    border: '#F3F4F6',       // Border color
     
     // Text
-    textPrimary: '#1A1D21',  // Main text
-    textSecondary: '#6B7280', // Secondary text
+    textPrimary: '#111827',  // Main text
+    textSecondary: '#4B5563', // Secondary text
     textMuted: '#9CA3AF',    // Muted text
     
     // Status Colors
     warning: '#F5A623',
-    error: '#FF3B30',
-    info: '#5AC8FA',
+    error: '#EF4444',
+    info: '#3B82F6',
     
     // Gradients
-    gradientPrimary: 'linear-gradient(135deg, #4A90E2 0%, #34C759 100%)',
-    gradientBlue: 'linear-gradient(135deg, #4A90E2 0%, #6BA5E7 100%)',
-    gradientGreen: 'linear-gradient(135deg, #34C759 0%, #4CD964 100%)',
+    gradientPrimary: 'linear-gradient(135deg, #1A3C8A 0%, #FF6B35 100%)',
+    gradientBlue: 'linear-gradient(135deg, #1A3C8A 0%, #2D52B2 100%)',
+    gradientOrange: 'linear-gradient(135deg, #FF6B35 0%, #FF885B 100%)',
   },
   
   // Border Radius
@@ -82,18 +86,18 @@ export const theme = {
     sm: '8px',
     md: '12px',
     lg: '16px',
-    xl: '20px',
+    xl: '24px',
     full: '9999px',
   },
   
   // Shadows
   shadows: {
     sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
-    md: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-    card: '0 4px 20px rgba(74, 144, 226, 0.1)',
-    button: '0 4px 14px rgba(74, 144, 226, 0.25)',
+    md: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)',
+    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    card: '0 10px 30px rgba(26, 60, 138, 0.04)',
+    button: '0 10px 20px rgba(255, 107, 53, 0.15)',
   },
   
   // Typography

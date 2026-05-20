@@ -3,19 +3,30 @@ import { useState, useEffect } from 'react'
 import { Search, ShoppingBag, Heart, Menu, Package, LogIn, X, Grid, Home, ChevronDown, User, Zap } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '@/store/cartstore'
-import { useAuthStore } from '../store/authstore'
+import { useUserAuth } from '../store/authstore'
+import { useProductStore } from '../store/productstore'
+import { useCategoryStore } from '../store/categorystore'
 import { motion, AnimatePresence } from 'framer-motion'
 import logo from '../../assets/logo1080.png'
 
 export default function Navbar() {
   const navigate = useNavigate()
   const { cart } = useCart()
-  const { isLoggedIn, logout } = useAuthStore()
+  const { isUser: isLoggedIn, logoutUser: logout } = useUserAuth()
+  const { products, fetchProducts } = useProductStore()
+  const { categories, fetchCategories } = useCategoryStore()
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+
+  // Fetch initial data
+  useEffect(() => {
+    if (products.length === 0) fetchProducts()
+    if (categories.length === 0) fetchCategories()
+  }, [])
 
   // Scroll effect for navbar
   useEffect(() => {
@@ -31,9 +42,16 @@ export default function Navbar() {
     if (searchQuery.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`)
       setSearchQuery('')
+      setShowSuggestions(false)
       setMobileMenuOpen(false)
     }
   }
+
+  const suggestions = searchQuery.trim()
+    ? products
+        .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .slice(0, 5)
+    : []
 
   const navLinks = [
     { name: 'Home', path: '/', icon: Home },
@@ -42,67 +60,170 @@ export default function Navbar() {
 
   return (
     <>
+      {/* Premium Announcement Bar */}
+      <div className="relative z-50 w-full overflow-hidden border-b border-white/10 bg-[linear-gradient(90deg,_rgba(8,12,20,0.98)_0%,_rgba(26,60,138,0.96)_48%,_rgba(255,107,53,0.94)_100%)] text-xs font-medium text-white/95 shadow-[0_14px_40px_-30px_rgba(15,23,42,0.65)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_24%)]" />
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 rounded-full border border-white/15 bg-white/8 px-3 py-1.5 backdrop-blur-md">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-300 opacity-60"></span>
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-400"></span>
+            </span>
+            <span className="whitespace-nowrap">FLASH SALE: Up to 50% Off! Code: <strong className="text-orange-200">EPASALEY</strong></span>
+          </div>
+          <div className="hidden items-center gap-6 text-white/85 md:flex">
+            <span className="flex items-center gap-1.5">🚚 Free delivery above Rs. 5,000</span>
+            <span className="flex items-center gap-1.5">✨ 100% genuine products</span>
+          </div>
+        </div>
+      </div>
+
       {/* Ultra-Premium Sticky Navbar with Scroll Effect */}
       <header className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-100' 
-          : 'bg-white/80 backdrop-blur-xl border-b border-gray-100'
+          ? 'bg-white/88 backdrop-blur-2xl shadow-[0_18px_60px_-42px_rgba(15,23,42,0.5)] border-b border-slate-200/70' 
+          : 'bg-white/72 backdrop-blur-2xl border-b border-white/70'
       }`}>
-        <div className="px-6 mx-auto max-w-7xl">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
 
           <div className={`flex items-center justify-between transition-all duration-300 ${
             scrolled ? 'h-16' : 'h-20'
           }`}>
 
             {/* Logo with scale on scroll */}
-            <Link to="/" className="flex items-center group">
+            <Link to="/" className="flex items-center group shrink-0">
               <img 
                 src={logo} 
                 alt="Epasaley Logo" 
                 className={`object-contain transition-all duration-300 ${
-                  scrolled ? 'w-24 h-24' : 'w-32 h-32'
+                  scrolled ? 'w-20 h-20' : 'w-28 h-28'
                 }`}
               />
             </Link>
 
-            {/* Desktop Search - Clean & Elegant */}
-            <form onSubmit={handleSearch} className="flex-1 hidden max-w-2xl mx-12 lg:flex">
-              <div className="relative w-full group">
-                <Search className="absolute w-5 h-5 text-gray-400 transition-colors -translate-y-1/2 left-5 top-1/2 group-focus-within:text-gray-900" />
+            {/* Desktop Search - Clean & Elegant with Autocomplete suggestions */}
+            <div className="relative flex-1 hidden max-w-xl mx-8 lg:block">
+              <form onSubmit={handleSearch} className="relative w-full group">
+                <Search className="absolute w-4.5 h-4.5 text-gray-400 transition-colors -translate-y-1/2 left-4.5 top-1/2 group-focus-within:text-gray-900" />
                 <input
                   type="text"
                   placeholder="Search anything..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-4 pl-12 pr-10 text-lg text-gray-900 transition-all duration-300 border border-transparent bg-gray-50/70 backdrop-blur rounded-2xl focus:outline-none focus:bg-white focus:border-gray-300 focus:shadow-lg placeholder:text-gray-500"
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setShowSuggestions(true)
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  className="w-full py-3.5 pl-11 pr-10 text-base text-gray-900 transition-all duration-300 border border-slate-200/70 bg-white/70 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] rounded-full focus:outline-none focus:bg-white focus:border-slate-300 focus:shadow-[0_18px_50px_-30px_rgba(15,23,42,0.4)] placeholder:text-gray-500"
                 />
                 {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute text-gray-400 -translate-y-1/2 right-4 top-1/2 hover:text-gray-700"
+                    onClick={() => {
+                      setSearchQuery('')
+                      setShowSuggestions(false)
+                    }}
+                    className="absolute text-gray-400 -translate-y-1/2 right-3.5 top-1/2 hover:text-gray-700"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4.5 h-4.5" />
                   </button>
                 )}
-              </div>
-            </form>
+              </form>
+
+              {/* Suggestions Dropdown */}
+              <AnimatePresence>
+                {showSuggestions && searchQuery.trim() && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowSuggestions(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute left-0 right-0 z-20 mt-2 overflow-hidden border border-white/70 bg-white/95 shadow-[0_30px_80px_-45px_rgba(15,23,42,0.5)] rounded-[1.5rem] backdrop-blur-xl"
+                    >
+                      {suggestions.length > 0 ? (
+                        <div className="py-2">
+                          <div className="px-4 py-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                            Products
+                          </div>
+                          {suggestions.map((p) => (
+                            <button
+                              key={p._id || p.id}
+                              onClick={() => {
+                                navigate(`/product/${p.id || p._id}`)
+                                setSearchQuery('')
+                                setShowSuggestions(false)
+                              }}
+                              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                            >
+                              <img
+                                src={p.imageUrl}
+                                alt={p.name}
+                                className="w-10 h-10 object-contain rounded bg-gray-50 p-0.5"
+                                onError={(e) => { e.target.src = 'https://via.placeholder.com/50' }}
+                              />
+                              <div>
+                                <p className="text-sm font-semibold text-gray-800 line-clamp-1">{p.name}</p>
+                                <p className="text-xs text-gray-500">Rs. {p.price.toLocaleString()}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="px-4 py-6 text-center text-sm text-gray-500">
+                          No suggestions found for "{searchQuery}"
+                        </div>
+                      )}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Desktop Navigation & Actions */}
             <div className="flex items-center gap-1">
 
-              {/* Nav Links */}
-              <nav className="items-center hidden gap-1 lg:flex">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className="flex items-center gap-2 px-6 py-3 font-medium text-gray-700 transition-all rounded-2xl hover:text-gray-900 hover:bg-gray-100"
+              {/* Nav Links with Hover Mega Dropdown */}
+              <nav className="items-center hidden gap-1 lg:flex z-30">
+                <Link
+                  to="/"
+                  className="flex items-center gap-2 rounded-full px-5 py-3 font-medium text-gray-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-gray-900"
+                >
+                  <Home className="w-4 h-4" />
+                  Home
+                </Link>
+
+                {/* Categories Mega Dropdown */}
+                <div className="relative group">
+                  <button
+                    className="flex cursor-pointer items-center gap-2 rounded-full px-5 py-3 font-medium text-gray-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-gray-900"
                   >
-                    <link.icon className="w-4 h-4" />
-                    {link.name}
-                  </Link>
-                ))}
+                    <Grid className="w-4 h-4" />
+                    Categories
+                    <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
+                  </button>
+                  <div className="absolute left-0 z-50 mt-2 hidden w-64 overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/95 shadow-[0_30px_80px_-45px_rgba(15,23,42,0.5)] backdrop-blur-xl transition-all duration-300 group-hover:block">
+                    <div className="py-2">
+                      {categories.map((cat) => (
+                        <Link
+                          key={cat._id || cat.id}
+                          to={`/products?category=${cat._id || cat.id}`}
+                          className="block px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-slate-50 hover:text-[#FF6B35]"
+                        >
+                          {cat.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <Link
+                  to="/products"
+                  className="flex items-center gap-2 rounded-full px-5 py-3 font-medium text-gray-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-gray-900"
+                >
+                  <Grid className="w-4 h-4" />
+                  All Products
+                </Link>
               </nav>
 
               {/* Right Icons */}
@@ -111,28 +232,28 @@ export default function Navbar() {
                 {/* Track Order - Always Visible */}
                 <Link
                   to="/track-order"
-                  className="items-center hidden gap-2 px-5 py-3 font-medium text-white transition-all shadow-lg lg:flex rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:shadow-xl hover:shadow-emerald-500/30"
+                  className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-3 font-medium text-white shadow-[0_18px_40px_-24px_rgba(16,185,129,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-25px_rgba(16,185,129,0.65)] lg:flex"
                 >
                   <Package className="w-5 h-5" />
                   Track Order
                 </Link>
 
                 {/* Wishlist */}
-                <button className="p-3 text-gray-600 transition-all rounded-2xl hover:text-red-600 hover:bg-red-50">
+                <button className="rounded-full p-3 text-gray-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-600">
                   <Heart className="w-6 h-6" />
                 </button>
 
                 {/* Cart with Badge */}
                 <button
                   onClick={() => navigate('/cart')}
-                  className="relative p-3 text-gray-600 transition-all rounded-2xl hover:text-gray-900 hover:bg-gray-100 group"
+                  className="group relative rounded-full p-3 text-gray-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-gray-900"
                 >
                   <ShoppingBag className="w-6 h-6" />
                   {cart.length > 0 && (
                     <motion.span
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute flex items-center justify-center w-6 h-6 text-xs font-bold text-white rounded-full shadow-lg -top-1 -right-1 bg-gradient-to-r from-gray-900 to-gray-700"
+                      className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-gray-900 to-gray-700 text-xs font-bold text-white shadow-lg"
                     >
                       {cart.length}
                     </motion.span>
@@ -144,7 +265,7 @@ export default function Navbar() {
                   <div className="relative">
                     <button
                       onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className="flex items-center gap-2 px-5 py-3 font-medium transition-all bg-gray-100 rounded-2xl hover:bg-gray-200"
+                      className="flex items-center gap-2 rounded-full bg-slate-100 px-5 py-3 font-medium text-gray-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-200"
                     >
                       <User className="w-5 h-5" />
                       <ChevronDown className={`w-4 h-4 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
@@ -164,12 +285,12 @@ export default function Navbar() {
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute right-0 z-50 w-56 mt-3 overflow-hidden bg-white border border-gray-100 shadow-2xl rounded-3xl"
+                            className="absolute right-0 z-50 mt-3 w-56 overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/95 shadow-[0_30px_80px_-45px_rgba(15,23,42,0.55)] backdrop-blur-xl"
                           >
                             <Link
                               to="/profile"
                               onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-6 py-4 transition hover:bg-gray-50"
+                              className="flex items-center gap-3 px-6 py-4 transition hover:bg-slate-50"
                             >
                               <User className="w-5 h-5 text-gray-600" />
                               <span className="font-medium">My Profile</span>
@@ -177,7 +298,7 @@ export default function Navbar() {
                             <Link
                               to="/orders"
                               onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-6 py-4 transition hover:bg-gray-50"
+                              className="flex items-center gap-3 px-6 py-4 transition hover:bg-slate-50"
                             >
                               <Package className="w-5 h-5 text-gray-600" />
                               <span className="font-medium">My Orders</span>
@@ -185,7 +306,7 @@ export default function Navbar() {
                             <Link
                               to="/admin"
                               onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-6 py-4 transition hover:bg-gray-50"
+                              className="flex items-center gap-3 px-6 py-4 transition hover:bg-slate-50"
                             >
                               <Grid className="w-5 h-5 text-gray-600" />
                               <span className="font-medium">Admin Panel</span>
@@ -197,7 +318,7 @@ export default function Navbar() {
                                 setUserMenuOpen(false)
                                 navigate('/')
                               }}
-                              className="flex items-center w-full gap-3 px-6 py-4 font-medium text-red-600 transition hover:bg-red-50"
+                              className="flex w-full items-center gap-3 px-6 py-4 font-medium text-red-600 transition hover:bg-red-50"
                             >
                               <LogIn className="w-5 h-5" />
                               Logout
@@ -212,7 +333,7 @@ export default function Navbar() {
                 {/* Mobile Menu Toggle */}
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="p-3 transition lg:hidden rounded-2xl hover:bg-gray-100"
+                  className="rounded-full p-3 transition duration-300 hover:-translate-y-0.5 hover:bg-slate-100 lg:hidden"
                 >
                   {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
@@ -228,7 +349,7 @@ export default function Navbar() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="bg-white border-t border-gray-100 lg:hidden"
+              className="border-t border-white/70 bg-white/96 shadow-[0_25px_70px_-48px_rgba(15,23,42,0.45)] lg:hidden"
             >
               <div className="px-6 py-8 space-y-6">
 
@@ -240,7 +361,7 @@ export default function Navbar() {
                     placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full py-5 pr-12 text-lg pl-14 bg-gray-50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-gray-200"
+                    className="w-full rounded-3xl border border-slate-200/80 bg-white py-5 pl-14 pr-12 text-lg shadow-[0_12px_35px_-28px_rgba(15,23,42,0.35)] focus:outline-none focus:ring-4 focus:ring-slate-200"
                   />
                 </form>
 
@@ -251,7 +372,7 @@ export default function Navbar() {
                       key={link.path}
                       to={link.path}
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-4 px-6 py-4 text-lg font-medium transition rounded-2xl hover:bg-gray-100"
+                      className="flex items-center gap-4 rounded-3xl px-6 py-4 text-lg font-medium transition hover:bg-slate-100"
                     >
                       <link.icon className="w-6 h-6 text-gray-600" />
                       {link.name}
@@ -261,7 +382,7 @@ export default function Navbar() {
                   <Link
                     to="/track-order"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-4 px-6 py-4 font-semibold text-white shadow-lg rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700"
+                    className="flex items-center gap-4 rounded-3xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-4 font-semibold text-white shadow-lg"
                   >
                     <Package className="w-6 h-6" />
                     Track Your Order
@@ -273,7 +394,7 @@ export default function Navbar() {
                         logout()
                         setMobileMenuOpen(false)
                       }}
-                      className="flex items-center w-full gap-4 px-6 py-4 font-medium text-red-600 transition rounded-2xl bg-red-50 hover:bg-red-100"
+                      className="flex w-full items-center gap-4 rounded-3xl bg-red-50 px-6 py-4 font-medium text-red-600 transition hover:bg-red-100"
                     >
                       <LogIn className="w-6 h-6" />
                       Logout

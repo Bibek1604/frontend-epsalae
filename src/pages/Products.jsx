@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import {
   Grid3x3, List, Filter, ShoppingCart, Heart, Zap,
-  ChevronRight, Sparkles, Loader2, X
+  ChevronRight, Sparkles, Loader2, X, Star
 } from 'lucide-react';
 import { useProductStore } from '../components/store/productstore';
 import { useCategoryStore } from '../components/store/categorystore';

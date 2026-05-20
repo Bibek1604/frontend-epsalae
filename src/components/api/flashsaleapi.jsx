@@ -1,8 +1,8 @@
 // src/api/flashSaleApi.js
 import api from './base';
 
-// Try different endpoint patterns your backend might use
-const ENDPOINT = '/flashsales'; // Changed from '/flash-sales/'
+// Backend mounts at /api/v1/flash-sales
+const ENDPOINT = '/flash-sales';
 
 export const flashSaleApi = {
   getAll: () => {

@@ -1,11 +1,13 @@
 // src/pages/Checkout.jsx
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Check, ChevronLeft, Lock, AlertCircle, Loader2, Truck, Shield } from 'lucide-react'
 import { useCart } from '@/store/cartstore'
 import { orderApi } from '../components/api/orderapi'
 import { getImageUrl } from '@/config'
+import { useAuthStore } from '@/components/store/authstore'
+import AuthModal from '@/components/auth/AuthModal'
 
 // Full Nepal Districts (77) with real municipalities
 const NEPAL_DISTRICTS = {
@@ -103,7 +105,10 @@ const NEPAL_DISTRICTS = {
 
 export default function Checkout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { cart, getTotalPrice, clearCart } = useCart()
+  const { isLoggedIn, user } = useAuthStore()
+  const [showAuth, setShowAuth] = useState(false)
 
   const [currentStep, setCurrentStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -118,6 +123,12 @@ export default function Checkout() {
   const subtotal = getTotalPrice()
   const shipping = subtotal >= 5000 ? 0 : 250
   const total = subtotal + shipping
+
+  useEffect(() => {
+    if (location.state?.openAuth) {
+      setShowAuth(true)
+    }
+  }, [location.state])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -158,6 +169,7 @@ export default function Checkout() {
         first_name: formData.first_name,
         last_name: formData.last_name,
         name: `${formData.first_name} ${formData.last_name}`,
+        email: formData.email,
         phone: formData.phone,
         district: formData.district,
         city: formData.city,
@@ -171,6 +183,10 @@ export default function Checkout() {
           imageUrl: i.image || ''
         })),
         totalAmount: Number(total.toFixed(0)),
+        paymentMethod: formData.paymentMethod,
+        // Link order to the signed-in user so it shows up in /user/orders.
+        // Guest checkouts simply omit this field.
+        ...(isLoggedIn && user?.id ? { user_id: user.id } : {}),
       }
 
       const res = await orderApi.create(orderData)
@@ -252,6 +268,11 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AuthModal open={showAuth} onClose={() => setShowAuth(false)} onSuccess={({ needsOnboarding }) => {
+        setShowAuth(false)
+        if (needsOnboarding) navigate('/profile-setup')
+        else if (location.state?.returnTo) navigate(location.state.returnTo, { replace: true })
+      }} />
       <div className="px-6 py-12 mx-auto max-w-7xl">
 
         {/* Header */}
@@ -400,7 +421,10 @@ export default function Checkout() {
                     Back to Shipping
                   </button>
 
-                  <button onClick={handlePlaceOrder} disabled={isProcessing}
+                  <button onClick={() => {
+                      if (!isLoggedIn) { setShowAuth(true); return }
+                      handlePlaceOrder()
+                    }} disabled={isProcessing}
                     className={`px-12 py-5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xl transition shadow-lg flex items-center gap-4 ${isProcessing && 'opacity-75 cursor-not-allowed'}`}>
                     {isProcessing ? (
                       <>Processing <Loader2 className="w-6 h-6 animate-spin" /></>

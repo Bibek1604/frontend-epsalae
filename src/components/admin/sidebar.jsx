@@ -1,7 +1,8 @@
 // src/components/Sidebar.jsx
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authstore';
+import { useAdminAuth } from '../store/authstore';
+import api from '../api/base';
 import { 
   Home, 
   Package, 
@@ -22,7 +23,14 @@ import {
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
+  const { logoutAdmin } = useAdminAuth();
+
+  // Call backend to revoke the refresh token, then clear local state.
+  const handleLogout = async () => {
+    try { await api.post('/auth/logout'); } catch (e) { /* best effort */ }
+    logoutAdmin();
+    navigate('/');
+  };
 
   const menuItems = [
     { path: '/admin', label: 'Dashboard', icon: Home },
@@ -136,11 +144,8 @@ const Sidebar = () => {
           </li>
 
           <li>
-            <button 
-              onClick={() => {
-                logout();
-                navigate('/');
-              }}
+            <button
+              onClick={handleLogout}
               className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-[#2E2E2E] hover:bg-red-50 hover:text-[#E63946] transition-all"
             >
               <LogOut className="w-5 h-5" />

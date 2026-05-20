@@ -30,24 +30,16 @@ export const orderApi = {
     }
   },
 
-  updateStatus: async (id, status) => {
-    console.log('📝 Updating order status:', { id, status });
-    const res = await api.put(`/orders/${id}/status`, { status });
-    return res;
-  },
-  
-  // Track order by ID and phone (uses query params)
-  trackOrder: async (orderId, phone) => {
-    console.log('🔍 Tracking order:', { orderId, phone });
-    const res = await api.get(`/orders/track?orderId=${orderId}&phone=${phone}`);
+  updateStatus: async (id, status, meta) => {
+    console.log('📝 Updating order status:', { id, status, meta });
+    const res = await api.put(`/orders/${id}/status`, { status, ...(meta || {}) });
     return res;
   },
 
-  // Public track order by ID only (no auth required)
-  // Backend endpoint: GET /api/v1/orders/track/:orderId
+  // Public track order by ID (no auth required).
+  // Backend endpoint: GET /api/v1/orders/track/:id
   trackById: async (orderId) => {
-    console.log('🔍 Public tracking order by ID:', orderId);
     const res = await api.get(`/orders/track/${orderId}`);
     return res;
-  }
+  },
 };
