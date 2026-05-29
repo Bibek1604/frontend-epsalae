@@ -14,10 +14,6 @@ export const API_URL = `${API_BASE_URL}/api/v1`;
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'Epasaley';
 export const APP_DESCRIPTION = import.meta.env.VITE_APP_DESCRIPTION || "Nepal's Trusted Online Store";
 
-// Environment check
-export const isDevelopment = import.meta.env.DEV;
-export const isProduction = import.meta.env.PROD;
-
 // Default placeholder image - Generic product placeholder
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600';
 
