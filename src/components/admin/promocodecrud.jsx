@@ -1,8 +1,8 @@
 // src/pages/PromoCodeCRUD.jsx
 import { useState, useEffect } from 'react';
 import { useCouponStore } from '../store/promocodestore';
-import toast, { Toaster } from 'react-hot-toast';
-import { Plus, Edit2, Trash2, Loader2, X, CheckCircle, AlertCircle, Calendar, Tag } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Plus, Edit2, Trash2, Loader2, X, CheckCircle, AlertCircle, Tag } from 'lucide-react';
 
 export default function PromoCodeCRUD() {
   const { coupons, loading, fetchCoupons, addCoupon, updateCoupon, deleteCoupon } = useCouponStore();
@@ -31,7 +31,6 @@ export default function PromoCodeCRUD() {
     if (!form.validTo) newErrors.validTo = 'Valid to date is required';
     if (form.validFrom && form.validTo && new Date(form.validTo) <= new Date(form.validFrom))
       newErrors.validTo = 'End date must be after start date';
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -42,7 +41,6 @@ export default function PromoCodeCRUD() {
       toast.error('Please fix the errors');
       return;
     }
-
     try {
       const payload = {
         code: form.code.toUpperCase().trim(),
@@ -51,7 +49,6 @@ export default function PromoCodeCRUD() {
         validTo: form.validTo,
         isActive: form.isActive,
       };
-
       if (editingCoupon) {
         await updateCoupon(editingCoupon.code, payload);
         toast.success('Coupon updated successfully!');
@@ -59,7 +56,6 @@ export default function PromoCodeCRUD() {
         await addCoupon(payload);
         toast.success('Coupon created successfully!');
       }
-
       closeModal();
       fetchCoupons();
     } catch (err) {
@@ -103,143 +99,165 @@ export default function PromoCodeCRUD() {
     return { label: 'Active', color: 'emerald' };
   };
 
+  const activeCount = coupons.filter(c => c.isActive && !isExpired(c)).length;
+  const expiredCount = coupons.filter(c => isExpired(c)).length;
+
   return (
-    <>
-      <Toaster position="top-right" />
+    <div className="space-y-5 max-w-7xl mx-auto">
 
-      <div className="min-h-screen p-6 bg-gradient-to-br from-gray-50 to-gray-100 lg:p-10">
-        <div className="mx-auto max-w-7xl">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-800">Promo Codes</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Create and manage discount coupons</p>
+        </div>
+        <button
+          onClick={() => {
+            setEditingCoupon(null);
+            setForm({ code: '', discountAmount: '', validFrom: '', validTo: '', isActive: true });
+            setErrors({});
+            setShowModal(true);
+          }}
+          className="bg-[#FF6B35] hover:bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2"
+        >
+          <Plus size={16} /> Create Coupon
+        </button>
+      </div>
 
-          {/* Header */}
-          <div className="flex flex-col items-start justify-between gap-6 mb-10 sm:flex-row sm:items-center">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
+              <Tag className="w-4 h-4 text-[#1A3C8A]" />
+            </div>
             <div>
-              <h1 className="text-5xl font-bold text-[#1A3C8A] mb-2">Promo Codes</h1>
-              <p className="text-[#7A7A7A]">Create and manage discount coupons</p>
+              <p className="text-xs text-gray-500">Total</p>
+              <p className="text-lg font-bold text-gray-800">{coupons.length}</p>
             </div>
-            <button
-              onClick={() => {
-                setEditingCoupon(null);
-                setForm({ code: '', discountAmount: '', validFrom: '', validTo: '', isActive: true });
-                setErrors({});
-                setShowModal(true);
-              }}
-              className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
-            >
-              <Plus className="w-6 h-6" />
-              Create Coupon
-            </button>
           </div>
-
-          {/* Table */}
-          {loading ? (
-            <div className="flex justify-center py-32">
-              <Loader2 className="w-16 h-16 animate-spin text-[#FF6B35]" />
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
             </div>
-          ) : coupons.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-3xl shadow-xl border border-[#EFEFEF]">
-              <Tag className="w-24 h-24 text-[#1A3C8A]/20 mx-auto mb-6" />
-              <h3 className="text-2xl font-bold text-[#2E2E2E]">No coupons yet</h3>
-              <p className="text-[#7A7A7A] mt-2">Create your first discount code!</p>
+            <div>
+              <p className="text-xs text-gray-500">Active</p>
+              <p className="text-lg font-bold text-gray-800">{activeCount}</p>
             </div>
-          ) : (
-            <div className="bg-white rounded-3xl shadow-xl border border-[#EFEFEF] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] text-white">
-                      <th className="px-8 py-6 font-bold text-left">Coupon Code</th>
-                      <th className="px-8 py-6 font-bold text-center">Discount</th>
-                      <th className="px-8 py-6 font-bold text-center">Valid From</th>
-                      <th className="px-8 py-6 font-bold text-center">Valid To</th>
-                      <th className="px-8 py-6 font-bold text-center">Status</th>
-                      <th className="px-8 py-6 font-bold text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {coupons.map((coupon, i) => {
-                      const status = getStatus(coupon);
-                      return (
-                        <tr
-                          key={coupon.code}
-                          className={`border-b border-gray-100 hover:bg-orange-50/30 transition-all ${
-                            i % 2 === 0 ? 'bg-gray-50/30' : 'bg-white'
-                          }`}
-                        >
-                          <td className="px-8 py-6">
-                            <code className="px-5 py-3 bg-gradient-to-r from-[#1A3C8A]/10 to-[#FF6B35]/10 text-[#1A3C8A] font-bold rounded-xl text-lg tracking-wider">
-                              {coupon.code}
-                            </code>
-                          </td>
-                          <td className="px-8 py-6 text-center font-bold text-[#1A3C8A]">
-                            Rs. {Number(coupon.discountAmount).toLocaleString()}
-                          </td>
-                          <td className="px-8 py-6 text-center text-[#2E2E2E]">
-                            {new Date(coupon.validFrom).toLocaleDateString('en-NP', {
-                              year: 'numeric', month: 'short', day: 'numeric'
-                            })}
-                          </td>
-                          <td className="px-8 py-6 text-center text-[#2E2E2E]">
-                            {new Date(coupon.validTo).toLocaleDateString('en-NP', {
-                              year: 'numeric', month: 'short', day: 'numeric'
-                            })}
-                          </td>
-                          <td className="px-8 py-6 text-center">
-                            <span className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm
-                              ${status.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' : 
-                                status.color === 'red' ? 'bg-red-100 text-red-700' : 
-                                'bg-gray-100 text-gray-600'}`}
-                            >
-                              {status.color === 'emerald' ? <CheckCircle className="w-5 h-5" /> :
-                               status.color === 'red' ? <AlertCircle className="w-5 h-5" /> : null}
-                              {status.label}
-                            </span>
-                          </td>
-                          <td className="px-8 py-6">
-                            <div className="flex justify-center gap-3">
-                              <button
-                                onClick={() => handleEdit(coupon)}
-                                className="p-3 bg-[#1A3C8A] text-white rounded-xl hover:bg-[#163180] transition shadow-md"
-                              >
-                                <Edit2 className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(coupon)}
-                                className="p-3 text-white transition bg-red-500 shadow-md rounded-xl hover:bg-red-600"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 text-red-500" />
             </div>
-          )}
+            <div>
+              <p className="text-xs text-gray-500">Expired</p>
+              <p className="text-lg font-bold text-gray-800">{expiredCount}</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Premium Modal */}
+      {/* Table Card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-800">All Coupons</h2>
+          <span className="text-xs text-gray-400">{coupons.length} total</span>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-[#FF6B35]" />
+          </div>
+        ) : coupons.length === 0 ? (
+          <div className="text-center py-16">
+            <Tag className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="font-semibold text-gray-600">No coupons yet</p>
+            <p className="text-sm text-gray-400 mt-1">Create your first discount code!</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider font-semibold">
+                  <th className="px-5 py-3 text-left">Coupon Code</th>
+                  <th className="px-5 py-3 text-center">Discount</th>
+                  <th className="px-5 py-3 text-center">Valid From</th>
+                  <th className="px-5 py-3 text-center">Valid To</th>
+                  <th className="px-5 py-3 text-center">Status</th>
+                  <th className="px-5 py-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {coupons.map((coupon) => {
+                  const status = getStatus(coupon);
+                  return (
+                    <tr key={coupon.code} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-4">
+                        <code className="px-3 py-1 bg-blue-50 text-[#1A3C8A] font-bold rounded-lg text-sm tracking-wider">
+                          {coupon.code}
+                        </code>
+                      </td>
+                      <td className="px-5 py-4 text-center font-bold text-[#1A3C8A]">
+                        Rs. {Number(coupon.discountAmount).toLocaleString()}
+                      </td>
+                      <td className="px-5 py-4 text-center text-gray-600 text-xs">
+                        {new Date(coupon.validFrom).toLocaleDateString('en-NP', {
+                          year: 'numeric', month: 'short', day: 'numeric'
+                        })}
+                      </td>
+                      <td className="px-5 py-4 text-center text-gray-600 text-xs">
+                        {new Date(coupon.validTo).toLocaleDateString('en-NP', {
+                          year: 'numeric', month: 'short', day: 'numeric'
+                        })}
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1
+                          ${status.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' :
+                            status.color === 'red' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-600'}`}
+                        >
+                          {status.color === 'emerald' ? <CheckCircle className="w-3 h-3" /> :
+                           status.color === 'red' ? <AlertCircle className="w-3 h-3" /> : null}
+                          {status.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => handleEdit(coupon)} className="bg-[#1A3C8A] hover:bg-blue-900 text-white px-3 py-1.5 rounded-lg text-sm">
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDelete(coupon)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
-            <div className="bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] text-white p-8 rounded-t-3xl relative">
-              <button
-                onClick={closeModal}
-                className="absolute p-2 transition rounded-full top-6 right-6 bg-white/20 hover:bg-white/30"
-              >
-                <X className="w-6 h-6" />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="font-bold text-gray-800">{editingCoupon ? 'Edit Coupon' : 'Create New Coupon'}</h2>
+              <button onClick={closeModal} className="p-2 rounded-lg hover:bg-gray-100 transition">
+                <X className="w-5 h-5 text-gray-500" />
               </button>
-              <h2 className="text-3xl font-bold">
-                {editingCoupon ? 'Edit Coupon' : 'Create New Coupon'}
-              </h2>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-7">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Coupon Code *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Coupon Code *</label>
                 <input
                   type="text"
                   placeholder="e.g. WELCOME100"
@@ -249,16 +267,16 @@ export default function PromoCodeCRUD() {
                     setErrors({ ...errors, code: '' });
                   }}
                   disabled={!!editingCoupon}
-                  className={`w-full px-6 py-4 border-2 rounded-2xl text-lg font-mono tracking-wider uppercase transition
-                    ${editingCoupon ? 'bg-gray-100 cursor-not-allowed' : 'bg-white focus:border-[#FF6B35]'}
-                    ${errors.code ? 'border-red-400' : 'border-[#EFEFEF]'}`}
+                  className={`w-full px-4 py-2.5 border rounded-xl text-sm font-mono tracking-wider uppercase transition
+                    ${editingCoupon ? 'bg-gray-100 cursor-not-allowed border-gray-200' : 'bg-white focus:border-[#FF6B35] focus:outline-none'}
+                    ${errors.code ? 'border-red-400' : 'border-gray-200'}`}
                 />
-                {errors.code && <p className="mt-2 text-sm text-red-600">{errors.code}</p>}
-                {editingCoupon && <p className="mt-2 text-sm text-gray-500">Coupon code cannot be changed after creation</p>}
+                {errors.code && <p className="mt-1 text-xs text-red-600">{errors.code}</p>}
+                {editingCoupon && <p className="mt-1 text-xs text-gray-400">Coupon code cannot be changed after creation</p>}
               </div>
 
               <div>
-                <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Discount Amount (Rs.) *</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Discount Amount (Rs.) *</label>
                 <input
                   type="number"
                   min="1"
@@ -268,14 +286,14 @@ export default function PromoCodeCRUD() {
                     setForm({ ...form, discountAmount: e.target.value });
                     setErrors({ ...errors, discountAmount: '' });
                   }}
-                  className={`w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition ${errors.discountAmount ? 'border-red-400' : ''}`}
+                  className={`w-full px-4 py-2.5 border rounded-xl focus:border-[#FF6B35] focus:outline-none text-sm transition ${errors.discountAmount ? 'border-red-400' : 'border-gray-200'}`}
                 />
-                {errors.discountAmount && <p className="mt-2 text-sm text-red-600">{errors.discountAmount}</p>}
+                {errors.discountAmount && <p className="mt-1 text-xs text-red-600">{errors.discountAmount}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Valid From *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Valid From *</label>
                   <input
                     type="date"
                     value={form.validFrom}
@@ -283,12 +301,12 @@ export default function PromoCodeCRUD() {
                       setForm({ ...form, validFrom: e.target.value });
                       setErrors({ ...errors, validFrom: '', validTo: '' });
                     }}
-                    className={`w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition ${errors.validFrom ? 'border-red-400' : ''}`}
+                    className={`w-full px-4 py-2.5 border rounded-xl focus:border-[#FF6B35] focus:outline-none text-sm transition ${errors.validFrom ? 'border-red-400' : 'border-gray-200'}`}
                   />
-                  {errors.validFrom && <p className="mt-2 text-sm text-red-600">{errors.validFrom}</p>}
+                  {errors.validFrom && <p className="mt-1 text-xs text-red-600">{errors.validFrom}</p>}
                 </div>
                 <div>
-                  <label className="block text-lg font-semibold text-[#2E2E2E] mb-3">Valid To *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Valid To *</label>
                   <input
                     type="date"
                     value={form.validTo}
@@ -296,37 +314,24 @@ export default function PromoCodeCRUD() {
                       setForm({ ...form, validTo: e.target.value });
                       setErrors({ ...errors, validTo: '' });
                     }}
-                    className={`w-full px-6 py-4 border-2 border-[#EFEFEF] rounded-2xl focus:border-[#FF6B35] transition ${errors.validTo ? 'border-red-400' : ''}`}
+                    className={`w-full px-4 py-2.5 border rounded-xl focus:border-[#FF6B35] focus:outline-none text-sm transition ${errors.validTo ? 'border-red-400' : 'border-gray-200'}`}
                   />
-                  {errors.validTo && <p className="mt-2 text-sm text-red-600">{errors.validTo}</p>}
+                  {errors.validTo && <p className="mt-1 text-xs text-red-600">{errors.validTo}</p>}
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 py-4">
-                <input
-                  type="checkbox"
-                  id="active"
-                  checked={form.isActive}
+              <div className="flex items-center gap-3 py-1">
+                <input type="checkbox" id="active" checked={form.isActive}
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="w-6 h-6 text-[#FF6B35] rounded focus:ring-[#FF6B35]"
-                />
-                <label htmlFor="active" className="text-lg font-medium cursor-pointer">
-                  Coupon is Active
-                </label>
+                  className="w-4 h-4 text-[#FF6B35] rounded" />
+                <label htmlFor="active" className="text-sm font-medium text-gray-700 cursor-pointer">Coupon is Active</label>
               </div>
 
-              <div className="flex gap-4 pt-6">
-                <button
-                  type="submit"
-                  className="flex-1 py-5 bg-gradient-to-r from-[#FF6B35] to-orange-600 text-white text-xl font-bold rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all"
-                >
+              <div className="flex gap-3 pt-2">
+                <button type="submit" className="flex-1 py-2.5 bg-[#FF6B35] hover:bg-orange-500 text-white font-bold rounded-xl text-sm transition">
                   {editingCoupon ? 'Update Coupon' : 'Create Coupon'}
                 </button>
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-10 py-5 font-bold text-gray-700 transition border-2 border-gray-300 rounded-2xl hover:bg-gray-50"
-                >
+                <button type="button" onClick={closeModal} className="px-6 py-2.5 font-semibold text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 text-sm transition">
                   Cancel
                 </button>
               </div>
@@ -334,6 +339,6 @@ export default function PromoCodeCRUD() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { getSellingPrice, getMrpPrice, hasDiscount, getDiscountPercent, formatPrice } from '../../utils/price';
 import { useProductStore } from "../store/productstore";
 import { useCategoryStore } from "../store/categorystore";
 import { Loader2, ShoppingCart, Heart, Star, ArrowRight, Sparkles, X } from "lucide-react";
@@ -84,7 +85,8 @@ export default function ProductsGrid() {
           name: product.name,
           imageUrl: getImageUrl(product.imageUrl, 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'),
           price: product.price || 0,
-          discountPrice: product.discountPrice,
+          discountPrice: product.discountPrice || 0,
+          hasOffer: product.hasOffer || false,
           stock: product.stock || 0,
           isActive: product.isActive,
           category: getCategoryName(product),
@@ -97,7 +99,7 @@ export default function ProductsGrid() {
       addToCart({
         id: product.id,
         name: product.name,
-        price: product.discountPrice || product.price,
+        price: getSellingPrice(product),
         image: product.imageUrl,
         quantity: 1,
       });

@@ -18,7 +18,7 @@ export default function AdminLogin() {
   // Redirect if already logged in as admin
   useEffect(() => {
     if (isAdmin) {
-      navigate('/admin/dashboard');
+      navigate('/admin');
     }
   }, [isAdmin, navigate]);
 
@@ -69,7 +69,7 @@ export default function AdminLogin() {
       
       // Redirect to admin dashboard
       setTimeout(() => {
-        navigate('/admin/dashboard');
+        navigate('/admin');
       }, 500);
     } catch (error) {
       console.error('❌ Login error:', error);

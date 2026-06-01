@@ -1,161 +1,121 @@
-// src/components/Sidebar.jsx
 import React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../store/authstore';
 import api from '../api/base';
-import { 
-  Home, 
-  Package, 
-  ShoppingCart, 
-  Tag,
-  Users,
-  Percent,
-  Zap,
-  Image,
-  Settings,
-  Bell,
-  LogOut,
-  ChevronRight,
-  ExternalLink,
-  Award
+import {
+  LayoutDashboard, Package, ShoppingCart, Tag,
+  Percent, Zap, Image, LogOut, ExternalLink, Award, X
 } from 'lucide-react';
 
-const Sidebar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { logoutAdmin } = useAdminAuth();
+const menuItems = [
+  { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { path: '/admin/categorycrud', label: 'Categories', icon: Tag },
+  { path: '/admin/productcrud', label: 'Products', icon: Package },
+  { path: '/admin/ordercrud', label: 'Orders', icon: ShoppingCart },
+  { path: '/admin/promocodecrud', label: 'Promo Codes', icon: Percent },
+  { path: '/admin/flashsalecrud', label: 'Flash Sales', icon: Zap },
+  { path: '/admin/bannercrud', label: 'Banners', icon: Image },
+  { path: '/admin/brandcrud', label: 'Brands', icon: Award },
+];
 
-  // Call backend to revoke the refresh token, then clear local state.
+export default function Sidebar({ open, onClose }) {
+  const navigate = useNavigate();
+  const { admin, logoutAdmin } = useAdminAuth();
+  const adminName = admin?.name || admin?.firstName || 'Admin';
+  const adminInitial = adminName.charAt(0).toUpperCase();
+
   const handleLogout = async () => {
-    try { await api.post('/auth/logout'); } catch (e) { /* best effort */ }
+    try { await api.post('/auth/logout'); } catch (e) {}
     logoutAdmin();
     navigate('/');
   };
 
-  const menuItems = [
-    { path: '/admin', label: 'Dashboard', icon: Home },
-    { path: '/admin/categorycrud', label: 'Categories', icon: Tag },
-    { path: '/admin/productcrud', label: 'Products', icon: Package },
-    { path: '/admin/ordercrud', label: 'Orders', icon: ShoppingCart },
-    { path: '/admin/promocodecrud', label: 'Promo Codes', icon: Percent },
-    { path: '/admin/flashsalecrud', label: 'Flash Sales', icon: Zap },
-    { path: '/admin/bannercrud', label: 'Banners', icon: Image },
-    { path: '/admin/brandcrud', label: 'Brands', icon: Award },
-  ];
-
-  const bottomItems = [
-
-  ];
-
-  const isActive = (path) => location.pathname === path;
-
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-[#EFEFEF] shadow-sm flex flex-col z-10">
-      {/* Logo */}
-      <div className="h-16 flex items-center justify-center border-b border-[#EFEFEF]">
-        <h1 className="text-2xl font-bold text-[#1A3C8A]">ePasaley</h1>
-        <ChevronRight className="ml-1 w-7 h-7 text-[#FF6B35]" />
-      </div>
+    <>
+      {/* Mobile overlay */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      {/* User Profile */}
-      <div className="px-6 py-5 border-b border-[#EFEFEF]">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-[#FF6B35] rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
-            A
+      <aside
+        className={`
+          fixed left-0 top-0 h-screen w-64 bg-[#0F172A] flex flex-col z-30
+          transition-transform duration-300 ease-in-out
+          ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        {/* Logo */}
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#1A3C8A] to-[#FF6B35] rounded-lg flex items-center justify-center">
+              <span className="text-white font-black text-sm">E</span>
+            </div>
+            <span className="text-white font-bold text-lg tracking-tight">
+              ePasaley <span className="text-[#FF6B35]">Admin</span>
+            </span>
           </div>
-          <div>
-            <p className="font-semibold text-[#2E2E2E]">Hello Navin</p>
-            <p className="text-sm text-[#7A7A7A]">Admin Panel</p>
+          <button onClick={onClose} className="lg:hidden text-white/50 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Admin profile chip */}
+        <div className="mx-4 mt-5 mb-3 p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B35] to-amber-400 flex items-center justify-center text-white font-bold text-base shrink-0">
+            {adminInitial}
+          </div>
+          <div className="min-w-0">
+            <p className="text-white font-semibold text-sm truncate">{adminName}</p>
+            <p className="text-white/40 text-xs">Administrator</p>
           </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 overflow-y-auto">
-        <ul className="space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
+        {/* Nav label */}
+        <p className="px-6 text-[10px] font-bold uppercase tracking-widest text-white/25 mb-2">Main Menu</p>
 
-            return (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  className={`
-                    w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200
-                    ${active
-                      ? 'bg-orange-50 text-[#FF6B35] font-semibold border-r-4 border-[#FF6B35] shadow-sm'
-                      : 'text-[#2E2E2E] hover:bg-orange-50 hover:text-[#FF6B35] hover:border-r-4 hover:border-[#FF6B35]'
-                    }
-                  `}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
-                  </div>
-                </NavLink>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      {/* Bottom Menu */}
-      <div className="border-t border-[#EFEFEF] px-4 py-4">
-        <ul className="space-y-1">
-          {bottomItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-
-            return (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  className={`
-                    w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all
-                    ${active
-                      ? 'bg-orange-50 text-[#FF6B35] font-semibold border-r-4 border-[#FF6B35]'
-                      : 'text-[#2E2E2E] hover:bg-orange-50 hover:text-[#FF6B35]'
-                    }
-                  `}
-                >
-                  <div className="flex items-center space-x-3">
-                    <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="bg-[#E63946] text-white text-xs font-medium px-2.5 py-1 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </NavLink>
-              </li>
-            );
-          })}
-
-          <li>
+        {/* Navigation */}
+        <nav className="flex-1 px-3 overflow-y-auto space-y-0.5">
+          {menuItems.map(({ path, label, icon: Icon, exact }) => (
             <NavLink
-              to="/"
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-[#2E2E2E] hover:bg-blue-50 hover:text-[#1A3C8A] transition-all"
+              key={path}
+              to={path}
+              end={exact}
+              onClick={() => window.innerWidth < 1024 && onClose?.()}
+              className={({ isActive }) => `
+                flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                ${isActive
+                  ? 'bg-[#FF6B35] text-white shadow-lg shadow-orange-500/25'
+                  : 'text-white/60 hover:text-white hover:bg-white/8'
+                }
+              `}
             >
-              <ExternalLink className="w-5 h-5" />
-              <span>Go to Home</span>
+              <Icon className="w-4.5 h-4.5 shrink-0" size={18} />
+              {label}
             </NavLink>
-          </li>
+          ))}
+        </nav>
 
-          <li>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-[#2E2E2E] hover:bg-red-50 hover:text-[#E63946] transition-all"
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Logout</span>
-            </button>
-          </li>
-        </ul>
-      </div>
-    </aside>
+        {/* Bottom actions */}
+        <div className="px-3 pb-4 pt-3 border-t border-white/10 space-y-0.5 mt-2">
+          <NavLink
+            to="/"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/8 transition-all"
+          >
+            <ExternalLink size={18} />
+            View Store
+          </NavLink>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
+          >
+            <LogOut size={18} />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+    </>
   );
-};
-
-export default Sidebar;
+}

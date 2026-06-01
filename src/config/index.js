@@ -1,13 +1,21 @@
-// Global Configuration
-// Uses environment variables for flexibility across deployments
+// ============================================================
+// GLOBAL CONFIGURATION — Single source of truth for all API URLs
+// Every file in this project must import from here.
+// DO NOT define API_BASE_URL or API_URL anywhere else.
+//
+// To configure: set VITE_API_BASE_URL in your .env file
+//   Development:  VITE_API_BASE_URL=http://localhost:5000
+//   Production:   VITE_API_BASE_URL=https://backend-epasal.onrender.com
+// ============================================================
 
 // Environment check
 export const isDevelopment = import.meta.env.DEV;
 export const isProduction = import.meta.env.PROD;
 
-// API Configuration - Uses environment variable with fallback
-// In development default to relative path so Vite proxy can forward requests
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (isDevelopment ? '' : 'https://backend-epasal.onrender.com');
+// Base URL of the backend server (no trailing slash)
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (isDevelopment ? 'http://localhost:5000' : 'https://backend-epasal.onrender.com');
+
+// Full API prefix — all endpoints hang off this
 export const API_URL = `${API_BASE_URL}/api/v1`;
 
 // App Configuration
