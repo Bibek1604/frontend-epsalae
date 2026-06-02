@@ -4,7 +4,7 @@ import { useAdminAuth } from '../store/authstore';
 import api from '../api/base';
 import {
   LayoutDashboard, Package, ShoppingCart, Tag,
-  Percent, Zap, Image, LogOut, ExternalLink, Award, X
+  Percent, Zap, Image, LogOut, ExternalLink, Award, X, BadgePercent
 } from 'lucide-react';
 
 const menuItems = [
@@ -16,6 +16,7 @@ const menuItems = [
   { path: '/admin/flashsalecrud', label: 'Flash Sales', icon: Zap },
   { path: '/admin/bannercrud', label: 'Banners', icon: Image },
   { path: '/admin/brandcrud', label: 'Brands', icon: Award },
+  { path: '/admin/salecrud', label: 'Sale Categories', icon: BadgePercent },
 ];
 
 export default function Sidebar({ open, onClose }) {

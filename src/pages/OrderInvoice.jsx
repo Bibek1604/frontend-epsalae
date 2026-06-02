@@ -72,10 +72,18 @@ export default function OrderInvoice() {
     navigate('/cart')
   }
 
-  const printInvoice = () => window.print()
+  const printInvoice = () => {
+    const prev = document.title
+    document.title = `Invoice-${orderId}`
+    window.print()
+    document.title = prev
+  }
 
   const downloadInvoice = () => {
+    const prev = document.title
+    document.title = `Invoice-${orderId}`
     window.print()
+    document.title = prev
   }
 
   const statusIndex = timeline.findIndex((step) => step.key === status)

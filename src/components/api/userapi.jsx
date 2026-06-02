@@ -89,6 +89,7 @@ export const profileEndpoints = {
     remove: (productId) => userApi.delete('/user/favorites', { data: { productId } }),
   },
   orders: (q) => userApi.get('/user/orders', { params: q }),
+  changePassword: (payload) => userApi.put('/user/profile/password', payload),
 };
 
 export default userApi;

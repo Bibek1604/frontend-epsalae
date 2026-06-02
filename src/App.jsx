@@ -8,6 +8,9 @@ import Checkout from './pages/Checkout'
 import OrderSuccess from './pages/OrderSuccess'
 import TrackOrder from './pages/TrackOrder'
 import AdminLogin from './pages/AdminLogin'
+import LoginPage from './pages/LoginPage'
+import SalePage from './pages/SalePage'
+import RegisterPage from './pages/RegisterPage'
 import AdminLayout from './components/admin/AdminLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import UserProtectedRoute from './components/UserProtectedRoute'
@@ -51,6 +54,9 @@ function App() {
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/sale/:slug" element={<SalePage />} />
+                <Route path="/register" element={<RegisterPage />} />
                 <Route path="/profile-setup" element={<UserProtectedRoute><ProfileSetup /></UserProtectedRoute>} />
                 <Route path="/account/*" element={<UserProtectedRoute><AccountDashboard /></UserProtectedRoute>} />
                 <Route path="/order-success/:orderId" element={<OrderSuccess />} />

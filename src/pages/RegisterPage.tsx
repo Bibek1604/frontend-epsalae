@@ -1,404 +1,225 @@
-// Frontend: Registration Page Component
-// User registration page with form validation and error handling
+// src/pages/RegisterPage.tsx
+import React, { useState } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ShoppingBag } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { authEndpoints } from '@/components/api/userapi';
+import { useUserAuth } from '@/components/store/authstore';
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
-import { useAuth, type RegisterData } from '@/hooks/useAuth';
-import './auth-pages.css';
+interface FormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+}
+
+const strengthLabel = (p: string) => {
+  if (!p) return null;
+  let s = 0;
+  if (p.length >= 8) s++;
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) s++;
+  if (/[0-9]/.test(p)) s++;
+  if (/[^a-zA-Z0-9]/.test(p)) s++;
+  if (s < 2) return { label: 'Weak', color: 'bg-red-500', w: 'w-1/4' };
+  if (s < 3) return { label: 'Fair', color: 'bg-yellow-500', w: 'w-2/4' };
+  if (s < 4) return { label: 'Good', color: 'bg-blue-500', w: 'w-3/4' };
+  return { label: 'Strong', color: 'bg-emerald-500', w: 'w-full' };
+};
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { register, isLoading, error, isAuthenticated } = useAuth();
+  const location = useLocation();
+  const { isUser } = useUserAuth();
 
-  const [formData, setFormData] = useState<RegisterData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    password: '',
-    passwordConfirm: '',
-    accountType: 'customer',
+  const returnTo: string = (location.state as any)?.returnTo || '/account';
+  if (isUser) navigate(returnTo, { replace: true });
+
+  const [form, setForm] = useState<FormData>({
+    firstName: '', lastName: '', email: '', phone: '', password: '', confirmPassword: '',
   });
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Partial<FormData & { api: string }>>({});
+  const [success, setSuccess] = useState(false);
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // Password strength indicator
-  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'fair' | 'good' | 'strong'>('weak');
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
-
-  // ==========================================
-  // Calculate Password Strength
-  // ==========================================
-  const calculatePasswordStrength = (pwd: string): 'weak' | 'fair' | 'good' | 'strong' => {
-    if (!pwd) return 'weak';
-
-    let strength = 0;
-
-    if (pwd.length >= 8) strength++;
-    if (pwd.length >= 12) strength++;
-    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
-    if (/[0-9]/.test(pwd)) strength++;
-    if (/[^a-zA-Z0-9]/.test(pwd)) strength++;
-
-    if (strength < 2) return 'weak';
-    if (strength < 3) return 'fair';
-    if (strength < 4) return 'good';
-    return 'strong';
+  const set = (k: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(f => ({ ...f, [k]: e.target.value }));
+    setErrors(p => ({ ...p, [k]: '', api: '' }));
   };
 
-  // ==========================================
-  // Form Validation
-  // ==========================================
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
-
-    if (!formData.firstName.trim()) {
-      errors.firstName = 'First name is required';
-    } else if (formData.firstName.trim().length < 2) {
-      errors.firstName = 'First name must be at least 2 characters';
-    }
-
-    if (!formData.lastName.trim()) {
-      errors.lastName = 'Last name is required';
-    } else if (formData.lastName.trim().length < 2) {
-      errors.lastName = 'Last name must be at least 2 characters';
-    }
-
-    if (!formData.email) {
-      errors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.phone) {
-      errors.phone = 'Phone number is required';
-    } else if (!/^[0-9\-\+\(\)]+$/.test(formData.phone)) {
-      errors.phone = 'Please enter a valid phone number';
-    }
-
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
-    } else if (passwordStrength === 'weak') {
-      errors.password = 'Password is too weak. Use uppercase, numbers, and special characters.';
-    }
-
-    if (!formData.passwordConfirm) {
-      errors.passwordConfirm = 'Please confirm your password';
-    } else if (formData.password !== formData.passwordConfirm) {
-      errors.passwordConfirm = 'Passwords do not match';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+  const validate = () => {
+    const e: Partial<FormData & { api: string }> = {};
+    if (!form.firstName.trim() || form.firstName.trim().length < 2) e.firstName = 'At least 2 characters';
+    if (!form.lastName.trim() || form.lastName.trim().length < 2) e.lastName = 'At least 2 characters';
+    if (!form.email) e.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email';
+    if (!form.phone) e.phone = 'Phone is required';
+    else if (!/^[0-9\-\+\(\)\s]{7,15}$/.test(form.phone)) e.phone = '7–15 digit phone number';
+    if (!form.password) e.password = 'Password is required';
+    else if (form.password.length < 6) e.password = 'At least 6 characters';
+    if (!form.confirmPassword) e.confirmPassword = 'Please confirm your password';
+    else if (form.password !== form.confirmPassword) e.confirmPassword = 'Passwords do not match';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  // ==========================================
-  // Handle Input Change
-  // ==========================================
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Calculate password strength
-    if (name === 'password') {
-      setPasswordStrength(calculatePasswordStrength(value));
-    }
-
-    // Clear field error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-
-    setApiError(null);
-  };
-
-  // ==========================================
-  // Handle Form Submit
-  // ==========================================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    const result = await register(formData);
-
-    if (result.success) {
-      setSuccessMessage('Registration successful! Redirecting...');
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
-    } else {
-      setApiError(result.error || 'Registration failed');
+    if (!validate()) return;
+    setLoading(true);
+    try {
+      await authEndpoints.register({
+        name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+      });
+      setSuccess(true);
+      toast.success('Account created! Please sign in.');
+      setTimeout(() => navigate('/login', { state: { returnTo } }), 1800);
+    } catch (err: any) {
+      setErrors(p => ({ ...p, api: err?.response?.data?.message || 'Registration failed' }));
+    } finally {
+      setLoading(false);
     }
   };
 
+  const strength = strengthLabel(form.password);
+
+  const Field = ({ id, label, type = 'text', value, onChange, error, placeholder, icon: Icon, right }: any) => (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-slate-300 mb-1.5">{label}</label>
+      <div className="relative">
+        <Icon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <input
+          id={id} type={type} value={value} onChange={onChange} placeholder={placeholder}
+          disabled={loading || success}
+          className={`w-full pl-10 ${right ? 'pr-11' : 'pr-4'} py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${error ? 'border-red-500/50 bg-red-500/5' : 'border-white/10 hover:border-white/20'}`}
+        />
+        {right}
+      </div>
+      {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
+    </div>
+  );
+
   return (
-    <div className="auth-page register-page">
-      <div className="auth-container register-container">
-        {/* Logo Section */}
-        <div className="auth-logo">
-          <h1>Tech Store</h1>
-          <p>Create Your Account</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-4 py-10 relative overflow-hidden">
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-7">
+          <Link to="/" className="inline-flex items-center gap-3 group">
+            <div className="w-11 h-11 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
+              <ShoppingBag className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-3xl font-bold text-white tracking-tight">epasal<span className="text-orange-400">ey</span></span>
+          </Link>
+          <p className="mt-2.5 text-slate-400 text-sm">Create your account</p>
         </div>
 
-        {/* Registration Form */}
-        <div className="auth-form-wrapper register-form-wrapper">
-          <div className="auth-header">
-            <h2>Join Tech Store</h2>
-            <p>Create a new account to get started</p>
-          </div>
-
-          {/* Success Message */}
-          {successMessage && (
-            <div className="alert alert-success">
-              <CheckCircle size={18} />
-              <span>{successMessage}</span>
+        <div className="bg-white/[0.07] backdrop-blur-xl border border-white/10 rounded-2xl p-7 shadow-2xl">
+          {/* Success state */}
+          {success ? (
+            <div className="py-6 text-center">
+              <div className="w-14 h-14 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-1">Account created!</h3>
+              <p className="text-slate-400 text-sm">Redirecting you to sign in…</p>
             </div>
-          )}
+          ) : (
+            <>
+              <h2 className="text-lg font-semibold text-white mb-5">Create account</h2>
 
-          {/* API Error */}
-          {(apiError || error) && (
-            <div className="alert alert-error">
-              <AlertCircle size={18} />
-              <span>{apiError || error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="auth-form register-form">
-            {/* Name Fields Row */}
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="firstName">First Name *</label>
-                <div className="input-wrapper">
-                  <User size={18} />
-                  <input
-                    id="firstName"
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    placeholder="John"
-                    disabled={isLoading}
-                    className={formErrors.firstName ? 'error' : ''}
-                  />
+              {errors.api && (
+                <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-300 rounded-xl px-4 py-3 mb-4 text-sm">
+                  <AlertCircle size={15} className="shrink-0" />
+                  <span>{errors.api}</span>
                 </div>
-                {formErrors.firstName && <span className="form-error">{formErrors.firstName}</span>}
-              </div>
+              )}
 
-              <div className="form-group">
-                <label htmlFor="lastName">Last Name *</label>
-                <div className="input-wrapper">
-                  <User size={18} />
-                  <input
-                    id="lastName"
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    placeholder="Doe"
-                    disabled={isLoading}
-                    className={formErrors.lastName ? 'error' : ''}
-                  />
+              <form onSubmit={handleSubmit} className="space-y-3.5">
+                {/* Name row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Field id="firstName" label="First name" value={form.firstName} onChange={set('firstName')}
+                    placeholder="John" icon={User} error={errors.firstName} />
+                  <Field id="lastName" label="Last name" value={form.lastName} onChange={set('lastName')}
+                    placeholder="Doe" icon={User} error={errors.lastName} />
                 </div>
-                {formErrors.lastName && <span className="form-error">{formErrors.lastName}</span>}
-              </div>
-            </div>
 
-            {/* Email Field */}
-            <div className="form-group">
-              <label htmlFor="email">Email Address *</label>
-              <div className="input-wrapper">
-                <Mail size={18} />
-                <input
-                  id="email"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="you@example.com"
-                  disabled={isLoading}
-                  className={formErrors.email ? 'error' : ''}
-                />
-              </div>
-              {formErrors.email && <span className="form-error">{formErrors.email}</span>}
-            </div>
+                <Field id="email" label="Email address" type="email" value={form.email} onChange={set('email')}
+                  placeholder="you@example.com" icon={Mail} error={errors.email} />
 
-            {/* Phone Field */}
-            <div className="form-group">
-              <label htmlFor="phone">Phone Number *</label>
-              <div className="input-wrapper">
-                <Phone size={18} />
-                <input
-                  id="phone"
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  placeholder="+1-555-123-4567"
-                  disabled={isLoading}
-                  className={formErrors.phone ? 'error' : ''}
-                />
-              </div>
-              {formErrors.phone && <span className="form-error">{formErrors.phone}</span>}
-            </div>
+                <Field id="phone" label="Phone number" type="tel" value={form.phone} onChange={set('phone')}
+                  placeholder="98XXXXXXXX" icon={Phone} error={errors.phone} />
 
-            {/* Account Type */}
-            <div className="form-group">
-              <label htmlFor="accountType">Account Type</label>
-              <select
-                id="accountType"
-                name="accountType"
-                value={formData.accountType}
-                onChange={handleInputChange}
-                disabled={isLoading}
-              >
-                <option value="customer">Customer</option>
-                <option value="seller">Seller</option>
-              </select>
-            </div>
-
-            {/* Password Field */}
-            <div className="form-group">
-              <label htmlFor="password">Password *</label>
-              <div className="input-wrapper">
-                <Lock size={18} />
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Create a strong password"
-                  disabled={isLoading}
-                  className={formErrors.password ? 'error' : ''}
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-
-              {/* Password Strength Indicator */}
-              {formData.password && (
-                <div className={`password-strength ${passwordStrength}`}>
-                  <div className="strength-bar">
-                    <div className="strength-fill"></div>
+                {/* Password */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input id="password" type={showPwd ? 'text' : 'password'} value={form.password}
+                      onChange={set('password')} placeholder="Min. 6 characters" disabled={loading}
+                      className={`w-full pl-10 pr-11 py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${errors.password ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`} />
+                    <button type="button" onClick={() => setShowPwd(v => !v)} disabled={loading}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition">
+                      {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
-                  <span className="strength-label">
-                    Strength: <strong>{passwordStrength}</strong>
-                  </span>
+                  {strength && (
+                    <div className="mt-2">
+                      <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${strength.color} ${strength.w}`} />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">{strength.label} password</p>
+                    </div>
+                  )}
+                  {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password}</p>}
                 </div>
-              )}
 
-              {formErrors.password && <span className="form-error">{formErrors.password}</span>}
+                {/* Confirm password */}
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-1.5">Confirm password</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input id="confirmPassword" type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
+                      onChange={set('confirmPassword')} placeholder="Re-enter password" disabled={loading}
+                      className={`w-full pl-10 pr-11 py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${errors.confirmPassword ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`} />
+                    <button type="button" onClick={() => setShowConfirm(v => !v)} disabled={loading}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition">
+                      {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="mt-1 text-xs text-red-400">{errors.confirmPassword}</p>}
+                </div>
 
-              <p className="password-hint">
-                Must be at least 6 characters with uppercase, numbers, and special characters.
-              </p>
-            </div>
-
-            {/* Confirm Password Field */}
-            <div className="form-group">
-              <label htmlFor="passwordConfirm">Confirm Password *</label>
-              <div className="input-wrapper">
-                <Lock size={18} />
-                <input
-                  id="passwordConfirm"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name="passwordConfirm"
-                  value={formData.passwordConfirm}
-                  onChange={handleInputChange}
-                  placeholder="Confirm your password"
-                  disabled={isLoading}
-                  className={formErrors.passwordConfirm ? 'error' : ''}
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={isLoading}
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <button type="submit" disabled={loading}
+                  className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-orange-500/25 disabled:opacity-60 disabled:cursor-not-allowed mt-1">
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Creating account...
+                    </span>
+                  ) : 'Create Account'}
                 </button>
-              </div>
-              {formErrors.passwordConfirm && (
-                <span className="form-error">{formErrors.passwordConfirm}</span>
-              )}
-            </div>
+              </form>
 
-            {/* Submit Button */}
-            <button type="submit" className="btn btn-primary btn-large" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create Account'}
-            </button>
-          </form>
-
-          {/* Sign In Link */}
-          <div className="auth-footer">
-            <p>
-              Already have an account?{' '}
-              <Link to="/login" className="auth-link">
-                Sign in here
-              </Link>
-            </p>
-          </div>
+              <p className="text-center text-sm text-slate-400 mt-5">
+                Already have an account?{' '}
+                <Link to="/login" state={{ returnTo }} className="text-orange-400 hover:text-orange-300 font-medium transition">Sign in</Link>
+              </p>
+            </>
+          )}
         </div>
 
-        {/* Right Side - Info Section */}
-        <div className="auth-info">
-          <h3>Why Join Us?</h3>
-          <ul className="feature-list">
-            <li>
-              <span className="feature-icon">✨</span>
-              <span>Wide selection of quality products</span>
-            </li>
-            <li>
-              <span className="feature-icon">🚚</span>
-              <span>Fast and reliable shipping</span>
-            </li>
-            <li>
-              <span className="feature-icon">💳</span>
-              <span>Secure payment processing</span>
-            </li>
-            <li>
-              <span className="feature-icon">🎁</span>
-              <span>Exclusive member discounts</span>
-            </li>
-            <li>
-              <span className="feature-icon">📱</span>
-              <span>Easy order tracking</span>
-            </li>
-            <li>
-              <span className="feature-icon">💬</span>
-              <span>24/7 customer support</span>
-            </li>
-          </ul>
-        </div>
+        <p className="text-center mt-4">
+          <Link to="/products" className="text-sm text-slate-500 hover:text-slate-300 transition">← Continue shopping without signing in</Link>
+        </p>
       </div>
     </div>
   );

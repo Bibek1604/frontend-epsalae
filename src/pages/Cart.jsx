@@ -29,10 +29,18 @@ export default function Cart() {
     try {
       setCouponError('')
       setCouponSuccess('')
-      const res = await promocode.validate(couponCode)
+      const context = {
+        cartTotal: subtotal,
+        productIds: cart.map(i => i.id || i._id).filter(Boolean),
+      }
+      const res = await promocode.validate(couponCode, context)
       const coupon = res.data?.data || res.data
 
-      if (coupon && coupon.isActive) {
+      if (coupon && coupon.valid) {
+        if (coupon.discountAmount > subtotal) {
+          setCouponError('This coupon is not available for your current order amount')
+          return
+        }
         setAppliedCoupon(coupon)
         setDiscount(coupon.discountAmount)
         setCouponSuccess(`Applied! Save ₹${coupon.discountAmount}`)
@@ -41,7 +49,7 @@ export default function Cart() {
         setCouponError('Invalid or expired coupon')
       }
     } catch (err) {
-      setCouponError('Coupon not found or expired')
+      setCouponError(err?.response?.data?.message || 'Coupon not found or expired')
     }
   }
 
@@ -244,7 +252,7 @@ export default function Cart() {
 
               {/* Checkout Button */}
               <button
-                onClick={() => navigate('/checkout')}
+                onClick={() => navigate('/checkout', { state: { discount, appliedCoupon } })}
                 className="w-full py-4 text-lg font-medium text-white transition bg-gray-900 rounded-xl hover:bg-gray-800"
               >
                 Proceed to Checkout

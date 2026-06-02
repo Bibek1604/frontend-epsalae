@@ -79,3 +79,13 @@ body {
     font-size: 14px;
   }
 }
+
+/* ── Print styles (invoice) ─────────────────────────────────── */
+@media print {
+  .no-print, .no-print * { display: none !important; }
+  body > * > header,
+  body > * > footer,
+  nav { display: none !important; }
+  body { background: white !important; }
+  @page { margin: 1.5cm; size: A4; }
+}

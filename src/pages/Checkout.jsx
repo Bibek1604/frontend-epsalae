@@ -7,7 +7,6 @@ import { useCart } from '@/store/cartstore'
 import { orderApi } from '../components/api/orderapi'
 import { getImageUrl } from '@/config'
 import { useAuthStore } from '@/components/store/authstore'
-import AuthModal from '@/components/auth/AuthModal'
 
 // Full Nepal Districts (77) with real municipalities
 const NEPAL_DISTRICTS = {
@@ -108,7 +107,6 @@ export default function Checkout() {
   const location = useLocation()
   const { cart, getTotalPrice, clearCart } = useCart()
   const { isLoggedIn, user } = useAuthStore()
-  const [showAuth, setShowAuth] = useState(false)
 
   const [currentStep, setCurrentStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -121,14 +119,10 @@ export default function Checkout() {
   })
 
   const subtotal = getTotalPrice()
+  const discount = location.state?.discount || 0
+  const appliedCoupon = location.state?.appliedCoupon || null
   const shipping = subtotal >= 5000 ? 0 : 250
-  const total = subtotal + shipping
-
-  useEffect(() => {
-    if (location.state?.openAuth) {
-      setShowAuth(true)
-    }
-  }, [location.state])
+  const total = subtotal - discount + shipping
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -184,6 +178,7 @@ export default function Checkout() {
         })),
         totalAmount: Number(total.toFixed(0)),
         paymentMethod: formData.paymentMethod,
+        ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
         // Link order to the signed-in user so it shows up in /user/orders.
         // Guest checkouts simply omit this field.
         ...(isLoggedIn && user?.id ? { user_id: user.id } : {}),
@@ -268,11 +263,6 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthModal open={showAuth} onClose={() => setShowAuth(false)} onSuccess={({ needsOnboarding }) => {
-        setShowAuth(false)
-        if (needsOnboarding) navigate('/profile-setup')
-        else if (location.state?.returnTo) navigate(location.state.returnTo, { replace: true })
-      }} />
       <div className="px-6 py-12 mx-auto max-w-7xl">
 
         {/* Header */}
@@ -422,7 +412,10 @@ export default function Checkout() {
                   </button>
 
                   <button onClick={() => {
-                      if (!isLoggedIn) { setShowAuth(true); return }
+                      if (!isLoggedIn) {
+                        navigate('/login', { state: { returnTo: '/checkout' } })
+                        return
+                      }
                       handlePlaceOrder()
                     }} disabled={isProcessing}
                     className={`px-12 py-5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xl transition shadow-lg flex items-center gap-4 ${isProcessing && 'opacity-75 cursor-not-allowed'}`}>
@@ -467,6 +460,12 @@ export default function Checkout() {
                   <span>Subtotal</span>
                   <span>Rs. {subtotal.toLocaleString()}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between font-medium text-green-600">
+                    <span>Coupon ({appliedCoupon?.code})</span>
+                    <span>-Rs. {discount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>
@@ -478,6 +477,7 @@ export default function Checkout() {
               <div className="flex items-center justify-between pt-6 mt-6 border-t border-gray-200">
                 <span className="text-2xl font-light text-gray-900">Total</span>
                 <span className="text-3xl font-medium text-gray-900">Rs. {total.toLocaleString()}</span>
+          
               </div>
 
               {shipping === 0 && (

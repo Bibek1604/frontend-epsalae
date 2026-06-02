@@ -11,6 +11,7 @@ import PromoCodCrud from './promocodecrud';
 import FlashSaleCrud from './flashsale';
 import BannerCrud from './bannercrud';
 import BrandCrud from './brandcrud';
+import SaleCrud from './salecrud';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,6 +40,7 @@ export default function AdminLayout() {
             <Route path="/flashsalecrud" element={<FlashSaleCrud />} />
             <Route path="/bannercrud" element={<BannerCrud />} />
             <Route path="/brandcrud" element={<BrandCrud />} />
+            <Route path="/salecrud" element={<SaleCrud />} />
           </Routes>
         </main>
 

@@ -1,295 +1,164 @@
-// Frontend: Login Page Component
-// User login page with form validation and error handling
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useAuth, type LoginCredentials } from '@/hooks/useAuth';
-import './auth-pages.css';
+// src/pages/LoginPage.tsx
+import React, { useState } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, ShoppingBag } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { authEndpoints, profileEndpoints } from '@/components/api/userapi';
+import { useUserAuth } from '@/components/store/authstore';
+import { useCart } from '@/store/cartstore';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading, error, isAuthenticated } = useAuth();
+  const location = useLocation();
+  const { loginUser, isUser } = useUserAuth();
+  const { cart } = useCart();
 
-  const [formData, setFormData] = useState<LoginCredentials>({
-    email: '',
-    password: '',
-  });
+  const returnTo: string = (location.state as any)?.returnTo || '/account';
 
+  // Already logged in — go straight to destination
+  if (isUser) {
+    navigate(returnTo, { replace: true });
+  }
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      const userRole = localStorage.getItem('userRole');
-      if (userRole === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
-    }
-  }, [isAuthenticated, navigate]);
-
-  // ==========================================
-  // Form Validation
-  // ==========================================
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
-
-    if (!formData.email) {
-      errors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+  const validate = () => {
+    const errs: { email?: string; password?: string } = {};
+    if (!email) errs.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Enter a valid email';
+    if (!password) errs.password = 'Password is required';
+    else if (password.length < 6) errs.password = 'At least 6 characters';
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
-  // ==========================================
-  // Handle Input Change
-  // ==========================================
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Clear field error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-
-    setApiError(null);
-  };
-
-  // ==========================================
-  // Handle Form Submit
-  // ==========================================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await authEndpoints.login({ email, password });
+      const data = res.data?.data || res.data || {};
+      const token = data.token || data.accessToken;
+      const user = data.user;
+      if (!token) throw new Error(res.data?.message || 'Login failed');
 
-    if (!validateForm()) {
-      return;
+      loginUser(token, user);
+
+      // Merge guest cart best-effort
+      try {
+        if (Array.isArray(cart) && cart.length) {
+          await profileEndpoints.cart.merge({ items: cart });
+        }
+      } catch (_) {}
+
+      toast.success('Welcome back!');
+      navigate(returnTo, { replace: true });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
-
-    const result = await login(formData);
-
-    if (result.success) {
-      // Redirect based on role
-      const userData = result.data;
-      if (userData.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
-    } else {
-      setApiError(result.error || 'Login failed');
-    }
-  };
-
-  // ==========================================
-  // Demo Credentials
-  // ==========================================
-  const fillDemoAdmin = () => {
-    setFormData({
-      email: 'admin@techstore.com',
-      password: 'Admin@123456',
-    });
-    setFormErrors({});
-    setApiError(null);
-  };
-
-  const fillDemoCustomer = () => {
-    setFormData({
-      email: 'john.customer@email.com',
-      password: 'Customer@123456',
-    });
-    setFormErrors({});
-    setApiError(null);
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        {/* Logo Section */}
-        <div className="auth-logo">
-          <h1>Tech Store</h1>
-          <p>Admin & Customer Portal</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-4 py-12 relative overflow-hidden">
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-3 group">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
+              <ShoppingBag className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-3xl font-bold text-white tracking-tight">
+              epasal<span className="text-orange-400">ey</span>
+            </span>
+          </Link>
+          <p className="mt-3 text-slate-400 text-sm">Sign in to continue</p>
         </div>
 
-        {/* Login Form */}
-        <div className="auth-form-wrapper">
-          <div className="auth-header">
-            <h2>Welcome Back</h2>
-            <p>Sign in to your account to continue</p>
-          </div>
+        {/* Card */}
+        <div className="bg-white/[0.07] backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
+          <h2 className="text-xl font-semibold text-white mb-6">Welcome back</h2>
 
-          {/* API Error */}
-          {(apiError || error) && (
-            <div className="alert alert-error">
-              <AlertCircle size={18} />
-              <span>{apiError || error}</span>
+          {error && (
+            <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-300 rounded-xl px-4 py-3 mb-5 text-sm">
+              <AlertCircle size={16} className="shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="auth-form">
-            {/* Email Field */}
-            <div className="form-group">
-              <label htmlFor="email">Email Address</label>
-              <div className="input-wrapper">
-                <Mail size={18} />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1.5">Email address</label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
-                  id="email"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="you@example.com"
-                  disabled={isLoading}
-                  className={formErrors.email ? 'error' : ''}
+                  id="email" type="email" value={email}
+                  onChange={(e) => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: '' })); setError(''); }}
+                  placeholder="you@example.com" disabled={loading}
+                  className={`w-full pl-10 pr-4 py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${fieldErrors.email ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`}
                 />
               </div>
-              {formErrors.email && <span className="form-error">{formErrors.email}</span>}
+              {fieldErrors.email && <p className="mt-1.5 text-xs text-red-400">{fieldErrors.email}</p>}
             </div>
 
-            {/* Password Field */}
-            <div className="form-group">
-              <div className="label-row">
-                <label htmlFor="password">Password</label>
-                <Link to="/forgot-password" className="forgot-password-link">
-                  Forgot password?
-                </Link>
+            {/* Password */}
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label htmlFor="password" className="text-sm font-medium text-slate-300">Password</label>
+                <Link to="/forgot-password" className="text-xs text-orange-400 hover:text-orange-300 transition">Forgot password?</Link>
               </div>
-              <div className="input-wrapper">
-                <Lock size={18} />
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Enter your password"
-                  disabled={isLoading}
-                  className={formErrors.password ? 'error' : ''}
+                  id="password" type={showPassword ? 'text' : 'password'} value={password}
+                  onChange={(e) => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: '' })); setError(''); }}
+                  placeholder="Enter your password" disabled={loading}
+                  className={`w-full pl-10 pr-11 py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${fieldErrors.password ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`}
                 />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <button type="button" onClick={() => setShowPassword(!showPassword)} disabled={loading}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition disabled:opacity-50">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              {formErrors.password && <span className="form-error">{formErrors.password}</span>}
+              {fieldErrors.password && <p className="mt-1.5 text-xs text-red-400">{fieldErrors.password}</p>}
             </div>
 
-            {/* Submit Button */}
-            <button type="submit" className="btn btn-primary btn-large" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign In'}
+            <button type="submit" disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-orange-500/25 disabled:opacity-60 disabled:cursor-not-allowed mt-2">
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </span>
+              ) : 'Sign In'}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="divider">
-            <span>or</span>
-          </div>
-
-          {/* Demo Buttons */}
-          <div className="demo-section">
-            <p className="demo-label">Try Demo Accounts:</p>
-            <div className="demo-buttons">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={fillDemoAdmin}
-                disabled={isLoading}
-              >
-                Demo Admin
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={fillDemoCustomer}
-                disabled={isLoading}
-              >
-                Demo Customer
-              </button>
-            </div>
-          </div>
-
-          {/* Demo Credentials Info */}
-          <div className="demo-credentials">
-            <p className="info-title">🔐 Demo Credentials:</p>
-            <div className="credential-item">
-              <strong>Admin:</strong>
-              <span>admin@techstore.com / Admin@123456</span>
-            </div>
-            <div className="credential-item">
-              <strong>Customer:</strong>
-              <span>john.customer@email.com / Customer@123456</span>
-            </div>
-            <div className="credential-item">
-              <strong>Staff:</strong>
-              <span>staff@techstore.com / Staff@123456</span>
-            </div>
-          </div>
-
-          {/* Sign Up Link */}
-          <div className="auth-footer">
-            <p>
-              Don't have an account?{' '}
-              <Link to="/register" className="auth-link">
-                Sign up here
-              </Link>
-            </p>
-          </div>
+          <p className="text-center text-sm text-slate-400 mt-6">
+            Don&apos;t have an account?{' '}
+            <Link to="/register" state={{ returnTo }} className="text-orange-400 hover:text-orange-300 font-medium transition">
+              Create one
+            </Link>
+          </p>
         </div>
 
-        {/* Right Side - Info Section */}
-        <div className="auth-info">
-          <h3>Admin Panel Features</h3>
-          <ul className="feature-list">
-            <li>
-              <span className="feature-icon">📊</span>
-              <span>Complete Dashboard with Analytics</span>
-            </li>
-            <li>
-              <span className="feature-icon">🛍️</span>
-              <span>Product & Category Management</span>
-            </li>
-            <li>
-              <span className="feature-icon">📦</span>
-              <span>Order Tracking & Management</span>
-            </li>
-            <li>
-              <span className="feature-icon">👥</span>
-              <span>User & Staff Management</span>
-            </li>
-            <li>
-              <span className="feature-icon">⚙️</span>
-              <span>System Configuration</span>
-            </li>
-            <li>
-              <span className="feature-icon">🔒</span>
-              <span>Role-Based Access Control</span>
-            </li>
-          </ul>
-        </div>
+        <p className="text-center mt-5">
+          <Link to="/products" className="text-sm text-slate-500 hover:text-slate-300 transition">
+            ← Continue shopping without signing in
+          </Link>
+        </p>
       </div>
     </div>
   );

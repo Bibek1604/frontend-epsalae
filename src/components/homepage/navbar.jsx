@@ -64,12 +64,17 @@ export default function Navbar() {
       <div className="relative z-50 w-full overflow-hidden border-b border-white/10 bg-[linear-gradient(90deg,_rgba(8,12,20,0.98)_0%,_rgba(26,60,138,0.96)_48%,_rgba(255,107,53,0.94)_100%)] text-xs font-medium text-white/95 shadow-[0_14px_40px_-30px_rgba(15,23,42,0.65)]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_24%)]" />
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 rounded-full border border-white/15 bg-white/8 px-3 py-1.5 backdrop-blur-md">
+          <div className="flex items-center gap-3 rounded-full border border-white/15 bg-white/8 px-3 py-1.5 backdrop-blur-md shrink-0">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-300 opacity-60"></span>
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-400"></span>
             </span>
-            <span className="whitespace-nowrap">FLASH SALE: Up to 50% Off! Code: <strong className="text-orange-200">EPASALEY</strong></span>
+            <span className="whitespace-nowrap">
+              FLASH SALE: Up to 50% Off!&nbsp;
+              <span className="inline-flex items-center gap-1">
+                Code:&nbsp;<strong className="text-orange-300 tracking-wider bg-orange-500/20 px-1.5 py-0.5 rounded">EPASALEY</strong>
+              </span>
+            </span>
           </div>
           <div className="hidden items-center gap-6 text-white/85 md:flex">
             <span className="flex items-center gap-1.5">🚚 Free delivery above Rs. 5,000</span>
