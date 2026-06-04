@@ -12,12 +12,14 @@ import FlashSaleCrud from './flashsale';
 import BannerCrud from './bannercrud';
 import BrandCrud from './brandcrud';
 import SaleCrud from './salecrud';
+import SaleProductsCrud from './saleproductscrud';
+import WishlistCrud from './wishlistcrud';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[#F4F6FA] font-sans">
+    <div className="flex min-h-screen bg-[#F8F9FF] font-sans">
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -30,7 +32,7 @@ export default function AdminLayout() {
         />
 
         {/* Page Content */}
-        <main className="flex-1 mt-16 p-5 md:p-7 overflow-auto">
+        <main className="flex-1 mt-[70px] p-5 md:p-7 overflow-auto">
           <Routes>
             <Route path="/" element={<AdminDashboard />} />
             <Route path="/categorycrud" element={<CategoryCrud />} />
@@ -41,6 +43,8 @@ export default function AdminLayout() {
             <Route path="/bannercrud" element={<BannerCrud />} />
             <Route path="/brandcrud" element={<BrandCrud />} />
             <Route path="/salecrud" element={<SaleCrud />} />
+            <Route path="/saleproducts" element={<SaleProductsCrud />} />
+            <Route path="/wishlists" element={<WishlistCrud />} />
           </Routes>
         </main>
 

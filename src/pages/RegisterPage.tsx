@@ -1,59 +1,57 @@
-// src/pages/RegisterPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ShoppingBag } from 'lucide-react';
+import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ShoppingBag, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authEndpoints } from '@/components/api/userapi';
 import { useUserAuth } from '@/components/store/authstore';
 
-interface FormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-}
-
-const strengthLabel = (p: string) => {
+function getStrength(p: string) {
   if (!p) return null;
   let s = 0;
   if (p.length >= 8) s++;
   if (/[A-Z]/.test(p) && /[a-z]/.test(p)) s++;
   if (/[0-9]/.test(p)) s++;
   if (/[^a-zA-Z0-9]/.test(p)) s++;
-  if (s < 2) return { label: 'Weak', color: 'bg-red-500', w: 'w-1/4' };
-  if (s < 3) return { label: 'Fair', color: 'bg-yellow-500', w: 'w-2/4' };
-  if (s < 4) return { label: 'Good', color: 'bg-blue-500', w: 'w-3/4' };
-  return { label: 'Strong', color: 'bg-emerald-500', w: 'w-full' };
-};
+  if (s < 2) return { label: 'Weak',   color: 'bg-red-500',     w: 'w-1/4' };
+  if (s < 3) return { label: 'Fair',   color: 'bg-yellow-500',  w: 'w-2/4' };
+  if (s < 4) return { label: 'Good',   color: 'bg-blue-500',    w: 'w-3/4' };
+  return       { label: 'Strong', color: 'bg-emerald-500', w: 'w-full' };
+}
 
-export const RegisterPage: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+const inputCls = (err?: string) =>
+  `w-full py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 text-sm transition focus:outline-none focus:ring-2 focus:bg-white disabled:opacity-50 ${
+    err
+      ? 'border-red-300 focus:ring-red-100 focus:border-red-400'
+      : 'border-gray-200 focus:ring-[#1A3C8A]/10 focus:border-[#1A3C8A]/40'
+  }`;
+
+interface FormData { firstName: string; lastName: string; email: string; phone: string; password: string; confirmPassword: string; }
+type FormErrors = Partial<FormData & { api: string }>;
+
+const RegisterPage: React.FC = () => {
+  const navigate  = useNavigate();
+  const location  = useLocation();
   const { isUser } = useUserAuth();
-
   const returnTo: string = (location.state as any)?.returnTo || '/account';
-  if (isUser) navigate(returnTo, { replace: true });
 
-  const [form, setForm] = useState<FormData>({
-    firstName: '', lastName: '', email: '', phone: '', password: '', confirmPassword: '',
-  });
-  const [showPwd, setShowPwd] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<FormData & { api: string }>>({});
-  const [success, setSuccess] = useState(false);
+  const [form, setForm]           = useState<FormData>({ firstName: '', lastName: '', email: '', phone: '', password: '', confirmPassword: '' });
+  const [showPwd, setShowPwd]     = useState(false);
+  const [showConf, setShowConf]   = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [errors, setErrors]       = useState<FormErrors>({});
+  const [success, setSuccess]     = useState(false);
 
-  const set = (k: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => { if (isUser) navigate(returnTo, { replace: true }); }, [isUser, navigate, returnTo]);
+
+  const setField = (k: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(f => ({ ...f, [k]: e.target.value }));
     setErrors(p => ({ ...p, [k]: '', api: '' }));
   };
 
-  const validate = () => {
-    const e: Partial<FormData & { api: string }> = {};
+  const validate = (): boolean => {
+    const e: FormErrors = {};
     if (!form.firstName.trim() || form.firstName.trim().length < 2) e.firstName = 'At least 2 characters';
-    if (!form.lastName.trim() || form.lastName.trim().length < 2) e.lastName = 'At least 2 characters';
+    if (!form.lastName.trim()  || form.lastName.trim().length  < 2) e.lastName  = 'At least 2 characters';
     if (!form.email) e.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email';
     if (!form.phone) e.phone = 'Phone is required';
@@ -72,154 +70,208 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
     try {
       await authEndpoints.register({
-        name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-        email: form.email,
-        phone: form.phone,
+        name:     `${form.firstName.trim()} ${form.lastName.trim()}`,
+        email:    form.email.trim().toLowerCase(),
+        phone:    form.phone.trim(),
         password: form.password,
       });
       setSuccess(true);
       toast.success('Account created! Please sign in.');
       setTimeout(() => navigate('/login', { state: { returnTo } }), 1800);
     } catch (err: any) {
-      setErrors(p => ({ ...p, api: err?.response?.data?.message || 'Registration failed' }));
+      setErrors(p => ({ ...p, api: err?.response?.data?.message || 'Registration failed. Try again.' }));
     } finally {
       setLoading(false);
     }
   };
 
-  const strength = strengthLabel(form.password);
-
-  const Field = ({ id, label, type = 'text', value, onChange, error, placeholder, icon: Icon, right }: any) => (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-300 mb-1.5">{label}</label>
-      <div className="relative">
-        <Icon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-        <input
-          id={id} type={type} value={value} onChange={onChange} placeholder={placeholder}
-          disabled={loading || success}
-          className={`w-full pl-10 ${right ? 'pr-11' : 'pr-4'} py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${error ? 'border-red-500/50 bg-red-500/5' : 'border-white/10 hover:border-white/20'}`}
-        />
-        {right}
-      </div>
-      {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
-    </div>
-  );
+  const strength  = getStrength(form.password);
+  const isDisabled = loading || success;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-4 py-10 relative overflow-hidden">
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-7">
-          <Link to="/" className="inline-flex items-center gap-3 group">
-            <div className="w-11 h-11 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
-              <ShoppingBag className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-white tracking-tight">epasal<span className="text-orange-400">ey</span></span>
-          </Link>
-          <p className="mt-2.5 text-slate-400 text-sm">Create your account</p>
+    <div className="min-h-screen bg-white flex">
+      {/* Left branding panel */}
+      <div className="hidden lg:flex lg:w-5/12 bg-linear-to-br from-[#0B1A3E] via-[#1A3C8A] to-[#1e50c8] flex-col justify-between p-12 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#FF6B35]/15 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
         </div>
-
-        <div className="bg-white/[0.07] backdrop-blur-xl border border-white/10 rounded-2xl p-7 shadow-2xl">
-          {/* Success state */}
-          {success ? (
-            <div className="py-6 text-center">
-              <div className="w-14 h-14 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+        <Link to="/" className="relative flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur">
+            <ShoppingBag className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-2xl font-bold text-white tracking-tight">
+            epasal<span className="text-[#FF6B35]">ey</span>
+          </span>
+        </Link>
+        <div className="relative">
+          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
+            Join thousands of<br />happy shoppers
+          </h2>
+          <p className="text-blue-200/70 text-base leading-relaxed">
+            Create your free account and start shopping from Nepal's most trusted online store. Fast delivery, easy returns.
+          </p>
+          <div className="mt-8 space-y-3">
+            {[
+              { icon: '✓', text: 'Order tracking & history' },
+              { icon: '✓', text: 'Save favourites & wishlists' },
+              { icon: '✓', text: 'Exclusive member discounts' },
+            ].map(({ icon, text }) => (
+              <div key={text} className="flex items-center gap-3 text-white/80 text-sm">
+                <span className="w-5 h-5 bg-white/15 rounded-full flex items-center justify-center text-xs font-bold">{icon}</span>
+                {text}
               </div>
-              <h3 className="text-lg font-semibold text-white mb-1">Account created!</h3>
-              <p className="text-slate-400 text-sm">Redirecting you to sign in…</p>
+            ))}
+          </div>
+        </div>
+        <p className="relative text-blue-200/40 text-xs">© {new Date().getFullYear()} ePasaley. All rights reserved.</p>
+      </div>
+
+      {/* Right form panel */}
+      <div className="flex-1 flex items-center justify-center px-6 py-10 overflow-y-auto">
+        <div className="w-full max-w-md">
+
+          {/* Mobile logo */}
+          <Link to="/" className="lg:hidden flex items-center gap-2.5 mb-6">
+            <div className="w-9 h-9 bg-linear-to-br from-[#1A3C8A] to-[#FF6B35] rounded-xl flex items-center justify-center">
+              <ShoppingBag className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">epasal<span className="text-[#FF6B35]">ey</span></span>
+          </Link>
+
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Create account</h1>
+          <p className="text-gray-500 text-sm mb-6">Free forever. No credit card required.</p>
+
+          {success ? (
+            <div className="py-12 text-center">
+              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-1">Account created!</h3>
+              <p className="text-gray-500 text-sm">Redirecting you to sign in…</p>
             </div>
           ) : (
             <>
-              <h2 className="text-lg font-semibold text-white mb-5">Create account</h2>
-
               {errors.api && (
-                <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-300 rounded-xl px-4 py-3 mb-4 text-sm">
+                <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-5 text-sm">
                   <AlertCircle size={15} className="shrink-0" />
                   <span>{errors.api}</span>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-3.5">
+              <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
                 {/* Name row */}
                 <div className="grid grid-cols-2 gap-3">
-                  <Field id="firstName" label="First name" value={form.firstName} onChange={set('firstName')}
-                    placeholder="John" icon={User} error={errors.firstName} />
-                  <Field id="lastName" label="Last name" value={form.lastName} onChange={set('lastName')}
-                    placeholder="Doe" icon={User} error={errors.lastName} />
+                  {[
+                    { id: 'firstName', label: 'First name', placeholder: 'Ram',   key: 'firstName' as const, ac: 'given-name' },
+                    { id: 'lastName',  label: 'Last name',  placeholder: 'Sharma', key: 'lastName'  as const, ac: 'family-name' },
+                  ].map(({ id, label, placeholder, key, ac }) => (
+                    <div key={id}>
+                      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
+                      <div className="relative">
+                        <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <input id={id} value={form[key]} onChange={setField(key)} placeholder={placeholder}
+                          disabled={isDisabled} autoComplete={ac}
+                          className={`${inputCls(errors[key])} pl-9 pr-3`} />
+                      </div>
+                      {errors[key] && <p className="mt-1 text-xs text-red-500">{errors[key]}</p>}
+                    </div>
+                  ))}
                 </div>
 
-                <Field id="email" label="Email address" type="email" value={form.email} onChange={set('email')}
-                  placeholder="you@example.com" icon={Mail} error={errors.email} />
+                {/* Email */}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
+                  <div className="relative">
+                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input id="email" type="email" value={form.email} onChange={setField('email')}
+                      placeholder="you@example.com" disabled={isDisabled} autoComplete="email"
+                      className={`${inputCls(errors.email)} pl-9 pr-4`} />
+                  </div>
+                  {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+                </div>
 
-                <Field id="phone" label="Phone number" type="tel" value={form.phone} onChange={set('phone')}
-                  placeholder="98XXXXXXXX" icon={Phone} error={errors.phone} />
+                {/* Phone */}
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1.5">Phone number</label>
+                  <div className="relative">
+                    <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input id="phone" type="tel" value={form.phone} onChange={setField('phone')}
+                      placeholder="98XXXXXXXX" disabled={isDisabled} autoComplete="tel"
+                      className={`${inputCls(errors.phone)} pl-9 pr-4`} />
+                  </div>
+                  {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
+                </div>
 
                 {/* Password */}
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
                   <div className="relative">
-                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     <input id="password" type={showPwd ? 'text' : 'password'} value={form.password}
-                      onChange={set('password')} placeholder="Min. 6 characters" disabled={loading}
-                      className={`w-full pl-10 pr-11 py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${errors.password ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`} />
-                    <button type="button" onClick={() => setShowPwd(v => !v)} disabled={loading}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition">
-                      {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                      onChange={setField('password')} placeholder="Min. 6 characters"
+                      disabled={isDisabled} autoComplete="new-password"
+                      className={`${inputCls(errors.password)} pl-9 pr-10`} />
+                    <button type="button" onClick={() => setShowPwd(v => !v)} disabled={isDisabled}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+                      {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                  {strength && (
-                    <div className="mt-2">
-                      <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                  {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+                  {strength && !errors.password && (
+                    <div className="mt-1.5">
+                      <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full transition-all ${strength.color} ${strength.w}`} />
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">{strength.label} password</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{strength.label} password</p>
                     </div>
                   )}
-                  {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password}</p>}
                 </div>
 
                 {/* Confirm password */}
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-1.5">Confirm password</label>
+                  <label htmlFor="confirm" className="block text-sm font-medium text-gray-700 mb-1.5">Confirm password</label>
                   <div className="relative">
-                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                    <input id="confirmPassword" type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
-                      onChange={set('confirmPassword')} placeholder="Re-enter password" disabled={loading}
-                      className={`w-full pl-10 pr-11 py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${errors.confirmPassword ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`} />
-                    <button type="button" onClick={() => setShowConfirm(v => !v)} disabled={loading}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition">
-                      {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                    <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <input id="confirm" type={showConf ? 'text' : 'password'} value={form.confirmPassword}
+                      onChange={setField('confirmPassword')} placeholder="Re-enter password"
+                      disabled={isDisabled} autoComplete="new-password"
+                      className={`${inputCls(errors.confirmPassword)} pl-9 pr-10`} />
+                    <button type="button" onClick={() => setShowConf(v => !v)} disabled={isDisabled}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+                      {showConf ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                  {errors.confirmPassword && <p className="mt-1 text-xs text-red-400">{errors.confirmPassword}</p>}
+                  {errors.confirmPassword && <p className="mt-1 text-xs text-red-500">{errors.confirmPassword}</p>}
                 </div>
 
-                <button type="submit" disabled={loading}
-                  className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-orange-500/25 disabled:opacity-60 disabled:cursor-not-allowed mt-1">
+                <button type="submit" disabled={isDisabled}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 mt-1 bg-[#1A3C8A] hover:bg-[#142f6e] text-white font-semibold rounded-xl text-sm transition shadow-md shadow-blue-900/20 disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Creating account...
-                    </span>
-                  ) : 'Create Account'}
+                    <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating account…</>
+                  ) : (
+                    <>Create Account <ArrowRight size={15} /></>
+                  )}
                 </button>
               </form>
 
-              <p className="text-center text-sm text-slate-400 mt-5">
-                Already have an account?{' '}
-                <Link to="/login" state={{ returnTo }} className="text-orange-400 hover:text-orange-300 font-medium transition">Sign in</Link>
+              <div className="mt-5 pt-5 border-t border-gray-100 text-center">
+                <p className="text-sm text-gray-500">
+                  Already have an account?{' '}
+                  <Link to="/login" state={{ returnTo }} className="text-[#FF6B35] hover:text-orange-600 font-semibold transition">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+
+              <p className="text-center mt-3">
+                <Link to="/products" className="text-xs text-gray-400 hover:text-gray-600 transition">
+                  ← Continue shopping without signing in
+                </Link>
               </p>
             </>
           )}
         </div>
-
-        <p className="text-center mt-4">
-          <Link to="/products" className="text-sm text-slate-500 hover:text-slate-300 transition">← Continue shopping without signing in</Link>
-        </p>
       </div>
     </div>
   );

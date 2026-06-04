@@ -127,8 +127,8 @@ export default function SalePage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {products.map((p, i) => {
-              const price = p.sale_price ?? p.price
-              const original = p.original_price ?? p.price
+              const price = Number(p.sale_price ?? p.price) || 0
+              const original = Number(p.original_price ?? p.price) || 0
               return (
                 <motion.div key={p.id || i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }}
                   onClick={() => navigate(`/product/${p.id}`)}
@@ -147,8 +147,8 @@ export default function SalePage() {
                     <p className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">{p.name}</p>
                     <div className="mt-2 flex items-center justify-between">
                       <div>
-                        <p className="font-bold text-gray-900">Rs. {price?.toLocaleString()}</p>
-                        {p.discount_percentage > 0 && <p className="text-xs text-gray-400 line-through">Rs. {original?.toLocaleString()}</p>}
+                        <p className="font-bold text-gray-900">{price > 0 ? `Rs. ${price.toLocaleString()}` : <span className="text-gray-400 text-sm">Price unavailable</span>}</p>
+                        {p.discount_percentage > 0 && original > 0 && <p className="text-xs text-gray-400 line-through">Rs. {original.toLocaleString()}</p>}
                       </div>
                       <button onClick={e => {
                         e.stopPropagation()

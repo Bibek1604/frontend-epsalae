@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast'
 import Home from './components/homepage/home'
 import ProductDetail from './components/product-details/ProductDetail'
@@ -15,23 +15,105 @@ import AdminLayout from './components/admin/AdminLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import UserProtectedRoute from './components/UserProtectedRoute'
 import Navbar from './components/homepage/navbar'
+import SearchBar from './components/homepage/SearchBar'
 import Footer from './components/homepage/Footer'
 import NotFound from './pages/NotFound'
 import ProfileSetup from './pages/ProfileSetup'
 import AccountDashboard from './pages/AccountDashboard'
-//include goto top button
+
+function PublicLayout() {
+  return (
+    <div className="relative flex flex-col min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_48%,#eef3ff_100%)] text-slate-900">
+      <Navbar />
+      <SearchBar />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  )
+}
 
 function App() {
   return (
     <>
       {/* Global Toast Notifications */}
-      <Toaster 
+      <Toaster
         position="top-right"
+        gutter={10}
+        containerStyle={{ top: 20, right: 20 }}
         toastOptions={{
-          duration: 3000,
+          duration: 3500,
+          // Default base style
           style: {
-            background: '#fff',
-            color: '#333',
+            fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            fontSize: '13.5px',
+            fontWeight: '500',
+            borderRadius: '14px',
+            padding: '13px 16px',
+            maxWidth: '380px',
+            boxShadow: '0 8px 32px -4px rgba(15,23,42,0.18), 0 2px 8px -2px rgba(15,23,42,0.10)',
+            border: '1px solid rgba(226,232,240,0.6)',
+            background: 'rgba(255,255,255,0.96)',
+            color: '#0f172a',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          },
+          success: {
+            duration: 3000,
+            style: {
+              fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              fontSize: '13.5px',
+              fontWeight: '500',
+              borderRadius: '14px',
+              padding: '13px 16px',
+              maxWidth: '380px',
+              background: 'linear-gradient(135deg, rgba(240,253,244,0.98) 0%, rgba(220,252,231,0.98) 100%)',
+              color: '#14532d',
+              border: '1px solid rgba(134,239,172,0.5)',
+              boxShadow: '0 8px 32px -4px rgba(16,185,129,0.15), 0 2px 8px -2px rgba(16,185,129,0.10)',
+            },
+            iconTheme: {
+              primary: '#16a34a',
+              secondary: '#dcfce7',
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              fontSize: '13.5px',
+              fontWeight: '500',
+              borderRadius: '14px',
+              padding: '13px 16px',
+              maxWidth: '380px',
+              background: 'linear-gradient(135deg, rgba(255,241,242,0.98) 0%, rgba(254,226,226,0.98) 100%)',
+              color: '#7f1d1d',
+              border: '1px solid rgba(252,165,165,0.5)',
+              boxShadow: '0 8px 32px -4px rgba(239,68,68,0.15), 0 2px 8px -2px rgba(239,68,68,0.10)',
+            },
+            iconTheme: {
+              primary: '#dc2626',
+              secondary: '#fee2e2',
+            },
+          },
+          loading: {
+            style: {
+              fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              fontSize: '13.5px',
+              fontWeight: '500',
+              borderRadius: '14px',
+              padding: '13px 16px',
+              maxWidth: '380px',
+              background: 'linear-gradient(135deg, rgba(239,246,255,0.98) 0%, rgba(219,234,254,0.98) 100%)',
+              color: '#1e3a8a',
+              border: '1px solid rgba(147,197,253,0.5)',
+              boxShadow: '0 8px 32px -4px rgba(26,60,138,0.15), 0 2px 8px -2px rgba(26,60,138,0.10)',
+            },
+            iconTheme: {
+              primary: '#1A3C8A',
+              secondary: '#dbeafe',
+            },
           },
         }}
       />
@@ -43,31 +125,22 @@ function App() {
             <AdminLayout />
           </ProtectedRoute>
         } />
-        {/* Public routes - with header/footer */}
-        <Route path="/*" element={
-          <div className="relative flex flex-col min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_48%,_#eef3ff_100%)] text-slate-900">
-            <Navbar />
-            <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/sale/:slug" element={<SalePage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/profile-setup" element={<UserProtectedRoute><ProfileSetup /></UserProtectedRoute>} />
-                <Route path="/account/*" element={<UserProtectedRoute><AccountDashboard /></UserProtectedRoute>} />
-                <Route path="/order-success/:orderId" element={<OrderSuccess />} />
-                <Route path="/track-order" element={<TrackOrder />} />
-                {/* 404 - Catch all unknown routes */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        } />
+        {/* Public routes - layout wraps all children via Outlet */}
+        <Route element={<PublicLayout />}>
+          <Route index element={<Home />} />
+          <Route path="products" element={<Products />} />
+          <Route path="product/:id" element={<ProductDetail />} />
+          <Route path="cart" element={<Cart />} />
+          <Route path="checkout" element={<UserProtectedRoute><Checkout /></UserProtectedRoute>} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="sale/:slug" element={<SalePage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="profile-setup" element={<UserProtectedRoute><ProfileSetup /></UserProtectedRoute>} />
+          <Route path="account/*" element={<UserProtectedRoute><AccountDashboard /></UserProtectedRoute>} />
+          <Route path="order-success/:orderId" element={<OrderSuccess />} />
+          <Route path="track-order" element={<TrackOrder />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
       </Routes>
     </>
   );

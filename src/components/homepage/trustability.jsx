@@ -48,13 +48,13 @@ export default function Trustability() {
   ];
 
   return (
-    <section className="py-16 bg-[#F9FAFB]/50 border-y border-gray-100">
-      <div className="px-6 mx-auto max-w-7xl">
+    <section className="py-6 sm:py-12 bg-[#F9FAFB]/50 border-y border-gray-100">
+      <div className="px-4 sm:px-6 mx-auto max-w-7xl">
         <motion.div 
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6"
+          className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-6"
         >
           {features.map((feature, index) => (
             <motion.div 

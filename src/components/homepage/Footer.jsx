@@ -16,42 +16,6 @@ export default function Footer() {
 
   return (
     <footer className="border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
-      {/* Newsletter Section */}
-      <div className="px-6 py-16 mx-auto max-w-7xl">
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative p-8 overflow-hidden md:p-12 rounded-3xl bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35]"
-        >
-          {/* Decorative circles */}
-          <div className="absolute w-64 h-64 rounded-full -top-20 -right-20 bg-white/10" />
-          <div className="absolute w-32 h-32 rounded-full -bottom-10 -left-10 bg-white/10" />
-          
-          <div className="relative flex flex-col items-center justify-between gap-8 md:flex-row">
-            <div className="text-center md:text-left">
-              <h3 className="mb-2 text-2xl font-bold text-white md:text-3xl">Stay Updated!</h3>
-              <p className="text-white/80">Subscribe for exclusive deals and updates</p>
-            </div>
-              <form
-              className="flex flex-col w-full max-w-md gap-3 sm:flex-row"
-              onSubmit={e => e.preventDefault()}
-            >
-              <input 
-                type="email" 
-                placeholder="Enter your email" 
-                className="flex-1 px-6 py-4 text-gray-900 bg-white rounded-xl focus:outline-none focus:ring-4 focus:ring-white/30"
-              />
-              <button
-                type="submit"
-                className="px-8 py-4 rounded-xl bg-white font-bold text-[#1A3C8A] whitespace-nowrap hover:shadow-lg hover:scale-105 transition-all btn-press"
-              >
-                Subscribe
-              </button>
-            </form>
-          </div>
-        </motion.div>
-      </div>
 
       {/* Main Footer */}
       <div className="bg-white">

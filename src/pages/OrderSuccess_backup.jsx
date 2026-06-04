@@ -100,7 +100,7 @@ export default function OrderSuccess() {
                         <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                       </div>
                     </div>
-                    <p className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-semibold">Rs.{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -113,7 +113,7 @@ export default function OrderSuccess() {
             <div className="space-y-3">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>₹{subtotal.toFixed(2)}</span>
+                <span>Rs.{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Shipping</span>
@@ -121,11 +121,11 @@ export default function OrderSuccess() {
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Tax (10%)</span>
-                <span>₹{tax.toFixed(2)}</span>
+                <span>Rs.{tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between pt-3 text-xl font-bold text-gray-900 border-t">
                 <span>Total</span>
-                <span className="text-green-600">₹{totalAmount.toFixed(2)}</span>
+                <span className="text-green-600">Rs.{totalAmount.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -153,7 +153,7 @@ export default function OrderSuccess() {
           {paymentMethod === 'cod' && (
             <div className="p-4 mb-8 border border-yellow-200 rounded-lg bg-yellow-50">
               <p className="text-sm text-yellow-800">
-                <strong>💵 Cash on Delivery:</strong> Please keep exact change of <strong>₹{totalAmount.toFixed(2)}</strong> ready when your order arrives.
+                <strong>💵 Cash on Delivery:</strong> Please keep exact change of <strong>Rs.{totalAmount.toFixed(2)}</strong> ready when your order arrives.
               </p>
             </div>
           )}

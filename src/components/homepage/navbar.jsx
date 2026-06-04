@@ -17,7 +17,6 @@ export default function Navbar() {
   const { categories, fetchCategories } = useCategoryStore()
 
   const [searchQuery, setSearchQuery] = useState('')
-  const [showSuggestions, setShowSuggestions] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -42,7 +41,6 @@ export default function Navbar() {
     if (searchQuery.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`)
       setSearchQuery('')
-      setShowSuggestions(false)
       setMobileMenuOpen(false)
     }
   }
@@ -105,86 +103,6 @@ export default function Navbar() {
                 }`}
               />
             </Link>
-
-            {/* Desktop Search - Clean & Elegant with Autocomplete suggestions */}
-            <div className="relative flex-1 hidden max-w-xl mx-8 lg:block">
-              <form onSubmit={handleSearch} className="relative w-full group">
-                <Search className="absolute w-4.5 h-4.5 text-gray-400 transition-colors -translate-y-1/2 left-4.5 top-1/2 group-focus-within:text-gray-900" />
-                <input
-                  type="text"
-                  placeholder="Search anything..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value)
-                    setShowSuggestions(true)
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  className="w-full py-3.5 pl-11 pr-10 text-base text-gray-900 transition-all duration-300 border border-slate-200/70 bg-white/70 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)] rounded-full focus:outline-none focus:bg-white focus:border-slate-300 focus:shadow-[0_18px_50px_-30px_rgba(15,23,42,0.4)] placeholder:text-gray-500"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchQuery('')
-                      setShowSuggestions(false)
-                    }}
-                    className="absolute text-gray-400 -translate-y-1/2 right-3.5 top-1/2 hover:text-gray-700"
-                  >
-                    <X className="w-4.5 h-4.5" />
-                  </button>
-                )}
-              </form>
-
-              {/* Suggestions Dropdown */}
-              <AnimatePresence>
-                {showSuggestions && searchQuery.trim() && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setShowSuggestions(false)} />
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute left-0 right-0 z-20 mt-2 overflow-hidden border border-white/70 bg-white/95 shadow-[0_30px_80px_-45px_rgba(15,23,42,0.5)] rounded-[1.5rem] backdrop-blur-xl"
-                    >
-                      {suggestions.length > 0 ? (
-                        <div className="py-2">
-                          <div className="px-4 py-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                            Products
-                          </div>
-                          {suggestions.map((p) => (
-                            <button
-                              key={p._id || p.id}
-                              onClick={() => {
-                                navigate(`/product/${p.id || p._id}`)
-                                setSearchQuery('')
-                                setShowSuggestions(false)
-                              }}
-                              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
-                            >
-                              <img
-                                src={p.imageUrl}
-                                alt={p.name}
-                                className="w-10 h-10 object-contain rounded bg-gray-50 p-0.5"
-                                onError={(e) => { e.target.src = 'https://via.placeholder.com/50' }}
-                              />
-                              <div>
-                                <p className="text-sm font-semibold text-gray-800 line-clamp-1">{p.name}</p>
-                                <p className="text-xs text-gray-500">Rs. {p.price.toLocaleString()}</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="px-4 py-6 text-center text-sm text-gray-500">
-                          No suggestions found for "{searchQuery}"
-                        </div>
-                      )}
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-
             {/* Desktop Navigation & Actions */}
             <div className="flex items-center gap-1">
 
@@ -293,7 +211,7 @@ export default function Navbar() {
                             className="absolute right-0 z-50 mt-3 w-56 overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/95 shadow-[0_30px_80px_-45px_rgba(15,23,42,0.55)] backdrop-blur-xl"
                           >
                             <Link
-                              to="/profile"
+                              to="/account"
                               onClick={() => setUserMenuOpen(false)}
                               className="flex items-center gap-3 px-6 py-4 transition hover:bg-slate-50"
                             >
@@ -301,20 +219,12 @@ export default function Navbar() {
                               <span className="font-medium">My Profile</span>
                             </Link>
                             <Link
-                              to="/orders"
+                              to="/account/orders"
                               onClick={() => setUserMenuOpen(false)}
                               className="flex items-center gap-3 px-6 py-4 transition hover:bg-slate-50"
                             >
                               <Package className="w-5 h-5 text-gray-600" />
-                              <span className="font-medium">My Orders</span>
-                            </Link>
-                            <Link
-                              to="/admin"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-6 py-4 transition hover:bg-slate-50"
-                            >
-                              <Grid className="w-5 h-5 text-gray-600" />
-                              <span className="font-medium">Admin Panel</span>
+                              <span className="font-medium">Purchase History</span>
                             </Link>
                             <hr className="border-gray-100" />
                             <button

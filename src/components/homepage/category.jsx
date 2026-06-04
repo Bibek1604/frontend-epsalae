@@ -52,7 +52,7 @@ export default function TopCategories() {
   if (cats.length === 0) return null
 
   return (
-    <section className="relative py-16 overflow-hidden sm:py-20 lg:py-24">
+    <section className="relative py-8 overflow-hidden sm:py-14 lg:py-20">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute left-0 top-0 h-56 w-56 rounded-full bg-[#1A3C8A]/6 blur-3xl" />
         <div className="absolute right-0 bottom-0 h-72 w-72 rounded-full bg-[#FF6B35]/6 blur-3xl" />
@@ -61,7 +61,7 @@ export default function TopCategories() {
 
       <div className="relative px-4 mx-auto max-w-7xl sm:px-6">
         {/* Section Header */}
-        <div className="mb-10 text-center sm:mb-12 lg:mb-14">
+        <div className="mb-6 text-center sm:mb-10">
           <motion.span 
             initial={{ opacity: 0, y: -10 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -77,7 +77,7 @@ export default function TopCategories() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.78, ease: PREMIUM_EASE }}
-            className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl lg:text-5xl"
+            className="text-xl sm:text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl"
           >
             Shop Our Collections
           </motion.h2>
@@ -98,7 +98,7 @@ export default function TopCategories() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
-          className="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4"
         >
           {cats.map((cat, i) => (
             <CategoryCard key={cat._id || cat.id || i} cat={cat} index={i} navigate={navigate} />

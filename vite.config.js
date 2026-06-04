@@ -50,6 +50,8 @@ export default defineConfig({
   preview: {
     port: 4173,
     strictPort: true,
+    // Required for SPA: serve index.html for all unknown paths
+    historyApiFallback: true,
   },
   
   // Dev server configuration

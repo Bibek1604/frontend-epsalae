@@ -59,7 +59,7 @@ export default function AddressesPage(){
   }
 
   return (
-    <div className="rounded-[2rem] bg-white p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-8">
+    <div className="rounded-2xl sm:rounded-[2rem] bg-white p-4 sm:p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-8">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-2xl font-semibold text-slate-900">Saved Addresses</h3>
@@ -94,7 +94,7 @@ export default function AddressesPage(){
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {addresses.map((a, i) => (
-            <div key={i} className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4 transition hover:bg-white hover:shadow-sm">
+            <div key={i} className="rounded-xl sm:rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4 transition hover:bg-white hover:shadow-sm">
               <div className="mb-3 flex items-center gap-2 font-semibold text-slate-900"><MapPin className="h-4 w-4 text-emerald-600" /> {a.label || 'Address'}</div>
               <p className="text-sm text-slate-600">{a.addressLine}</p>
               <p className="text-sm text-slate-600">{a.city}, {a.postalCode}</p>

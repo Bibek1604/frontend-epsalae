@@ -5,6 +5,16 @@ import toast from 'react-hot-toast'
 import { profileEndpoints } from '@/components/api/userapi'
 import { useCart } from '@/store/cartstore'
 
+// Hide everything except the invoice when printing
+const PRINT_STYLE = `
+@media print {
+  body > * { display: none !important; }
+  #invoice-printable { display: block !important; }
+  #invoice-printable { position: fixed; inset: 0; background: white; z-index: 9999; overflow: auto; padding: 24px; }
+  .no-print { display: none !important; }
+}
+`
+
 const statusTone = {
   pending: 'bg-amber-50 text-amber-700 border-amber-200',
   confirmed: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -93,7 +103,7 @@ export default function OrderInvoice() {
       <div className="min-h-screen px-4 py-12 bg-gradient-to-b from-white to-slate-50">
         <div className="mx-auto max-w-5xl">
           <div className="h-10 w-56 animate-pulse rounded-2xl bg-slate-200" />
-          <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
+          <div className="mt-6 grid gap-4 lg:grid-cols-[2fr_1fr]">
             <div className="space-y-4 rounded-3xl bg-white p-6 shadow-sm">
               <div className="h-8 w-40 animate-pulse rounded bg-slate-200" />
               <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />
@@ -122,7 +132,8 @@ export default function OrderInvoice() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_52%,_#eef3ff_100%)] px-4 py-6 sm:px-6 lg:px-8">
+    <div id="invoice-printable" className="min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_52%,_#eef3ff_100%)] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+      <style>{PRINT_STYLE}</style>
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 no-print">
           <button onClick={() => navigate(-1)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50">
@@ -141,12 +152,12 @@ export default function OrderInvoice() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-          <div className="rounded-[2rem] bg-white p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-8">
+        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+          <div className="rounded-2xl sm:rounded-[2rem] bg-white p-4 sm:p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-400">Order Invoice</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">#{order.id || order._id}</h1>
+                <h1 className="mt-2 text-xl sm:text-3xl font-semibold tracking-tight text-slate-900">#{order.id || order._id}</h1>
                 <p className="mt-1 text-sm text-slate-500 flex items-center gap-2"><Calendar className="h-4 w-4" /> {order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A'}</p>
               </div>
               <div className={`rounded-full border px-4 py-2 text-sm font-semibold ${statusTone[status] || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
@@ -154,7 +165,7 @@ export default function OrderInvoice() {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                 <div className="mb-3 flex items-center gap-2 text-slate-900 font-semibold"><MapPin className="h-4 w-4 text-emerald-600" /> Shipping</div>
                 <p className="text-sm text-slate-700">{order.name || order.customerName || 'Customer'}</p>
@@ -237,7 +248,7 @@ export default function OrderInvoice() {
           </div>
 
           <aside className="space-y-6">
-            <div className="rounded-[2rem] bg-white p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-6">
+            <div className="rounded-2xl sm:rounded-[2rem] bg-white p-4 sm:p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-6">
               <h3 className="text-lg font-semibold text-slate-900">Summary</h3>
               <div className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between text-slate-600"><span>Subtotal</span><span>Rs. {subtotal.toLocaleString()}</span></div>
@@ -246,7 +257,7 @@ export default function OrderInvoice() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] bg-white p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-6">
+            <div className="rounded-2xl sm:rounded-[2rem] bg-white p-4 sm:p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-6">
               <h3 className="text-lg font-semibold text-slate-900">Tracking</h3>
               <div className="mt-4 space-y-3 text-sm text-slate-600">
                 <div className="flex items-center gap-2"><Truck className="h-4 w-4 text-emerald-600" /> Status: {status.replaceAll('_', ' ')}</div>

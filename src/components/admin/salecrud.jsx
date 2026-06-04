@@ -18,6 +18,17 @@ const emptyForm = {
 
 const slugify = s => s.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_]+/g, '-').replace(/^-+|-+$/g, '');
 
+function SaleInput({ label, value, onChange, error, placeholder, required, type = 'text' }) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}{required && ' *'}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition ${error ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}
+
 export default function SaleCrud() {
   const { products, fetchProducts } = useProductStore();
   const [sales, setSales] = useState([]);
@@ -31,6 +42,17 @@ export default function SaleCrud() {
   const [productSearch, setProductSearch] = useState('');
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [expandedSale, setExpandedSale] = useState(null);
+
+  // Close product dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (!e.target.closest('[data-dropdown="product-search"]')) {
+        setShowProductDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -131,14 +153,6 @@ export default function SaleCrud() {
 
   const filtered = sales.filter(s => s.title?.toLowerCase().includes(search.toLowerCase()));
 
-  const Input = ({ label, name, type = 'text', value, onChange, error, placeholder, required }) => (
-    <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}{required && ' *'}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition ${error ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -224,7 +238,7 @@ export default function SaleCrud() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-800 truncate">{p?.name || sp.product_id}</p>
-                              <p className="text-xs text-gray-400">Rs. {p?.price} → {p ? Math.round(p.price * (1 - sp.discount_percentage / 100)) : '—'}</p>
+                              <p className="text-xs text-gray-400">{p?.price ? `Rs. ${p.price} → Rs. ${Math.round(p.price * (1 - sp.discount_percentage / 100))}` : 'Price not loaded'}</p>
                             </div>
                             <span className="shrink-0 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">{sp.discount_percentage}% off</span>
                           </div>
@@ -250,18 +264,18 @@ export default function SaleCrud() {
             <div className="p-6 space-y-5">
               {/* Basic info */}
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Title" value={form.title} onChange={v => set('title', v)} placeholder="Winter Sale" error={errors.title} required />
-                <Input label="Slug" value={form.slug} onChange={v => set('slug', v)} placeholder="winter-sale" error={errors.slug} required />
+                <SaleInput label="Title" value={form.title} onChange={v => set('title', v)} placeholder="Winter Sale" error={errors.title} required />
+                <SaleInput label="Slug" value={form.slug} onChange={v => set('slug', v)} placeholder="winter-sale" error={errors.slug} required />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
                 <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder="Optional description…"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] resize-none transition" />
               </div>
-              <Input label="Banner URL" value={form.banner} onChange={v => set('banner', v)} placeholder="https://... or upload via Cloudinary" />
+              <SaleInput label="Banner URL" value={form.banner} onChange={v => set('banner', v)} placeholder="https://... or upload via Cloudinary" />
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Start Date" type="datetime-local" value={form.start_date} onChange={v => set('start_date', v)} error={errors.start_date} />
-                <Input label="End Date" type="datetime-local" value={form.end_date} onChange={v => set('end_date', v)} error={errors.end_date} />
+                <SaleInput label="Start Date" type="datetime-local" value={form.start_date} onChange={v => set('start_date', v)} error={errors.start_date} />
+                <SaleInput label="End Date" type="datetime-local" value={form.end_date} onChange={v => set('end_date', v)} error={errors.end_date} />
               </div>
               <label className="flex items-center gap-3 cursor-pointer select-none">
                 <div onClick={() => set('is_active', !form.is_active)}
@@ -275,7 +289,7 @@ export default function SaleCrud() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Products in this sale</label>
                 {/* Search & add */}
-                <div className="relative mb-3">
+                <div className="relative mb-3" data-dropdown="product-search">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   <input value={productSearch} placeholder="Search products to add…"
                     onChange={e => { setProductSearch(e.target.value); setShowProductDropdown(true); }}
@@ -313,7 +327,7 @@ export default function SaleCrud() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-800 truncate">{p?.name || fp.product_id}</p>
-                            {salePrice !== null && <p className="text-xs text-gray-400">Rs. {p.price} → <span className="text-orange-600 font-semibold">Rs. {salePrice}</span></p>}
+                            {p?.price ? <p className="text-xs text-gray-400">Rs. {p.price} → <span className="text-orange-600 font-semibold">Rs. {Math.round(p.price * (1 - Number(fp.discount_percentage) / 100))}</span></p> : null}
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             <Percent className="w-3.5 h-3.5 text-gray-400" />

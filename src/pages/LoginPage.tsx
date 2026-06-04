@@ -1,31 +1,29 @@
-// src/pages/LoginPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, AlertCircle, ShoppingBag } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, ShoppingBag, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authEndpoints, profileEndpoints } from '@/components/api/userapi';
 import { useUserAuth } from '@/components/store/authstore';
 import { useCart } from '@/store/cartstore';
 
-export const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+const LoginPage: React.FC = () => {
+  const navigate   = useNavigate();
+  const location   = useLocation();
   const { loginUser, isUser } = useUserAuth();
-  const { cart } = useCart();
+  const { cart }   = useCart();
 
   const returnTo: string = (location.state as any)?.returnTo || '/account';
 
-  // Already logged in — go straight to destination
-  if (isUser) {
-    navigate(returnTo, { replace: true });
-  }
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [fieldErrors, setFieldErrors]   = useState<{ email?: string; password?: string }>({});
+
+  useEffect(() => {
+    if (isUser) navigate(returnTo, { replace: true });
+  }, [isUser, navigate, returnTo]);
 
   const validate = () => {
     const errs: { email?: string; password?: string } = {};
@@ -43,122 +41,153 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await authEndpoints.login({ email, password });
+      const res  = await authEndpoints.login({ email, password });
       const data = res.data?.data || res.data || {};
       const token = data.token || data.accessToken;
-      const user = data.user;
+      const user  = data.user;
       if (!token) throw new Error(res.data?.message || 'Login failed');
-
       loginUser(token, user);
-
-      // Merge guest cart best-effort
       try {
-        if (Array.isArray(cart) && cart.length) {
-          await profileEndpoints.cart.merge({ items: cart });
-        }
+        if (Array.isArray(cart) && cart.length) await profileEndpoints.cart.merge({ items: cart });
       } catch (_) {}
-
       toast.success('Welcome back!');
       navigate(returnTo, { replace: true });
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Login failed');
+      setError(err?.response?.data?.message || err?.message || 'Incorrect email or password');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-4 py-12 relative overflow-hidden">
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-3 group">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
-              <ShoppingBag className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-white tracking-tight">
-              epasal<span className="text-orange-400">ey</span>
-            </span>
-          </Link>
-          <p className="mt-3 text-slate-400 text-sm">Sign in to continue</p>
+    <div className="min-h-screen bg-white flex">
+      {/* Left panel — branding (hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-[#0B1A3E] via-[#1A3C8A] to-[#1e50c8] flex-col justify-between p-12 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#FF6B35]/15 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
         </div>
+        <Link to="/" className="relative flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur">
+            <ShoppingBag className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-2xl font-bold text-white tracking-tight">
+            epasal<span className="text-[#FF6B35]">ey</span>
+          </span>
+        </Link>
+        <div className="relative">
+          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
+            Nepal's trusted<br />online marketplace
+          </h2>
+          <p className="text-blue-200/70 text-base leading-relaxed">
+            Shop thousands of products with fast delivery across Nepal, secure payments, and genuine customer support.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            {['Fast Delivery', 'Secure Payment', 'Easy Returns'].map(t => (
+              <span key={t} className="px-4 py-2 bg-white/10 backdrop-blur rounded-full text-white/80 text-sm font-medium border border-white/15">
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+        <p className="relative text-blue-200/40 text-xs">© {new Date().getFullYear()} ePasaley. All rights reserved.</p>
+      </div>
 
-        {/* Card */}
-        <div className="bg-white/[0.07] backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-xl font-semibold text-white mb-6">Welcome back</h2>
+      {/* Right panel — form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+
+          {/* Mobile logo */}
+          <Link to="/" className="lg:hidden flex items-center gap-2.5 mb-8">
+            <div className="w-9 h-9 bg-linear-to-br from-[#1A3C8A] to-[#FF6B35] rounded-xl flex items-center justify-center">
+              <ShoppingBag className="w-4.5 h-4.5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">epasal<span className="text-[#FF6B35]">ey</span></span>
+          </Link>
+
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Sign in</h1>
+          <p className="text-gray-500 text-sm mb-8">Welcome back! Enter your credentials to continue.</p>
 
           {error && (
-            <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-300 rounded-xl px-4 py-3 mb-5 text-sm">
-              <AlertCircle size={16} className="shrink-0" />
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-5 text-sm">
+              <AlertCircle size={15} className="shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1.5">Email address</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
               <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
-                  id="email" type="email" value={email}
-                  onChange={(e) => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: '' })); setError(''); }}
-                  placeholder="you@example.com" disabled={loading}
-                  className={`w-full pl-10 pr-4 py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${fieldErrors.email ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`}
+                  id="email" type="email" value={email} disabled={loading}
+                  onChange={e => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: '' })); setError(''); }}
+                  placeholder="you@example.com" autoComplete="email"
+                  className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 text-sm transition focus:outline-none focus:ring-2 focus:bg-white disabled:opacity-50 ${
+                    fieldErrors.email
+                      ? 'border-red-300 focus:ring-red-100 focus:border-red-400'
+                      : 'border-gray-200 focus:ring-[#1A3C8A]/10 focus:border-[#1A3C8A]/40'
+                  }`}
                 />
               </div>
-              {fieldErrors.email && <p className="mt-1.5 text-xs text-red-400">{fieldErrors.email}</p>}
+              {fieldErrors.email && <p className="mt-1.5 text-xs text-red-500">{fieldErrors.email}</p>}
             </div>
 
             {/* Password */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label htmlFor="password" className="text-sm font-medium text-slate-300">Password</label>
-                <Link to="/forgot-password" className="text-xs text-orange-400 hover:text-orange-300 transition">Forgot password?</Link>
+                <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</label>
+                <Link to="/forgot-password" className="text-xs text-[#1A3C8A] hover:text-[#FF6B35] transition font-medium">
+                  Forgot password?
+                </Link>
               </div>
               <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
-                  id="password" type={showPassword ? 'text' : 'password'} value={password}
-                  onChange={(e) => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: '' })); setError(''); }}
-                  placeholder="Enter your password" disabled={loading}
-                  className={`w-full pl-10 pr-11 py-3 bg-white/5 border rounded-xl text-white placeholder-slate-500 text-sm transition focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400/50 disabled:opacity-50 ${fieldErrors.password ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`}
+                  id="password" type={showPassword ? 'text' : 'password'} value={password} disabled={loading}
+                  onChange={e => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: '' })); setError(''); }}
+                  placeholder="Your password" autoComplete="current-password"
+                  className={`w-full pl-10 pr-11 py-2.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 text-sm transition focus:outline-none focus:ring-2 focus:bg-white disabled:opacity-50 ${
+                    fieldErrors.password
+                      ? 'border-red-300 focus:ring-red-100 focus:border-red-400'
+                      : 'border-gray-200 focus:ring-[#1A3C8A]/10 focus:border-[#1A3C8A]/40'
+                  }`}
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} disabled={loading}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition disabled:opacity-50">
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                <button type="button" onClick={() => setShowPassword(v => !v)} disabled={loading}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              {fieldErrors.password && <p className="mt-1.5 text-xs text-red-400">{fieldErrors.password}</p>}
+              {fieldErrors.password && <p className="mt-1.5 text-xs text-red-500">{fieldErrors.password}</p>}
             </div>
 
             <button type="submit" disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-orange-500/25 disabled:opacity-60 disabled:cursor-not-allowed mt-2">
+              className="w-full flex items-center justify-center gap-2 py-2.5 mt-1 bg-[#1A3C8A] hover:bg-[#142f6e] text-white font-semibold rounded-xl text-sm transition shadow-md shadow-blue-900/20 disabled:opacity-60 disabled:cursor-not-allowed">
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </span>
-              ) : 'Sign In'}
+                <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in…</>
+              ) : (
+                <>Sign In <ArrowRight size={15} /></>
+              )}
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-400 mt-6">
-            Don&apos;t have an account?{' '}
-            <Link to="/register" state={{ returnTo }} className="text-orange-400 hover:text-orange-300 font-medium transition">
-              Create one
+          <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+            <p className="text-sm text-gray-500">
+              Don't have an account?{' '}
+              <Link to="/register" state={{ returnTo }} className="text-[#FF6B35] hover:text-orange-600 font-semibold transition">
+                Create one free
+              </Link>
+            </p>
+          </div>
+
+          <p className="text-center mt-4">
+            <Link to="/products" className="text-xs text-gray-400 hover:text-gray-600 transition">
+              ← Continue shopping without signing in
             </Link>
           </p>
         </div>
-
-        <p className="text-center mt-5">
-          <Link to="/products" className="text-sm text-slate-500 hover:text-slate-300 transition">
-            ← Continue shopping without signing in
-          </Link>
-        </p>
       </div>
     </div>
   );

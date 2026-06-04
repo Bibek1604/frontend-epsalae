@@ -3,19 +3,17 @@ import ProfileSetup from './ProfileSetup'
 import OrdersPage from './AccountOrders'
 import AddressesPage from './AccountAddresses'
 import WishlistPage from './AccountWishlist'
-import SecurityPage from './AccountSecurity'
 import OrderInvoice from './OrderInvoice'
-import { User, ShoppingBag, MapPin, Heart, ShieldCheck, LogOut } from 'lucide-react'
+import { User, ShoppingBag, MapPin, Heart, LogOut } from 'lucide-react'
 import { useUserAuth } from '@/components/store/authstore'
 import { authEndpoints } from '@/components/api/userapi'
 import toast from 'react-hot-toast'
 
 const navItems = [
-  { to: '.', end: true, icon: User, label: 'My Profile' },
-  { to: 'orders', icon: ShoppingBag, label: 'My Orders' },
-  { to: 'addresses', icon: MapPin, label: 'Saved Addresses' },
-  { to: 'wishlist', icon: Heart, label: 'Wishlist' },
-  { to: 'security', icon: ShieldCheck, label: 'Security' },
+  { to: '/account', end: true, icon: User, label: 'My Profile' },
+  { to: '/account/orders', icon: ShoppingBag, label: 'Purchase History' },
+  { to: '/account/addresses', icon: MapPin, label: 'Saved Addresses' },
+  { to: '/account/wishlist', icon: Heart, label: 'Wishlist' },
 ]
 
 const linkCls = ({ isActive }) =>
@@ -63,9 +61,9 @@ function Sidebar() {
 
 export default function AccountDashboard() {
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_52%,_#eef3ff_100%)] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fbff_52%,_#eef3ff_100%)] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
           <Sidebar />
           <main>
             <Routes>
@@ -74,7 +72,6 @@ export default function AccountDashboard() {
               <Route path="orders/:orderId" element={<OrderInvoice />} />
               <Route path="addresses" element={<AddressesPage />} />
               <Route path="wishlist" element={<WishlistPage />} />
-              <Route path="security" element={<SecurityPage />} />
             </Routes>
           </main>
         </div>

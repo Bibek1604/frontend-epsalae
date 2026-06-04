@@ -22,6 +22,19 @@ const emptyForm = {
   validFrom: '', validTo: '', usage_limit: '', min_order_amount: '', isActive: true,
 };
 
+// Module-level helpers (defined outside component to prevent re-mount on render)
+const inputCls = (err) => `w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition ${err ? 'border-red-400 bg-red-50' : 'border-gray-200'}`;
+
+function Field({ label, error, children }) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
+      {children}
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}
+
 export default function PromoCodeCRUD() {
   const { coupons, loading, fetchCoupons, addCoupon, updateCoupon, deleteCoupon } = useCouponStore();
   const { products, fetchProducts } = useProductStore();
@@ -105,15 +118,7 @@ export default function PromoCodeCRUD() {
 
   const filtered = coupons.filter(c => c.code?.toLowerCase().includes(search.toLowerCase()));
 
-  const Field = ({ label, error, children }) => (
-    <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
-      {children}
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-    </div>
-  );
 
-  const inputCls = (err) => `w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition ${err ? 'border-red-400 bg-red-50' : 'border-gray-200'}`;
 
   return (
     <div className="space-y-6">

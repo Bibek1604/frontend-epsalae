@@ -47,8 +47,8 @@ function CountdownTimer({ endDate }) {
 function SaleProductCard({ product, saleId }) {
   const { addToCart } = useCart()
   const navigate = useNavigate()
-  const price = product.sale_price ?? product.original_price ?? product.price
-  const original = product.original_price ?? product.price
+  const price = Number(product.sale_price ?? product.original_price ?? product.price) || 0
+  const original = Number(product.original_price ?? product.price) || 0
   const discount = product.discount_percentage
 
   const handleAdd = (e) => {
@@ -73,8 +73,8 @@ function SaleProductCard({ product, saleId }) {
         <p className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">{product.name}</p>
         <div className="mt-2 flex items-center justify-between gap-2">
           <div>
-            <span className="text-base font-bold text-gray-900">Rs. {price?.toLocaleString()}</span>
-            {discount > 0 && <span className="ml-1.5 text-xs text-gray-400 line-through">Rs. {original?.toLocaleString()}</span>}
+            {price > 0 ? <span className="text-base font-bold text-gray-900">Rs. {price.toLocaleString()}</span> : <span className="text-sm text-gray-400">—</span>}
+            {discount > 0 && original > 0 && <span className="ml-1.5 text-xs text-gray-400 line-through">Rs. {original.toLocaleString()}</span>}
           </div>
           <button onClick={handleAdd}
             className="p-2 bg-[#FF6B35] hover:bg-orange-500 text-white rounded-xl transition shrink-0 shadow-sm shadow-orange-200">
@@ -99,14 +99,14 @@ export default function SaleSection() {
   }, [])
 
   if (loading) return (
-    <section className="py-12 px-4">
+    <section className="py-6 sm:py-10 px-3 sm:px-4">
       <div className="flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-[#FF6B35]" /></div>
     </section>
   )
   if (!sales.length) return null
 
   return (
-    <section className="py-10 px-4 space-y-12">
+    <section className="py-6 sm:py-10 px-3 sm:px-4 space-y-12">
       {sales.map(sale => {
         const products = Array.isArray(sale.products) ? sale.products : []
         const preview = products.slice(0, 6)
@@ -123,7 +123,7 @@ export default function SaleSection() {
                       <Tag className="w-4 h-4 text-orange-300" />
                       <span className="text-orange-300 text-xs font-bold uppercase tracking-widest">Special Sale</span>
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white">{sale.title}</h2>
+                    <h2 className="text-lg sm:text-2xl font-bold text-white">{sale.title}</h2>
                     {sale.description && <p className="text-white/70 text-sm mt-1 max-w-md">{sale.description}</p>}
                   </div>
                   <div className="flex items-center gap-4">
@@ -138,7 +138,7 @@ export default function SaleSection() {
             </div>
 
             {/* Products grid */}
-            <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
               {preview.map((p, i) => (
                 <SaleProductCard key={p.id || i} product={p} saleId={sale.id} />
               ))}

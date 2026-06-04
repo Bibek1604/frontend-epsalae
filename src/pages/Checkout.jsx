@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Check, ChevronLeft, Lock, AlertCircle, Loader2, Truck, Shield } from 'lucide-react'
+import { Check, ChevronLeft, Lock, AlertCircle, Loader2, Truck, Shield, Tag, X } from 'lucide-react'
 import { useCart } from '@/store/cartstore'
 import { orderApi } from '../components/api/orderapi'
 import { getImageUrl } from '@/config'
 import { useAuthStore } from '@/components/store/authstore'
+import { promocode } from '../components/api/promocode'
 
 // Full Nepal Districts (77) with real municipalities
 const NEPAL_DISTRICTS = {
@@ -119,10 +120,57 @@ export default function Checkout() {
   })
 
   const subtotal = getTotalPrice()
-  const discount = location.state?.discount || 0
-  const appliedCoupon = location.state?.appliedCoupon || null
+
+  // Read discount from navigation state OR sessionStorage (survives login redirect)
+  const [discount, setDiscount] = useState(() => {
+    if (location.state?.discount) return location.state.discount
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('epasaley_discount') || '{}')
+      return saved.discount || 0
+    } catch { return 0 }
+  })
+  const [appliedCoupon, setAppliedCoupon] = useState(() => {
+    if (location.state?.appliedCoupon) return location.state.appliedCoupon
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('epasaley_discount') || '{}')
+      return saved.appliedCoupon || null
+    } catch { return null }
+  })
+  const [couponInput, setCouponInput] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState('')
+
+  const applyCoupon = async () => {
+    if (!couponInput.trim()) return
+    setCouponLoading(true); setCouponError('')
+    try {
+      const res = await promocode.validate(couponInput.trim().toUpperCase(), {
+        cartTotal: subtotal,
+        productIds: cart.map(i => i.id || i._id).filter(Boolean),
+      })
+      const coupon = res.data?.data || res.data
+      if (coupon?.valid) {
+        const amt = Number(coupon.discountAmount) || 0
+        setDiscount(amt)
+        setAppliedCoupon(coupon)
+        sessionStorage.setItem('epasaley_discount', JSON.stringify({ discount: amt, appliedCoupon: coupon }))
+        setCouponInput('')
+      } else {
+        setCouponError('Invalid or expired coupon')
+      }
+    } catch (err) {
+      setCouponError(err?.response?.data?.message || 'Coupon not found')
+    } finally { setCouponLoading(false) }
+  }
+
+  const removeCoupon = () => {
+    setDiscount(0); setAppliedCoupon(null); setCouponError('')
+    sessionStorage.removeItem('epasaley_discount')
+  }
+
   const shipping = subtotal >= 5000 ? 0 : 250
-  const total = subtotal - discount + shipping
+  const vat = Math.round((subtotal - discount) * 0.10)
+  const total = subtotal - discount + vat + shipping
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -214,6 +262,7 @@ export default function Checkout() {
       const finalOrderId = orderId || `ORD-${Date.now()}`
 
       clearCart()
+      sessionStorage.removeItem('epasaley_discount')
       navigate(`/order-success/${finalOrderId}`, { 
         state: { 
           order: {
@@ -262,17 +311,17 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-12 mx-auto max-w-7xl">
+    <div className="min-h-screen bg-gray-50 py-0">
+      <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 sm:py-12">
 
         {/* Header */}
-        <button onClick={() => navigate('/cart')} className="flex items-center gap-2 mb-8 text-sm font-medium text-gray-600 hover:text-gray-900">
+        <button onClick={() => navigate('/cart')} className="flex items-center gap-2 mb-6 text-sm font-medium text-gray-600 hover:text-gray-900">
           <ChevronLeft className="w-5 h-5" /> Back to Cart
         </button>
-        <h1 className="mb-4 text-5xl font-light text-gray-900">Checkout</h1>
-        <p className="mb-12 text-gray-600">{cart.length} {cart.length === 1 ? 'item' : 'items'} in your cart</p>
+        <h1 className="mb-2 text-3xl font-light text-gray-900 sm:text-5xl sm:mb-4">Checkout</h1>
+        <p className="mb-8 text-gray-600 sm:mb-12">{cart.length} {cart.length === 1 ? 'item' : 'items'} in your cart</p>
 
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-12">
 
           {/* Main Form */}
           <div className="space-y-8 lg:col-span-2">
@@ -293,7 +342,7 @@ export default function Checkout() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm text-gray-500">Step {step.num}</p>
-                    <p className="font-medium text-gray-900">{step.label}</p>
+                    <p className="hidden sm:block font-medium text-gray-900">{step.label}</p>
                   </div>
                   {i === 0 && <div className="flex-1 h-1 mx-8 bg-gray-200" />}
                 </div>
@@ -309,17 +358,17 @@ export default function Checkout() {
 
             {/* Step 1: Shipping */}
             {currentStep === 1 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-10 bg-white border border-gray-200 rounded-3xl">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 sm:p-8 bg-white border border-gray-200 rounded-2xl sm:rounded-3xl">
                 <h2 className="mb-8 text-2xl font-medium text-gray-900">Shipping Address</h2>
 
-                <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                   <input type="text" name="first_name" placeholder="First Name" value={formData.first_name} onChange={handleInputChange}
                     className="px-6 py-4 text-lg transition border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900" />
                   <input type="text" name="last_name" placeholder="Last Name" value={formData.last_name} onChange={handleInputChange}
                     className="px-6 py-4 text-lg transition border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                   <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleInputChange}
                     className="px-6 py-4 text-lg transition border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900" />
                   <input type="tel" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleInputChange}
@@ -329,7 +378,7 @@ export default function Checkout() {
                 <input type="text" name="address" placeholder="Full Address (House no, Tole, Ward)" value={formData.address} onChange={handleInputChange}
                   className="w-full px-6 py-4 mb-6 text-lg transition border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900" />
 
-                <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block mb-2 text-sm font-medium text-gray-700">District</label>
                     <select name="district" value={formData.district} onChange={handleInputChange}
@@ -361,7 +410,7 @@ export default function Checkout() {
 
             {/* Step 2: Payment */}
             {currentStep === 2 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-10 bg-white border border-gray-200 rounded-3xl">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 sm:p-8 bg-white border border-gray-200 rounded-2xl sm:rounded-3xl">
                 <h2 className="mb-8 text-2xl font-medium text-gray-900">Payment Method</h2>
 
                 <div className="space-y-5">
@@ -406,6 +455,21 @@ export default function Checkout() {
                   </label>
                 </div>
 
+                {discount > 0 && appliedCoupon && (
+                  <div className="flex items-center justify-between p-4 mt-8 border border-green-200 bg-green-50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                        <Shield className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-green-800">Coupon <span className="font-mono">{appliedCoupon.code}</span> applied</p>
+                        <p className="text-xs text-green-600">You save Rs. {discount.toLocaleString()} on this order</p>
+                      </div>
+                    </div>
+                    <span className="text-green-700 font-bold text-sm">-Rs. {discount.toLocaleString()}</span>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between mt-10">
                   <button onClick={() => setCurrentStep(1)} className="px-8 py-4 font-medium text-gray-900 transition border-2 border-gray-300 rounded-xl hover:bg-gray-50">
                     Back to Shipping
@@ -432,7 +496,7 @@ export default function Checkout() {
 
           {/* Sticky Order Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky p-8 bg-white border border-gray-200 rounded-3xl top-8">
+            <div className="sticky p-4 sm:p-8 bg-white border border-gray-200 rounded-2xl sm:rounded-3xl top-8">
               <h2 className="mb-6 text-2xl font-medium text-gray-900">Order Summary</h2>
 
               <div className="mb-8 space-y-5 overflow-y-auto max-h-96">
@@ -455,7 +519,42 @@ export default function Checkout() {
                 ))}
               </div>
 
-              <div className="pt-6 space-y-4 border-t border-gray-200">
+              {/* Coupon input in order summary */}
+              <div className="pb-4 border-b border-gray-100">
+                {!appliedCoupon ? (
+                  <div className="flex gap-2">
+                    <input
+                      value={couponInput}
+                      onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError('') }}
+                      onKeyDown={e => e.key === 'Enter' && applyCoupon()}
+                      placeholder="Coupon code"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900"
+                    />
+                    <button
+                      onClick={applyCoupon}
+                      disabled={couponLoading}
+                      className="px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-700 disabled:opacity-60 flex items-center gap-1"
+                    >
+                      {couponLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Tag className="w-3.5 h-3.5" />}
+                      Apply
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-green-700">
+                      <Tag className="w-3.5 h-3.5" />
+                      <span className="font-mono font-semibold">{appliedCoupon.code}</span>
+                      <span>· Save Rs. {discount.toLocaleString()}</span>
+                    </div>
+                    <button onClick={removeCoupon} className="text-green-500 hover:text-red-500">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                {couponError && <p className="mt-1.5 text-xs text-red-500">{couponError}</p>}
+              </div>
+
+              <div className="pt-4 space-y-3 border-t border-gray-200">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
                   <span>Rs. {subtotal.toLocaleString()}</span>
@@ -466,6 +565,10 @@ export default function Checkout() {
                     <span>-Rs. {discount.toLocaleString()}</span>
                   </div>
                 )}
+                <div className="flex justify-between text-gray-600">
+                  <span>VAT (10%)</span>
+                  <span>Rs. {vat.toLocaleString()}</span>
+                </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>

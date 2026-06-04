@@ -1,25 +1,29 @@
 // src/pages/Cart.jsx
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, AlertCircle, CheckCircle, X } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, AlertCircle, CheckCircle, X, Tag, ShoppingCart, Truck, Shield, RotateCcw, ChevronRight } from 'lucide-react'
 import { useCart } from '@/store/cartstore'
 import { promocode } from '../components/api/promocode'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { getImageUrl } from '@/config'
+
+const PLACEHOLDER = 'https://via.placeholder.com/150?text=Product'
 
 export default function Cart() {
   const navigate = useNavigate()
   const { cart, removeFromCart, updateQuantity, getTotalPrice } = useCart()
-  
+
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [discount, setDiscount] = useState(0)
   const [couponError, setCouponError] = useState('')
   const [couponSuccess, setCouponSuccess] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
 
   const subtotal = getTotalPrice()
-  const tax = (subtotal - discount) * 0.1
-  const total = subtotal - discount + tax
+  const shipping = subtotal >= 5000 ? 0 : 200
+  const discountedSubtotal = subtotal - discount
+  const total = discountedSubtotal + shipping
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -29,27 +33,31 @@ export default function Cart() {
     try {
       setCouponError('')
       setCouponSuccess('')
+      setCouponLoading(true)
       const context = {
         cartTotal: subtotal,
         productIds: cart.map(i => i.id || i._id).filter(Boolean),
       }
-      const res = await promocode.validate(couponCode, context)
+      const res = await promocode.validate(couponCode.trim(), context)
       const coupon = res.data?.data || res.data
 
       if (coupon && coupon.valid) {
         if (coupon.discountAmount > subtotal) {
-          setCouponError('This coupon is not available for your current order amount')
+          setCouponError('Coupon not applicable for this order amount')
           return
         }
+        const discountAmt = Number(coupon.discountAmount) || 0
         setAppliedCoupon(coupon)
-        setDiscount(coupon.discountAmount)
-        setCouponSuccess(`Applied! Save ₹${coupon.discountAmount}`)
+        setDiscount(discountAmt)
+        setCouponSuccess(`Coupon applied! You save Rs. ${discountAmt.toLocaleString()}`)
         setCouponCode('')
       } else {
-        setCouponError('Invalid or expired coupon')
+        setCouponError('Invalid or expired coupon code')
       }
     } catch (err) {
       setCouponError(err?.response?.data?.message || 'Coupon not found or expired')
+    } finally {
+      setCouponLoading(false)
     }
   }
 
@@ -57,223 +65,290 @@ export default function Cart() {
     setAppliedCoupon(null)
     setDiscount(0)
     setCouponSuccess('')
+    setCouponError('')
   }
 
   if (cart.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen px-6 bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 px-6 page-enter">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md text-center"
         >
-          <ShoppingBag className="w-20 h-20 mx-auto mb-8 text-gray-300" />
-          <h2 className="mb-4 text-4xl font-light text-gray-900">Your cart is empty</h2>
-          <p className="mb-10 text-gray-600">Looks like you haven’t added anything yet.</p>
-          <button
-            onClick={() => navigate('/products')}
-            className="px-10 py-4 font-medium text-white transition bg-gray-900 rounded-full py- hover:bg-gray-800"
+          <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <ShoppingBag className="w-12 h-12 text-gray-300" />
+          </div>
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-3">Your cart is empty</h2>
+          <p className="text-gray-500 mb-8">Looks like you haven't added anything yet.</p>
+          <Link
+            to="/products"
+            className="inline-flex items-center gap-2 px-8 py-4 font-bold text-white bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all btn-press"
           >
-            Continue Shopping
-          </button>
+            <ShoppingCart className="w-5 h-5" /> Start Shopping
+          </Link>
         </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="px-6 py-12 mx-auto max-w-7xl">
+    <div className="min-h-screen bg-gray-50 page-enter">
+      <div className="px-4 py-6 sm:py-10 mx-auto max-w-7xl sm:px-6">
 
         {/* Header */}
-        <div className="mb-12">
+        <div className="mb-6 sm:mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 mb-6 text-sm font-medium text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 mb-5 text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" /> Back
+            <ArrowLeft className="w-4 h-4" /> Back
           </button>
-          <h1 className="text-5xl font-light text-gray-900">Shopping Cart</h1>
-          <p className="mt-3 text-gray-600 mt-">{cart.length} {cart.length === 1 ? 'item' : 'items'}</p>
+          <div className="flex items-end justify-between">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Shopping Cart</h1>
+              <p className="mt-1.5 text-gray-500 text-sm font-medium">{cart.length} {cart.length === 1 ? 'item' : 'items'}</p>
+            </div>
+            <Link to="/products" className="text-sm font-semibold text-[#1A3C8A] hover:underline hidden sm:block">
+              + Add more items
+            </Link>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
 
           {/* Cart Items */}
-          <div className="space-y-6 lg:col-span-2">
-            {cart.map((item) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="p-6 transition bg-white border border-gray-200 rounded- rounded-2xl hover:border-gray-300"
-              >
-                <div className="flex gap-6">
-                  <div className="shrink-0 w-32 h-32 overflow-hidden bg-gray-100 rounded-xl">
-                    <img
-                      src={getImageUrl(item.image, 'https://via.placeholder.com/150')}
-                      alt={item.name}
-                      className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
-                      onError={(e) => { e.target.src = 'https://via.placeholder.com/150?text=No+Image' }}
-                    />
-                  </div>
+          <div className="lg:col-span-2 space-y-4">
+            <AnimatePresence>
+              {cart.map((item, idx) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -20, height: 0, marginBottom: 0 }}
+                  transition={{ delay: idx * 0.04 }}
+                  className="cart-item-enter bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-100 transition-all overflow-hidden"
+                >
+                  <div className="flex gap-4 p-4 sm:p-5">
+                    {/* Image */}
+                    <div
+                      className="shrink-0 w-20 h-20 sm:w-28 sm:h-28 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl cursor-pointer flex items-center justify-center p-2"
+                      onClick={() => navigate(`/product/${item.id}`)}
+                    >
+                      <img
+                        src={getImageUrl(item.image, PLACEHOLDER)}
+                        alt={item.name}
+                        className="object-contain w-full h-full transition-transform duration-300 hover:scale-105"
+                        onError={e => { e.target.src = PLACEHOLDER }}
+                      />
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <h3 className="mb-2 text-xl font-medium text-gray-900 line-clamp-2">{item.name}</h3>
-                    
-                    {(item.color || item.size) && (
-                      <p className="mb-3 text-sm text-gray-500">
-                        {item.color && <span>{item.color} {item.size && '• '}</span>}
-                        {item.size && <span>Size {item.size}</span>}
-                      </p>
-                    )}
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        onClick={() => navigate(`/product/${item.id}`)}
+                        className="text-sm sm:text-base font-bold text-gray-900 line-clamp-2 cursor-pointer hover:text-[#1A3C8A] transition-colors mb-1"
+                      >
+                        {item.name}
+                      </h3>
+                      {(item.color || item.size) && (
+                        <p className="text-xs text-gray-400 mb-2">
+                          {[item.color, item.size && `Size ${item.size}`].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
 
-                    <div className="flex items-center justify-between mt-6">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center border border-gray-300 rounded-lg">
+                      <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
+                        {/* Quantity stepper */}
+                        <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-gray-50 shadow-sm">
                           <button
                             onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                            className="p-3 transition hover:bg-gray-50"
+                            className="qty-btn px-3 py-2 text-gray-600 hover:bg-[#1A3C8A] hover:text-white transition-all"
                           >
-                            <Minus className="w-4 h-4" />
+                            <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <span className="w-12 font-medium text-center">{item.quantity}</span>
+                          <span className="w-10 text-center text-sm font-extrabold text-gray-900">{item.quantity}</span>
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="p-3 transition hover:bg-gray-50"
+                            className="qty-btn px-3 py-2 text-gray-600 hover:bg-[#1A3C8A] hover:text-white transition-all"
                           >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
 
-                        <span className="text-2xl font-light text-gray-900">
-                          ₹{(item.price * item.quantity).toLocaleString()}
-                        </span>
+                        {/* Price & delete */}
+                        <div className="flex items-center gap-3">
+                          <span className="text-base sm:text-lg font-extrabold text-gray-900">
+                            Rs. {(item.price * item.quantity).toLocaleString()}
+                          </span>
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="p-2 text-gray-400 transition rounded-lg hover:text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      {/* Unit price */}
+                      <p className="text-xs text-gray-400 mt-1.5">Rs. {item.price.toLocaleString()} each</p>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {/* Continue shopping */}
+            <Link
+              to="/products"
+              className="flex items-center gap-2 text-sm font-semibold text-[#1A3C8A] hover:underline py-2 sm:hidden"
+            >
+              + Add more items
+            </Link>
           </div>
 
-          {/* Order Summary Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="p-8 bg-white border border-gray-200 rounded-2xl">
-              <h2 className="mb-8 text-2xl font-medium text-gray-900">Order Summary</h2>
-
-              <div className="pb-8 mb-8 space-y-5 border-b border-gray-200">
-                <div className="flex justify-between text-gray-700">
-                  <span>Subtotal</span>
-                  <span className="font-medium">₹{subtotal.toLocaleString()}</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between font-medium text-green-600">
-                    <span>Discount</span>
-                    <span>-₹{discount.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-gray-700">
-                  <span>Tax (10%)</span>
-                  <span>₹{tax.toFixed(0)}</span>
-                </div>
+          {/* Order Summary */}
+          <div className="cart-summary-sticky">
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="text-lg font-extrabold text-gray-900">Order Summary</h2>
               </div>
 
-              <div className="flex justify-between mb-10 text-2xl font-light text-gray-900">
-                <span>Total</span>
-                <span className="font-medium">₹{Math.round(total).toLocaleString()}</span>
-              </div>
-
-              {/* Coupon Section */}
-              <div className="mb-8">
-                {!appliedCoupon ? (
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      placeholder="Enter coupon code"
-                      className="flex-1 px-5 py-3 transition border border-gray-300 rounded-xl focus:outline-none focus:border-gray-900"
-                      onKeyPress={(e) => e.key === 'Enter' && applyCoupon()}
-                    />
-                    <button
-                      onClick={applyCoupon}
-                      className="px-6 py-3 font-medium text-white transition bg-gray-900 rounded-xl hover:bg-gray-800"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-4 border border-green-200 bg-green-50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p className="font-medium text-green-700">{appliedCoupon.code}</p>
-                        <p className="text-sm text-green-600">₹{discount} saved</p>
+              <div className="px-5 py-4 space-y-4">
+                {/* Coupon Section */}
+                <div>
+                  {!appliedCoupon ? (
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                          placeholder="Coupon code"
+                          className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:outline-none coupon-input transition-all"
+                          onKeyDown={e => e.key === 'Enter' && applyCoupon()}
+                        />
                       </div>
+                      <button
+                        onClick={applyCoupon}
+                        disabled={couponLoading}
+                        className="px-4 py-2.5 bg-[#1A3C8A] text-white font-bold text-xs rounded-xl hover:bg-[#163180] transition-all btn-press disabled:opacity-50 shrink-0"
+                      >
+                        {couponLoading ? '…' : 'Apply'}
+                      </button>
                     </div>
-                    <button onClick={removeCoupon} className="text-gray-500 hover:text-gray-700">
-                      <X className="w-5 h-5" />
-                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <div>
+                          <p className="text-sm font-bold text-green-800">{appliedCoupon.code}</p>
+                          <p className="text-xs text-green-600">Save Rs. {Number(discount).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <button onClick={removeCoupon} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-white rounded-lg transition-all">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  <AnimatePresence>
+                    {couponError && (
+                      <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-red-600">
+                        <AlertCircle className="w-3.5 h-3.5" /> {couponError}
+                      </motion.p>
+                    )}
+                    {couponSuccess && !couponError && (
+                      <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-green-600">
+                        <CheckCircle className="w-3.5 h-3.5" /> {couponSuccess}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Price breakdown */}
+                <div className="space-y-2.5 pt-2">
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Subtotal ({cart.length} items)</span>
+                    <span className="font-semibold text-gray-900">Rs. {subtotal.toLocaleString()}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-sm font-bold text-green-600">
+                      <span>Coupon Discount</span>
+                      <span>− Rs. {discount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span className="flex items-center gap-1.5">
+                      Shipping
+                      {shipping === 0 && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">FREE</span>}
+                    </span>
+                    <span className={`font-semibold ${shipping === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                      {shipping === 0 ? 'Free' : `Rs. ${shipping}`}
+                    </span>
+                  </div>
+                  {subtotal < 5000 && (
+                    <p className="text-xs text-gray-400 flex items-center gap-1.5 bg-gray-50 rounded-xl px-3 py-2">
+                      <Truck className="w-3.5 h-3.5 shrink-0" />
+                      Add Rs. {(5000 - subtotal).toLocaleString()} more for free shipping
+                    </p>
+                  )}
+                </div>
+
+                {/* Total */}
+                <div className="flex justify-between items-center pt-3 border-t border-dashed border-gray-200">
+                  <span className="font-extrabold text-gray-900">Total</span>
+                  <span className="text-xl font-black text-gray-900 number-animate">
+                    Rs. {Math.round(total).toLocaleString()}
+                  </span>
+                </div>
+
+                {discount > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-center">
+                    <p className="text-xs font-bold text-green-700">
+                      🎉 You're saving Rs. {discount.toLocaleString()} on this order!
+                    </p>
                   </div>
                 )}
 
-                <AnimatePresence>
-                  {couponError && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="flex items-center gap-2 mt-3 text-sm text-red-600"
-                    >
-                      <AlertCircle className="w-4 h-4" /> {couponError}
-                    </motion.p>
-                  )}
-                  {couponSuccess && !couponError && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-2 mt-3 text-sm text-green-600"
-                    >
-                      <CheckCircle className="w-4 h-4" /> {couponSuccess}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
+                {/* Checkout button */}
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    sessionStorage.setItem('epasaley_discount', JSON.stringify({ discount, appliedCoupon }))
+                    navigate('/checkout', { state: { discount, appliedCoupon } })
+                  }}
+                  className="w-full py-4 font-extrabold text-sm text-white bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] rounded-xl shadow-lg hover:shadow-xl hover:opacity-95 transition-all flex items-center justify-center gap-2"
+                >
+                  Proceed to Checkout
+                  <ChevronRight className="w-4 h-4" />
+                </motion.button>
+
+                <Link
+                  to="/products"
+                  className="block w-full py-3 text-center text-sm font-bold text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
+                >
+                  Continue Shopping
+                </Link>
               </div>
 
-              {/* Checkout Button */}
-              <button
-                onClick={() => navigate('/checkout', { state: { discount, appliedCoupon } })}
-                className="w-full py-4 text-lg font-medium text-white transition bg-gray-900 rounded-xl hover:bg-gray-800"
-              >
-                Proceed to Checkout
-              </button>
-
-              <button
-                onClick={() => navigate('/products')}
-                className="w-full py-4 mt-4 font-medium text-gray-900 transition border border-gray-300 rounded-xl hover:bg-gray-50"
-              >
-                Continue Shopping
-              </button>
-
-              {/* Trust Badge */}
-              <div className="pt-8 mt-8 text-center border-t border-gray-200">
-                <p className="text-sm text-gray-600">
-                  Free shipping on orders over ₹10,000 • Secure checkout
-                </p>
+              {/* Trust row */}
+              <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-center gap-4 flex-wrap">
+                {[
+                  { Icon: Shield, text: 'Secure checkout' },
+                  { Icon: RotateCcw, text: '7-day returns' },
+                  { Icon: Truck, text: 'Fast delivery' },
+                ].map(({ Icon: Ic, text }) => (
+                  <span key={text} className="flex items-center gap-1 text-xs font-medium text-gray-500">
+                    <Ic className="w-3.5 h-3.5 text-gray-400" /> {text}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>

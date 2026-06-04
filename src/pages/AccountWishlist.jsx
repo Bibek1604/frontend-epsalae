@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { profileEndpoints } from '@/components/api/userapi'
 import { productApi } from '@/components/api/productapi'
 import { useCart } from '@/store/cartstore'
+import { useFavoritesStore } from '@/store/favoritesstore'
 import { getImageUrl } from '@/config'
 
 /**
@@ -19,6 +20,7 @@ export default function WishlistPage(){
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState({}) // productId -> bool
   const { addToCart } = useCart()
+  const removeId = useFavoritesStore((s) => s.removeId)
 
   const load = async () => {
     setLoading(true)
@@ -57,6 +59,7 @@ export default function WishlistPage(){
     try {
       await profileEndpoints.favorites.remove(productId)
       setItems((it) => it.filter((p) => (p.id || p._id) !== productId))
+      removeId(productId)
       toast.success('Removed from wishlist')
     } catch (e) {
       toast.error('Failed to remove')
@@ -78,24 +81,24 @@ export default function WishlistPage(){
   }
 
   return (
-    <div className="rounded-[2rem] bg-white p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-8">
+    <div className="rounded-2xl sm:rounded-4xl bg-white p-4 sm:p-8 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)]">
       <h3 className="text-2xl font-semibold text-slate-900">Wishlist</h3>
       <p className="mt-1 text-sm text-slate-500">Your saved products for later.</p>
 
       {loading ? (
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {[1,2].map((i)=>(<div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-100" />))}
         </div>
       ) : items.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-slate-200 p-8 text-center text-slate-500">No favorites yet.</div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {items.map((p, idx) => {
             const pid = p.id || p._id || idx
             const price = Number(p.hasOffer && p.discountPrice ? p.discountPrice : p.price) || 0
             return (
-              <div key={pid} className="flex gap-3 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4 transition hover:bg-white hover:shadow-sm">
-                <img src={getImageUrl(p.imageUrl)} alt={p.name} className="h-20 w-20 rounded-xl object-cover" />
+              <div key={pid} className="flex gap-3 rounded-3xl border border-slate-100 bg-slate-50 p-4 transition hover:bg-white hover:shadow-sm">
+                <img src={getImageUrl(p.imageUrl)} alt={p.name} className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl object-cover" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-slate-900 font-semibold">
                     <Heart className="h-4 w-4 text-rose-500" /> <span className="truncate">{p.name}</span>

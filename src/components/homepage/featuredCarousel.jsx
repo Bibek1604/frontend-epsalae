@@ -16,17 +16,17 @@ export default function FeaturedCarousel(){
   if(loading || !products || products.length === 0) return null
 
   return (
-    <section className="py-10">
-      <div className="px-4 mx-auto max-w-7xl sm:px-6">
+    <section className="py-6 sm:py-10">
+      <div className="px-3 sm:px-6 mx-auto max-w-7xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">Hot Deals</h3>
           <Link to="/products" className="text-sm text-[#1A3C8A] font-medium flex items-center gap-2">View all <ArrowRight className="w-4 h-4"/></Link>
         </div>
 
-        <div className="overflow-x-auto -mx-4 px-4">
+        <div className="overflow-x-auto -mx-4 px-3 sm:px-4">
           <div className="flex gap-4 w-max py-2">
             {products.slice(0,12).map(p => (
-              <article key={p._id || p.id} className="w-56 flex-shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm">
+              <article key={p._id || p.id} className="w-44 sm:w-56 flex-shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm">
                 <div className="aspect-square p-3 flex items-center justify-center bg-gray-50">
                   <img src={getImageUrl(p.imageUrl)} alt={p.name} className="object-contain w-full h-full" onError={(e)=> e.target.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600'} />
                 </div>

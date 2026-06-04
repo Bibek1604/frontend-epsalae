@@ -1,89 +1,115 @@
-// src/pages/ProductDetail.jsx
+// src/components/product-details/ProductDetail.jsx
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { 
-  Star, ShoppingCart, Heart, Share2, Truck, Shield, 
-  RotateCcw, Loader2, ChevronRight, Minus, Plus, Check, Package, Zap, BadgeCheck, Clock, Sparkles, ArrowLeft
+import {
+  Star, ShoppingCart, Heart, Truck, Shield,
+  RotateCcw, ChevronRight, Minus, Plus, Check, Package, Zap,
+  BadgeCheck, Clock, Sparkles, ArrowLeft, Share2, Tag
 } from 'lucide-react'
 import { useCart } from '@/store/cartstore'
+import { useFavoritesStore } from '@/store/favoritesstore'
+import { useUserAuth } from '@/components/store/authstore'
 import { productApi } from '../api/productapi'
 import { useCategoryStore } from '../store/categorystore'
 import { getImageUrl } from '@/config'
 import { formatProductName } from '@/lib/utils'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 
-const PREMIUM_EASE = [0.16, 1, 0.3, 1]
+const PLACEHOLDER = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800'
+const EASE = [0.16, 1, 0.3, 1]
+
+function SkeletonDetail() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white page-enter">
+      <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:py-10">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
+          <div className="aspect-square skeleton rounded-3xl" />
+          <div className="space-y-5 py-2">
+            <div className="h-5 skeleton rounded-full w-1/4" />
+            <div className="h-8 skeleton rounded-xl w-4/5" />
+            <div className="h-5 skeleton rounded-full w-2/3" />
+            <div className="h-10 skeleton rounded-xl w-1/3 mt-6" />
+            <div className="h-14 skeleton rounded-2xl mt-4" />
+            <div className="h-14 skeleton rounded-2xl" />
+            <div className="flex gap-3 mt-4">
+              {[1,2,3].map(i => <div key={i} className="h-10 skeleton rounded-full flex-1" />)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { addToCart } = useCart()
   const { categories, fetchCategories } = useCategoryStore()
+  const { isUser } = useUserAuth()
+  const { favorites, toggleFavorite, load, initialized } = useFavoritesStore()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [mainImage, setMainImage] = useState('')
   const [quantity, setQuantity] = useState(1)
-  const [isFavorite, setIsFavorite] = useState(false)
   const [isAdded, setIsAdded] = useState(false)
+  const [addingToCart, setAddingToCart] = useState(false)
 
   useEffect(() => {
-    fetchCategories() // Fetch categories to get category name
-    
-    const fetchProductDetail = async () => {
-      try {
-        const res = await productApi.getById(id)
+    if (isUser && !initialized) load()
+  }, [isUser, initialized, load])
+
+  useEffect(() => {
+    fetchCategories()
+    // Batch initial state resets to avoid cascading render warnings
+    Promise.resolve().then(() => { setLoading(true); setError(null); })
+    productApi.getById(id)
+      .then(res => {
         const data = res.data?.data || res.data
-        const imageUrl = getImageUrl(data.imageUrl)
-        
         setProduct(data)
-        setMainImage(imageUrl)
-      } catch (err) {
+        setMainImage(getImageUrl(data.imageUrl) || PLACEHOLDER)
+      })
+      .catch(err => {
         console.error('Error fetching product:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchProductDetail()
+        setError('Product not found or unavailable.')
+      })
+      .finally(() => setLoading(false))
   }, [id])
 
-  // Helper to get category name
   const getCategoryName = () => {
     if (!product) return 'General'
-    
-    // If category is populated as object with name
     if (product.category?.name) return product.category.name
-    
-    // Get category ID from various possible fields
     const catId = product.category_id || product.categoryId || product.category?._id || product.category?.id || product.category
-    
     if (!catId) return 'General'
-    
-    // Find category by ID
-    const foundCat = categories.find(c => 
-      c._id === catId || c.id === catId || 
+    const found = categories.find(c =>
+      c._id === catId || c.id === catId ||
       String(c._id) === String(catId) || String(c.id) === String(catId)
     )
-    
-    return foundCat?.name || 'General'
+    return found?.name || 'General'
   }
 
-  const handleAddToCart = () => {
-    if (!product || product.stock === 0) {
+  const handleAddToCart = async () => {
+    if (!product || (product.stock || 0) === 0) {
       toast.error('This product is out of stock')
       return
     }
-    
+    setAddingToCart(true)
     addToCart({
       id: product._id || product.id,
       name: product.name,
       price: product.discountPrice > 0 ? product.discountPrice : product.price,
       image: mainImage,
-      quantity: quantity,
+      quantity,
     })
     setIsAdded(true)
-    setTimeout(() => setIsAdded(false), 2000)
+    toast.success(`${quantity} item${quantity > 1 ? 's' : ''} added to cart!`, {
+      style: { borderRadius: '14px', fontWeight: 600 },
+      icon: '🛒',
+    })
+    setTimeout(() => { setIsAdded(false); setAddingToCart(false); }, 2200)
   }
 
   const handleBuyNow = () => {
@@ -91,38 +117,36 @@ export default function ProductDetail() {
     navigate('/checkout')
   }
 
-  const discountPercent = product?.discountPrice > 0
-    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
-    : 0
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(26,60,138,0.08),_transparent_34%),linear-gradient(180deg,_#f8fbff_0%,_#ffffff_55%,_#eef3ff_100%)] px-6">
-        <div className="text-center">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-white/70 bg-white/80 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.4)] backdrop-blur-xl">
-            <Loader2 className="w-8 h-8 text-[#1A3C8A] animate-spin" />
-          </div>
-          <p className="text-base font-medium text-slate-600">Loading product details...</p>
-        </div>
-      </div>
-    )
+  const handleShare = async () => {
+    try {
+      await navigator.share({ title: product?.name, url: window.location.href })
+    } catch {
+      navigator.clipboard.writeText(window.location.href)
+      toast.success('Link copied!')
+    }
   }
 
-  if (!product) {
+  const discountPct = product?.discountPrice > 0
+    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+    : 0
+  const isFav = favorites.includes(product?.id || product?._id)
+
+  if (loading) return <SkeletonDetail />
+
+  if (error || !product) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(255,107,53,0.08),_transparent_34%),linear-gradient(180deg,_#f8fbff_0%,_#ffffff_55%,_#eef3ff_100%)] px-6">
-        <div className="max-w-md text-center">
-          <div className="mx-auto mb-8 flex h-28 w-28 items-center justify-center rounded-[2rem] border border-white/70 bg-white/80 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.35)] backdrop-blur-xl">
-            <Package className="w-12 h-12 text-slate-300" />
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
+        <div className="text-center max-w-sm">
+          <div className="w-24 h-24 bg-gray-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <Package className="w-12 h-12 text-gray-300" />
           </div>
-          <h2 className="mb-4 text-4xl font-semibold tracking-tight text-gray-900">Product Not Found</h2>
-          <p className="mb-10 text-gray-600">This item may be discontinued or unavailable.</p>
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Product Not Found</h2>
+          <p className="text-gray-500 mb-8 text-sm">{error || 'This item may be discontinued or unavailable.'}</p>
           <button
             onClick={() => navigate('/products')}
-            className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-10 py-4 font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-gray-800"
+            className="inline-flex items-center gap-2 px-8 py-3 bg-[#1A3C8A] text-white font-bold rounded-full text-sm hover:bg-[#163180] transition-all btn-press"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Browse Products
+            <ArrowLeft className="w-4 h-4" /> Browse Products
           </button>
         </div>
       </div>
@@ -130,232 +154,225 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(26,60,138,0.08),_transparent_30%),radial-gradient(circle_at_85%_15%,_rgba(255,107,53,0.08),_transparent_25%),linear-gradient(180deg,_#f8fbff_0%,_#ffffff_46%,_#eef3ff_100%)] text-slate-900">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-0 top-24 h-56 w-56 rounded-full bg-[#1A3C8A]/6 blur-3xl" />
-        <div className="absolute right-0 top-40 h-72 w-72 rounded-full bg-[#FF6B35]/6 blur-3xl" />
-      </div>
-
-      {/* Clean Breadcrumb */}
-      <div className="relative border-b border-white/70 bg-white/70 backdrop-blur-xl">
-        <div className="px-4 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-          <nav className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-4 py-2 text-sm text-slate-600 shadow-[0_10px_35px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl">
-            <Link to="/" className="transition hover:text-gray-900">Home</Link>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-            <Link to="/products" className="transition hover:text-gray-900">Products</Link>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-            <span className="max-w-md font-medium text-gray-900 truncate">{product.name}</span>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 page-enter">
+      {/* Breadcrumb */}
+      <div className="border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <div className="px-4 py-3 mx-auto max-w-7xl sm:px-6">
+          <nav className="flex items-center gap-1.5 text-xs text-gray-500 overflow-x-auto scrollbar-hide">
+            <Link to="/" className="hover:text-[#1A3C8A] font-semibold whitespace-nowrap transition-colors">Home</Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+            <Link to="/products" className="hover:text-[#1A3C8A] font-semibold whitespace-nowrap transition-colors">Products</Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+            <span className="text-gray-800 font-bold truncate max-w-[180px]">{formatProductName(product.name)}</span>
           </nav>
         </div>
       </div>
 
-      <div className="relative px-4 py-10 mx-auto max-w-7xl sm:px-6 lg:px-8 lg:py-14">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
-
-          {/* Image Section */}
+      <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:py-10">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-14">
+          {/* === IMAGE PANEL === */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: PREMIUM_EASE }}
-            className="relative"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, ease: EASE }}
           >
-            {/* Discount Badge */}
-            {discountPercent > 0 && (
-              <div className="absolute z-10 top-6 left-6">
-                <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-red-500 to-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-[0_18px_40px_-24px_rgba(239,68,68,0.75)] backdrop-blur-xl">
-                  <Zap className="w-4 h-4" /> {discountPercent}% OFF
-                </span>
-              </div>
-            )}
-
-            {/* Favorite Button */}
-            <button
-              onClick={() => setIsFavorite(!isFavorite)}
-              className="absolute z-10 top-6 right-6 rounded-full border border-white/70 bg-white/85 p-3.5 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_55px_-30px_rgba(15,23,42,0.4)]"
-            >
-              <Heart className={`w-5 h-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : 'text-slate-400'}`} />
-            </button>
-
-            {/* Main Image */}
-            <motion.div
-              whileHover={{ scale: 1.015 }}
-              transition={{ duration: 0.5, ease: PREMIUM_EASE }}
-              className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 aspect-square shadow-[0_30px_90px_-50px_rgba(15,23,42,0.5)] backdrop-blur-xl"
-            >
+            {/* Main image */}
+            <div className="relative overflow-hidden rounded-3xl border border-gray-100 bg-gradient-to-br from-gray-50 to-slate-100 shadow-xl aspect-square flex items-center justify-center p-6 group">
               <img
                 src={mainImage}
                 alt={product.name}
-                className="object-contain w-full h-full p-6 transition-transform duration-700 hover:scale-[1.04]"
-                onError={(e) => e.target.src = 'https://via.placeholder.com/800'}
+                className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-105"
+                onError={e => { e.target.src = PLACEHOLDER }}
               />
-            </motion.div>
 
-            {/* Low Stock Alert */}
-            {product.stock > 0 && product.stock < 10 && (
-              <div className="mt-6 rounded-[1.5rem] border border-red-200/70 bg-gradient-to-r from-red-50 to-rose-50 p-4 text-center shadow-[0_16px_40px_-28px_rgba(239,68,68,0.35)]">
-                <p className="flex items-center justify-center gap-2 font-semibold text-red-700">
-                  <Clock className="w-5 h-5" /> Only {product.stock} left in stock — order soon!
-                </p>
-              </div>
-            )}
-          </motion.div>
-
-          {/* Product Info */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.06, ease: PREMIUM_EASE }}
-            className="flex flex-col justify-between"
-          >
-            <div className="rounded-[2rem] border border-white/70 bg-white/85 p-5 shadow-[0_24px_80px_-52px_rgba(15,23,42,0.42)] backdrop-blur-xl sm:p-7 lg:p-8">
-              {/* Category & Stock */}
-              <div className="mb-6 flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
-                  <Sparkles className="w-4 h-4 text-[#1A3C8A]" />
-                  {getCategoryName()}
-                </span>
-                {product.stock > 0 ? (
-                  <span className="flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-700">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                    In Stock
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-gray-500">
-                    Out of Stock
-                  </span>
-                )}
-              </div>
-
-              {/* Title */}
-              <h1 className="max-w-2xl mb-4 text-4xl font-semibold leading-tight tracking-tight text-gray-900 lg:text-5xl">
-                {formatProductName(product.name)}
-              </h1>
-
-              <p className="mb-8 max-w-2xl text-sm leading-7 text-slate-500 sm:text-base">
-                A polished product presentation with clear pricing, trusted icons, and a smoother purchase flow for a more premium shopping experience.
-              </p>
-
-              {/* Price */}
-              <div className="pb-8 mb-8 border-b border-gray-200/80">
-                <div className="flex items-baseline gap-4">
-                  <span className="text-5xl font-semibold tracking-tight text-gray-900">
-                    Rs. {(product.discountPrice > 0 ? product.discountPrice : product.price).toLocaleString()}
-                  </span>
-                  {product.discountPrice > 0 && (
-                    <span className="text-2xl text-gray-400 line-through">
-                      Rs. {product.price.toLocaleString()}
-                    </span>
-                  )}
-                </div>
-                {discountPercent > 0 && (
-                  <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700">
-                    <BadgeCheck className="w-4 h-4" /> You save {discountPercent}% on this order
-                  </p>
-                )}
-              </div>
-
-              {/* Action Buttons - GREEN & RED STRATEGY */}
-              <div className="grid grid-cols-1 gap-4 mb-10 sm:grid-cols-2">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={product.stock === 0}
-                  className={`flex items-center justify-center gap-3 rounded-2xl py-4.5 text-base font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgba(16,185,129,0.7)] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none ${
-                    isAdded 
-                      ? 'bg-emerald-600 hover:bg-emerald-700' 
-                      : 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600'
-                  }`}
-                >
-                  {isAdded ? (
-                    <>
-                      <Check className="w-5 h-5" /> Added!
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-5 h-5" /> Add to Cart
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleBuyNow}
-                  disabled={product.stock === 0}
-                  className="flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] px-8 py-4.5 text-base font-semibold text-white shadow-[0_18px_40px_-24px_rgba(26,60,138,0.65)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-25px_rgba(255,107,53,0.55)] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
-                >
-                  <Zap className="w-5 h-5" /> Buy Now
-                </button>
-              </div>
-
-              {/* Description */}
-              {product.description && (
-                <div className="mb-10 rounded-[1.5rem] border border-slate-200/70 bg-slate-50/90 p-5 shadow-[0_16px_40px_-30px_rgba(15,23,42,0.25)]">
-                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">About this item</h3>
-                  <p className="text-base leading-8 text-slate-600">{product.description}</p>
+              {/* Discount badge */}
+              {discountPct > 0 && (
+                <div className="absolute top-4 left-4 bg-gradient-to-r from-red-500 to-rose-600 text-white text-sm font-extrabold px-3.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 badge-flash">
+                  <Tag className="w-4 h-4" /> {discountPct}% OFF
                 </div>
               )}
 
-              {/* Quantity Selector */}
-              <div className="mb-10">
-                <p className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Quantity</p>
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_35px_-28px_rgba(15,23,42,0.3)]">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="p-4 transition hover:bg-slate-50"
-                      disabled={product.stock === 0}
-                    >
-                      <Minus className="w-5 h-5" />
-                    </button>
-                    <span className="w-20 text-center text-lg font-semibold text-slate-900">{quantity}</span>
-                    <button
-                      onClick={() => setQuantity(Math.min(product.stock || 99, quantity + 1))}
-                      className="p-4 transition hover:bg-slate-50"
-                      disabled={product.stock === 0}
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  </div>
-                  {product.stock > 0 && (
-                    <span className="text-sm font-medium text-slate-500">{product.stock} available</span>
-                  )}
-                </div>
+              {/* Actions top-right */}
+              <div className="absolute top-4 right-4 flex flex-col gap-2">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => toggleFavorite(product?.id || product?._id, isUser)}
+                  className={`p-3 rounded-2xl shadow-md backdrop-blur-sm transition-all ${isFav ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-400 hover:bg-red-50 hover:text-red-500'}`}
+                >
+                  <Heart className={`w-5 h-5 ${isFav ? 'fill-current' : ''}`} />
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleShare}
+                  className="p-3 rounded-2xl bg-white/90 shadow-md backdrop-blur-sm text-gray-400 hover:text-[#1A3C8A] transition-all"
+                >
+                  <Share2 className="w-5 h-5" />
+                </motion.button>
               </div>
 
-              {/* Trust Badges */}
-              <div className="grid grid-cols-1 gap-4 rounded-[1.75rem] border border-white/70 bg-white/75 p-5 shadow-[0_18px_50px_-34px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:grid-cols-3 sm:p-6">
-                <div className="flex items-center gap-4 rounded-2xl bg-slate-50/90 p-4">
-                  <div className="rounded-2xl bg-emerald-100 p-3">
-                    <Truck className="w-6 h-6 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Free Shipping</p>
-                    <p className="text-sm text-gray-500">Over ₹5,000</p>
-                  </div>
+              {/* Out of stock overlay */}
+              {(product.stock || 0) === 0 && (
+                <div className="absolute inset-0 bg-white/75 backdrop-blur-[3px] flex items-center justify-center">
+                  <span className="bg-gray-800 text-white font-bold px-6 py-2.5 rounded-full text-sm shadow-lg">
+                    Out of Stock
+                  </span>
                 </div>
-                <div className="flex items-center gap-4 rounded-2xl bg-slate-50/90 p-4">
-                  <div className="rounded-2xl bg-amber-100 p-3">
-                    <RotateCcw className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">7-Day Returns</p>
-                    <p className="text-sm text-gray-500">No questions asked</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 rounded-2xl bg-slate-50/90 p-4">
-                  <div className="rounded-2xl bg-indigo-100 p-3">
-                    <Shield className="w-6 h-6 text-indigo-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Secure Payment</p>
-                    <p className="text-sm text-gray-500">100% Protected</p>
-                  </div>
-                </div>
+              )}
+            </div>
+
+            {/* Low stock alert */}
+            {(product.stock || 0) > 0 && (product.stock || 0) < 10 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 flex items-center gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-semibold text-amber-700"
+              >
+                <Clock className="w-4 h-4 shrink-0" />
+                Only {product.stock} left — order before it's gone!
+              </motion.div>
+            )}
+          </motion.div>
+
+          {/* === INFO PANEL === */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.08, ease: EASE }}
+            className="flex flex-col gap-5"
+          >
+            {/* Category & status chips */}
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-100 text-[#1A3C8A] text-xs font-bold rounded-full">
+                <Sparkles className="w-3.5 h-3.5" /> {getCategoryName()}
+              </span>
+              {(product.stock || 0) > 0 ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 text-xs font-bold rounded-full">
+                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  In Stock ({product.stock} available)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-full">
+                  Out of Stock
+                </span>
+              )}
+              {discountPct > 0 && (
+                <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-50 border border-orange-100 text-orange-700 text-xs font-bold rounded-full">
+                  <BadgeCheck className="w-3.5 h-3.5" /> Save {discountPct}%
+                </span>
+              )}
+            </div>
+
+            {/* Title */}
+            <h1 className="text-2xl font-extrabold text-gray-900 leading-snug sm:text-3xl">
+              {formatProductName(product.name)}
+            </h1>
+
+            {/* Mock ratings */}
+            <div className="flex items-center gap-2">
+              <div className="flex">
+                {[1,2,3,4].map(i => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
+                <Star className="w-4 h-4 fill-gray-200 text-gray-200" />
+              </div>
+              <span className="text-sm text-gray-500 font-medium">(4.0 · 23 reviews)</span>
+            </div>
+
+            {/* Price block */}
+            <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-2xl p-5">
+              <div className="flex items-baseline gap-3 mb-1">
+                <span className="text-3xl font-black text-gray-900">
+                  Rs. {(product.discountPrice > 0 ? product.discountPrice : product.price).toLocaleString()}
+                </span>
+                {product.discountPrice > 0 && (
+                  <span className="text-lg text-gray-400 line-through font-medium">
+                    Rs. {product.price.toLocaleString()}
+                  </span>
+                )}
+              </div>
+              {discountPct > 0 && (
+                <p className="text-sm text-green-600 font-bold flex items-center gap-1.5">
+                  <Check className="w-4 h-4" /> You save Rs. {(product.price - product.discountPrice).toLocaleString()} ({discountPct}%)
+                </p>
+              )}
+            </div>
+
+            {/* Description */}
+            {product.description && (
+              <p className="text-sm text-gray-600 leading-relaxed border-l-4 border-[#1A3C8A]/20 pl-4">
+                {product.description}
+              </p>
+            )}
+
+            {/* Quantity */}
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-bold text-gray-700">Quantity</span>
+              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                <button
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  disabled={(product.stock || 0) === 0}
+                  className="qty-btn px-4 py-3 text-gray-600 hover:bg-[#1A3C8A] hover:text-white disabled:opacity-30 transition-all"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="w-12 text-center text-sm font-extrabold text-gray-900">{quantity}</span>
+                <button
+                  onClick={() => setQuantity(q => Math.min(product.stock || 99, q + 1))}
+                  disabled={(product.stock || 0) === 0}
+                  className="qty-btn px-4 py-3 text-gray-600 hover:bg-[#1A3C8A] hover:text-white disabled:opacity-30 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
-            {/* Share Button */}
-            <button className="mx-auto mt-8 inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-5 py-3 font-medium text-slate-600 shadow-[0_12px_35px_-28px_rgba(15,23,42,0.3)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:text-slate-900 hover:shadow-[0_18px_45px_-28px_rgba(15,23,42,0.35)]">
-              <Share2 className="w-4 h-4" /> Share Product
-            </button>
+            {/* CTA Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={handleAddToCart}
+                disabled={(product.stock || 0) === 0 || addingToCart}
+                className={`flex items-center justify-center gap-2 py-4 rounded-2xl font-extrabold text-sm transition-all shadow-md ${
+                  isAdded
+                    ? 'bg-green-600 text-white shadow-green-200'
+                    : 'bg-white border-2 border-[#1A3C8A] text-[#1A3C8A] hover:bg-[#1A3C8A] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed'
+                }`}
+              >
+                <AnimatePresence mode="wait">
+                  {isAdded ? (
+                    <motion.span key="added" initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2">
+                      <Check className="w-5 h-5" /> Added to Cart!
+                    </motion.span>
+                  ) : (
+                    <motion.span key="add" className="flex items-center gap-2">
+                      <ShoppingCart className="w-5 h-5" /> Add to Cart
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={handleBuyNow}
+                disabled={(product.stock || 0) === 0}
+                className="flex items-center justify-center gap-2 py-4 rounded-2xl font-extrabold text-sm bg-gradient-to-r from-[#1A3C8A] to-[#FF6B35] text-white shadow-lg hover:shadow-xl hover:opacity-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Zap className="w-5 h-5" /> Buy Now
+              </motion.button>
+            </div>
+
+            {/* Trust badges */}
+            <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-100">
+              {[
+                { Icon: Truck,     text: 'Free Delivery',   sub: 'Orders > Rs.5,000', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { Icon: RotateCcw, text: 'Easy Returns',    sub: '7-day return',      color: 'text-amber-600',   bg: 'bg-amber-50'   },
+                { Icon: Shield,    text: 'Secure Pay',      sub: '100% safe',         color: 'text-indigo-600',  bg: 'bg-indigo-50'  },
+              ].map(({ Icon: Ic, text, sub, color, bg }) => (
+                <div key={text} className={`trust-badge ${bg} flex-col text-center rounded-xl py-3 px-2`}>
+                  <Ic className={`w-5 h-5 ${color} mx-auto mb-1`} />
+                  <p className={`text-xs font-bold ${color}`}>{text}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{sub}</p>
+                </div>
+              ))}
+            </div>
           </motion.div>
         </div>
       </div>
