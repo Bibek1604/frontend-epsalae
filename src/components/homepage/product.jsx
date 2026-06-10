@@ -7,7 +7,7 @@ import { useCart } from "@/store/cartstore";
 import { useFavoritesStore } from "@/store/favoritesstore";
 import { useUserAuth } from "@/components/store/authstore";
 import { getImageUrl } from "@/config";
-import { formatProductName } from "@/lib/utils";
+import { formatProductName, getStockStatus } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
@@ -105,10 +105,17 @@ function QuickViewModal({ product, onClose, onAddToCart }) {
                 )}
               </div>
               <div className="flex items-center gap-2 mt-4">
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${product.stock > 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-red-500'}`} />
-                  {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
-                </span>
+                {(() => {
+                  const s = getStockStatus(product.stock);
+                  const tone = s.tone === 'success' ? 'bg-green-50 text-green-700' : s.tone === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600';
+                  const dot = s.tone === 'success' ? 'bg-green-500' : s.tone === 'warning' ? 'bg-amber-500' : 'bg-red-500';
+                  return (
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${tone}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                      {s.label}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
             <div className="mt-6 space-y-3">
@@ -153,7 +160,7 @@ export default function ProductsGrid() {
   }, [isUser, initialized, load]);
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts({ limit: 48 });
     fetchCategories();
   }, [fetchProducts, fetchCategories]);
 
@@ -307,6 +314,13 @@ export default function ProductsGrid() {
                     <span className="px-4 py-1.5 text-xs font-bold text-white bg-gray-700 rounded-full">
                       Out of Stock
                     </span>
+                  </div>
+                )}
+
+                {/* Low-stock urgency badge */}
+                {getStockStatus(product.stock).state === 'low' && (
+                  <div className="absolute bottom-3 left-3 px-2.5 py-1 text-[11px] font-bold text-white bg-amber-500 rounded-lg shadow-md">
+                    {getStockStatus(product.stock).short}
                   </div>
                 )}
               </div>

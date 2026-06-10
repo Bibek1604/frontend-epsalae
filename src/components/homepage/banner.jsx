@@ -8,14 +8,19 @@ import { API_BASE_URL } from '@/config'
 const INTERVAL = 5000
 
 export default function Banner() {
-  const { banners, loading, fetchBanners } = useBannerStore()
+  const { banners, loading, fetchActiveBanners } = useBannerStore()
   const [current, setCurrent] = useState(0)
   const [progressKey, setProgressKey] = useState(0)
 
-  useEffect(() => { fetchBanners() }, [fetchBanners])
+  useEffect(() => { fetchActiveBanners() }, [fetchActiveBanners])
 
-  const slides = banners?.length > 0
-    ? banners
+  // Only hero-position banners belong in the carousel (promo/strip render
+  // elsewhere); legacy banners without a position default to hero.
+  const heroBanners = (banners || [])
+    .filter((b) => !b.position || b.position === 'hero')
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+  const slides = heroBanners.length > 0
+    ? heroBanners
         .filter(b => b.isActive)
         .map(b => ({
           imageUrl: b.imageUrl?.startsWith('http') ? b.imageUrl : `${API_BASE_URL}${b.imageUrl}`,
@@ -78,7 +83,10 @@ export default function Banner() {
                 initial={{ scale: 1.04 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 6, ease: 'easeOut' }}
-                onClick={() => (window.location.href = slides[current].link)}
+                onClick={() => {
+                  const target = slides[current].linkUrl || slides[current].link
+                  if (target) window.location.href = target
+                }}
                 style={{ cursor: slides[current].link ? 'pointer' : 'default' }}
               />
 

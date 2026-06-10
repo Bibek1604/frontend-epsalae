@@ -14,6 +14,7 @@ import { useFavoritesStore } from '../store/favoritesstore';
 import { useUserAuth } from '../components/store/authstore';
 import { getImageUrl as getImage } from '@/config';
 import { formatProductName } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600';
@@ -88,7 +89,7 @@ function FilterPanel({ categories, selectedCategory, setSelectedCategory, priceR
                 }`}
               >
                 <span>{cat.name}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
+                {count !== null && <span className={`text-xs px-2 py-0.5 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{count}</span>}
               </button>
             );
           })}
@@ -116,7 +117,7 @@ function FilterPanel({ categories, selectedCategory, setSelectedCategory, priceR
 export default function Products() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { products, loading, fetchProducts } = useProductStore();
+  const { products, loading, fetchProducts, pagination } = useProductStore();
   const { categories, fetchCategories } = useCategoryStore();
   const { addToCart } = useCart();
   const { isUser } = useUserAuth();
@@ -128,11 +129,35 @@ export default function Products() {
   const [viewMode, setViewMode] = useState('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchParams.get('search') || '');
+  // Debounce the term used for filtering/URL-sync so the (memoized) filter and
+  // history updates only run after the user pauses typing — the input itself
+  // stays fully responsive via `localSearch`.
+  const debouncedSearch = useDebounce(localSearch, 300);
+  const debouncedMaxPrice = useDebounce(priceRange[1], 400);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 24;
 
   useEffect(() => {
-    fetchProducts();
     fetchCategories();
   }, []);
+
+  // Server-side filtering/sorting/pagination — the old code fetched only the
+  // first 20 products and filtered client-side, silently hiding the rest of
+  // the catalogue.
+  useEffect(() => {
+    const params = { page, limit: PAGE_SIZE };
+    if (selectedCategory !== 'all') params.categoryId = selectedCategory;
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+    if (debouncedMaxPrice < 100000) params.maxPrice = debouncedMaxPrice;
+    if (sortBy === 'price-low')  { params.sortBy = 'price'; params.order = 'asc'; }
+    if (sortBy === 'price-high') { params.sortBy = 'price'; params.order = 'desc'; }
+    if (sortBy === 'name')       { params.sortBy = 'name';  params.order = 'asc'; }
+    if (sortBy === 'newest' || sortBy === 'popular') { params.sortBy = 'createdAt'; params.order = 'desc'; }
+    fetchProducts(params);
+  }, [page, selectedCategory, debouncedSearch, debouncedMaxPrice, sortBy, fetchProducts]);
+
+  // Any filter change goes back to page 1.
+  useEffect(() => { setPage(1); }, [selectedCategory, debouncedSearch, debouncedMaxPrice, sortBy]);
 
   useEffect(() => {
     if (isUser && !initialized) load();
@@ -141,9 +166,9 @@ export default function Products() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (selectedCategory !== 'all') params.set('category', selectedCategory);
-    if (localSearch) params.set('search', localSearch);
+    if (debouncedSearch) params.set('search', debouncedSearch);
     setSearchParams(params, { replace: true });
-  }, [selectedCategory, localSearch]);
+  }, [selectedCategory, debouncedSearch]);
 
   const getCategoryName = (product) => {
     if (product.category?.name) return product.category.name;
@@ -156,35 +181,14 @@ export default function Products() {
     return foundCat?.name || 'General';
   };
 
-  const getProductCountForCategory = (categoryId) => {
-    return products?.filter(p => {
-      const catId = p.category_id || p.categoryId || p.category?._id || p.category?.id || p.category;
-      return catId === categoryId || String(catId) === String(categoryId);
-    }).length || 0;
-  };
+  // Counts per category would need the full catalogue; with server-side
+  // pagination we no longer have it, so the badge is hidden (returns null).
+  const getProductCountForCategory = () => null;
 
-  const filteredProducts = useMemo(() => {
-    let result = products ? [...products] : [];
-    if (localSearch.trim()) {
-      const q = localSearch.toLowerCase();
-      result = result.filter(p => p.name?.toLowerCase().includes(q));
-    }
-    if (selectedCategory !== 'all') {
-      result = result.filter(p => {
-        const catId = p.category_id || p.categoryId || p.category?._id || p.category?.id || p.category;
-        return catId === selectedCategory || String(catId) === String(selectedCategory);
-      });
-    }
-    result = result.filter(p => {
-      const price = p.discountPrice || p.price;
-      return price >= priceRange[0] && price <= priceRange[1];
-    });
-    if (sortBy === 'price-low') result.sort((a, b) => (a.discountPrice || a.price) - (b.discountPrice || b.price));
-    if (sortBy === 'price-high') result.sort((a, b) => (b.discountPrice || b.price) - (a.discountPrice || a.price));
-    if (sortBy === 'name') result.sort((a, b) => a.name.localeCompare(b.name));
-    if (sortBy === 'newest') result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    return result;
-  }, [products, selectedCategory, priceRange, sortBy, localSearch]);
+  // Filtering/sorting now happens server-side; this is just the current page.
+  const filteredProducts = useMemo(() => (Array.isArray(products) ? products : []), [products]);
+  const totalProducts = pagination?.total ?? filteredProducts.length;
+  const totalPages = pagination?.totalPages ?? 1;
 
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
@@ -219,7 +223,7 @@ export default function Products() {
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 sm:text-4xl">{currentCategoryName}</h1>
               <p className="mt-1 text-gray-500 text-sm">
-                {loading ? 'Loading…' : `${filteredProducts.length} product${filteredProducts.length !== 1 ? 's' : ''} found`}
+                {loading ? 'Loading…' : `${totalProducts} product${totalProducts !== 1 ? 's' : ''} found`}
               </p>
             </div>
 
@@ -475,6 +479,29 @@ export default function Products() {
                 })}
               </div>
             )}
+
+            {/* Pagination */}
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-10">
+                <button
+                  onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  disabled={page <= 1}
+                  className="px-4 py-2 text-sm font-semibold bg-white border border-gray-200 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
+                >
+                  Previous
+                </button>
+                <span className="px-4 py-2 text-sm font-bold text-gray-700">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  disabled={page >= totalPages}
+                  className="px-4 py-2 text-sm font-semibold bg-white border border-gray-200 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </main>
         </div>
       </div>
@@ -513,7 +540,7 @@ export default function Products() {
                 onClick={() => setShowMobileFilters(false)}
                 className="w-full mt-8 py-3.5 bg-[#1A3C8A] text-white font-bold rounded-xl text-sm hover:bg-[#163180] transition-colors btn-press"
               >
-                Apply Filters ({filteredProducts.length} results)
+                Apply Filters ({totalProducts} results)
               </button>
             </motion.div>
           </motion.div>

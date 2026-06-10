@@ -7,16 +7,28 @@ export const useCategoryStore = create((set) => ({
   loading: false,
   error: null,
 
+  // Storefront: only active categories
+  fetchActiveCategories: async () => {
+    set({ loading: true, error: null });
+    try {
+      const res = await categoryApi.getActive();
+      const data = res.data?.data || res.data || [];
+      set({ categories: Array.isArray(data) ? data : [] });
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Failed to load categories' });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   fetchCategories: async () => {
     set({ loading: true, error: null });
     try {
       const res = await categoryApi.getAll();
       // Handle both direct array and wrapped response
       const data = res.data?.data || res.data || [];
-      console.log('📦 Categories fetched:', { count: data.length });
       // Log first category to see the FULL structure
       if (data.length > 0) {
-        console.log('📦 FULL Category structure:', JSON.stringify(data[0], null, 2));
       }
       set({ categories: Array.isArray(data) ? data : [] });
     } catch (err) {
@@ -31,14 +43,9 @@ export const useCategoryStore = create((set) => ({
     set({ loading: true });
     try {
       const res = await categoryApi.create(data);
-      console.log('📦 API Response:', res);
-      console.log('📦 Response data:', res.data);
       // Handle both direct data and wrapped response
       const category = res.data?.data || res.data;
-      console.log('📦 Parsed category:', category);
-      console.log('📸 Category imageUrl:', category?.imageUrl ? `Present (${String(category.imageUrl).substring(0, 50)}...)` : 'NULL/UNDEFINED');
       if (category) {
-        console.log('➕ Adding category to store:', category);
         set((state) => ({ categories: [...state.categories, category] }));
       }
       return category;
@@ -66,11 +73,9 @@ export const useCategoryStore = create((set) => ({
     }));
 
     try {
-      console.log('✏️ Updating category with ID:', id);
       const res = await categoryApi.update(id, data);
       // Handle both direct data and wrapped response
       const category = res.data?.data || res.data;
-      console.log('✅ Category updated:', category);
       if (category) {
         // Update with server response
         set((state) => ({
@@ -96,9 +101,7 @@ export const useCategoryStore = create((set) => ({
   deleteCategory: async (id) => {
     set({ loading: true });
     try {
-      console.log('🗑️ Store: Deleting category:', id);
       const res = await categoryApi.remove(id);
-      console.log('✅ Delete response:', res);
       set((state) => ({ categories: state.categories.filter((c) => (c.id || c._id) !== id) }));
       return res;
     } catch (err) {

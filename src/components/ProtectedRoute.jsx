@@ -1,12 +1,12 @@
 import { useAdminAuth } from '../components/store/authstore';
 import { Navigate } from 'react-router-dom';
 
-/**
- * Admin-only route guard. Reads the dedicated admin auth slice so a
- * regular-user session cannot grant access to /admin pages.
- */
 export default function ProtectedRoute({ children }) {
   const { isAdmin } = useAdminAuth();
+  // Wait for Zustand persist to rehydrate from localStorage before deciding
+  const hasHydrated = useAdminAuth.persist?.hasHydrated?.() ?? true;
+
+  if (!hasHydrated) return null;
 
   if (!isAdmin) {
     return <Navigate to="/admin/login" replace />;

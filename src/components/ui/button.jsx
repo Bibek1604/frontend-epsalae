@@ -1,5 +1,6 @@
 import React from "react"
 import { cva } from "class-variance-authority"
+import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -28,15 +29,26 @@ const buttonVariants = cva(
   }
 )
 
-const Button = React.forwardRef(({ className, variant = "default", size = "default", ...props }, ref) => {
-  return (
-    <button
-      className={cn(buttonVariants({ variant, size, className }))}
-      ref={ref}
-      {...props}
-    />
-  )
-})
+// `loading` shows a spinner and auto-disables the button, which also prevents
+// accidental double-submits. `leftIcon` renders before the label when not loading.
+const Button = React.forwardRef(
+  ({ className, variant = "default", size = "default", loading = false, disabled = false, leftIcon = null, children, ...props }, ref) => {
+    const isDisabled = disabled || loading
+    return (
+      <button
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        disabled={isDisabled}
+        aria-busy={loading || undefined}
+        {...props}
+      >
+        {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />}
+        {!loading && leftIcon}
+        {children}
+      </button>
+    )
+  }
+)
 
 Button.displayName = "Button"
 

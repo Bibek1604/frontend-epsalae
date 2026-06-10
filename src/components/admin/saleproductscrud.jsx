@@ -1,31 +1,49 @@
+// src/components/admin/saleproductscrud.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { useProductStore } from '../store/productstore';
+import { useCategoryStore } from '../store/categorystore';
 import api from '../api/base';
 import toast from 'react-hot-toast';
 import { getImageUrl } from '@/config';
 import {
   Search, Package, Tag, Loader2, Edit2, Trash2,
-  X, Plus, Check, Percent, Filter, ShoppingBag,
+  X, Plus, Check, Percent, ShoppingBag,
+  LayoutGrid, DollarSign, Gift, ChevronUp, ChevronDown,
+  ArrowUpDown,
 } from 'lucide-react';
 
+const SALE_TYPES = [
+  { value: 'percentage', label: 'Percentage Off', icon: Percent },
+  { value: 'fixed',      label: 'Fixed Amount',   icon: DollarSign },
+  { value: 'bxgy',       label: 'Buy X Get Y',    icon: Gift },
+];
+
+const DEFAULT_FORM = {
+  saleId:             '',
+  addMode:            'product',
+  productIds:         [],
+  productSearch:      '',
+  categoryId:         '',
+  saleType:           'percentage',
+  discount_percentage: 10,
+  fixed_amount:       '',
+  buy_qty:            2,
+  get_qty:            1,
+};
+
 export default function SaleProductsCrud() {
-  const { products, fetchProducts } = useProductStore();
+  const { products, fetchProducts }      = useProductStore();
+  const { categories, fetchCategories }  = useCategoryStore();
+
   const [saleCategories, setSaleCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState('');
-  const [filterCat, setFilterCat] = useState('all');
-
-  // Inline-edit state: { saleId, productId, discount }
-  const [editing, setEditing] = useState(null);
-
-  // Add-to-sale modal
-  const [showModal, setShowModal] = useState(false);
-  const [addForm, setAddForm] = useState({ saleId: '', productId: '', discount_percentage: 10 });
-  const [productSearch, setProductSearch] = useState('');
+  const [activeTab,  setActiveTab]  = useState(null);   // sale category id
+  const [loading,    setLoading]    = useState(true);
+  const [saving,     setSaving]     = useState(false);
+  const [editing,    setEditing]    = useState(null);   // { saleId, productId, discount }
+  const [showModal,  setShowModal]  = useState(false);
+  const [addForm,    setAddForm]    = useState(DEFAULT_FORM);
   const [showProductDrop, setShowProductDrop] = useState(false);
 
-  // Close product dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (!e.target.closest('[data-dd="prod"]')) setShowProductDrop(false);
@@ -39,7 +57,9 @@ export default function SaleProductsCrud() {
     try {
       const res = await api.get('/sale-categories');
       const raw = res.data?.data ?? [];
-      setSaleCategories(Array.isArray(raw) ? raw : (raw.items ?? []));
+      const cats = Array.isArray(raw) ? raw : (raw.items ?? []);
+      setSaleCategories(cats);
+      setActiveTab(prev => prev ?? cats[0]?.id ?? null);
     } catch {
       setSaleCategories([]);
     } finally {
@@ -50,32 +70,18 @@ export default function SaleProductsCrud() {
   useEffect(() => {
     loadSales();
     fetchProducts({ limit: 500 });
-  }, [loadSales]);
+    fetchCategories();
+  }, [loadSales, fetchProducts, fetchCategories]);
 
-  // Flatten all products across all sale categories
-  const allSaleProducts = saleCategories.flatMap((cat) =>
-    (cat.products ?? []).map((sp) => ({
-      ...sp,
-      saleId: cat.id,
-      saleTitle: cat.title,
-      saleActive: cat.is_active,
-      product: products.find((p) => (p.id || p._id) === sp.product_id) ?? null,
-    }))
-  );
-
-  const filtered = allSaleProducts.filter((sp) => {
-    const matchSearch = !search || sp.product?.name?.toLowerCase().includes(search.toLowerCase());
-    const matchCat = filterCat === 'all' || sp.saleId === filterCat;
-    return matchSearch && matchCat;
-  });
-
-  const avgDiscount = allSaleProducts.length
-    ? Math.round(allSaleProducts.reduce((a, sp) => a + (sp.discount_percentage || 0), 0) / allSaleProducts.length)
-    : 0;
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────────────────
   const getProduct = (id) => products.find((p) => (p.id || p._id) === id) ?? null;
 
+  const activeCategory = saleCategories.find(c => c.id === activeTab);
+  const tabProducts = (activeCategory?.products ?? [])
+    .slice()
+    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+
+  // ── API helper ────────────────────────────────────────────────────────────
   const updateSaleProducts = async (saleId, updatedProducts, successMsg) => {
     setSaving(true);
     try {
@@ -89,7 +95,24 @@ export default function SaleProductsCrud() {
     }
   };
 
-  // ── Edit discount inline ──────────────────────────────────────────────────
+  // ── Reorder ───────────────────────────────────────────────────────────────
+  const moveProduct = (productId, direction) => {
+    const cat = saleCategories.find(c => c.id === activeTab);
+    if (!cat) return;
+    const sorted = [...cat.products].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+    const idx = sorted.findIndex(p => p.product_id === productId);
+    if (idx < 0) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+    const updated = sorted.map((p, i) => {
+      if (i === idx) return { ...p, display_order: swapIdx };
+      if (i === swapIdx) return { ...p, display_order: idx };
+      return { ...p, display_order: i };
+    });
+    updateSaleProducts(activeTab, updated, 'Order updated');
+  };
+
+  // ── Inline discount edit ──────────────────────────────────────────────────
   const saveDiscount = () => {
     if (!editing) return;
     const cat = saleCategories.find((c) => c.id === editing.saleId);
@@ -111,259 +134,339 @@ export default function SaleProductsCrud() {
     updateSaleProducts(saleId, updated, 'Removed from sale');
   };
 
-  // ── Add to sale ───────────────────────────────────────────────────────────
+  // ── Compute effective discount % ─────────────────────────────────────────
+  const computeDiscountPct = (productId) => {
+    const { saleType, discount_percentage, fixed_amount } = addForm;
+    if (saleType === 'percentage') return Number(discount_percentage) || 0;
+    if (saleType === 'fixed') {
+      const p = getProduct(productId);
+      if (!p?.price || !fixed_amount) return 0;
+      return Math.min(100, Math.round((Number(fixed_amount) / p.price) * 100));
+    }
+    return 0;
+  };
+
+  // ── Add to sale submit ─────────────────────────────────────────────────────
   const addToSale = async () => {
     if (!addForm.saleId) return toast.error('Select a sale category');
-    if (!addForm.productId) return toast.error('Select a product');
     const cat = saleCategories.find((c) => c.id === addForm.saleId);
     if (!cat) return;
-    if (cat.products.find((p) => p.product_id === addForm.productId))
-      return toast.error('Product is already in this sale');
+    const existingIds = new Set((cat.products ?? []).map((p) => p.product_id));
+
+    let idsToAdd = [];
+    if (addForm.addMode === 'product') {
+      if (addForm.productIds.length === 0) return toast.error('Select at least one product');
+      idsToAdd = addForm.productIds.filter((id) => !existingIds.has(id));
+      if (idsToAdd.length === 0) return toast.error('All selected products are already in this sale');
+    } else {
+      if (!addForm.categoryId) return toast.error('Select a category');
+      const catProds = products.filter((p) => {
+        const cid = p.category_id || p.category?.id || p.category?._id;
+        return cid === addForm.categoryId;
+      });
+      idsToAdd = catProds.map((p) => p.id || p._id).filter((id) => !existingIds.has(id));
+      if (idsToAdd.length === 0) return toast.error('No new products found in this category');
+    }
+
+    const baseOrder = (cat.products ?? []).length;
     const updated = [
-      ...cat.products,
-      { product_id: addForm.productId, discount_percentage: Number(addForm.discount_percentage) || 10 },
+      ...(cat.products ?? []),
+      ...idsToAdd.map((productId, i) => ({
+        product_id: productId,
+        discount_percentage: computeDiscountPct(productId),
+        display_order: baseOrder + i,
+        stock_limit: null,
+        badge_label: null,
+      })),
     ];
-    await updateSaleProducts(addForm.saleId, updated, 'Product added to sale');
-    setShowModal(false);
-    setAddForm({ saleId: '', productId: '', discount_percentage: 10 });
-    setProductSearch('');
+
+    await updateSaleProducts(addForm.saleId, updated, `${idsToAdd.length} product(s) added to sale`);
+    setActiveTab(addForm.saleId);
+    closeModal();
   };
 
   const closeModal = () => {
     setShowModal(false);
-    setAddForm({ saleId: '', productId: '', discount_percentage: 10 });
-    setProductSearch('');
+    setAddForm(DEFAULT_FORM);
     setShowProductDrop(false);
   };
 
-  // Products available to add (not already in selected sale)
+  const openModal = () => {
+    setShowModal(true);
+    setAddForm({ ...DEFAULT_FORM, saleId: activeTab ?? '' });
+  };
+
+  const toggleProductId = (id) =>
+    setAddForm((f) => ({
+      ...f,
+      productIds: f.productIds.includes(id)
+        ? f.productIds.filter((x) => x !== id)
+        : [...f.productIds, id],
+    }));
+
   const availableProducts = (() => {
     const cat = saleCategories.find((c) => c.id === addForm.saleId);
+    const existingIds = new Set((cat?.products ?? []).map((sp) => sp.product_id));
     return products
       .filter((p) => {
-        if (cat && cat.products.find((sp) => sp.product_id === (p.id || p._id))) return false;
-        return !productSearch || p.name?.toLowerCase().includes(productSearch.toLowerCase());
+        if (existingIds.has(p.id || p._id)) return false;
+        return !addForm.productSearch || p.name?.toLowerCase().includes(addForm.productSearch.toLowerCase());
       })
-      .slice(0, 25);
+      .slice(0, 40);
   })();
+
+  const categoryProducts = addForm.categoryId
+    ? products.filter((p) => {
+        const cid = p.category_id || p.category?.id || p.category?._id;
+        return cid === addForm.categoryId;
+      })
+    : [];
+
+  const pricePreview = addForm.saleType !== 'bxgy'
+    ? addForm.productIds.map((id) => {
+        const p = getProduct(id);
+        if (!p?.price) return null;
+        const pct  = computeDiscountPct(id);
+        const sale = Math.round(p.price * (1 - pct / 100));
+        return { id, name: p.name, original: p.price, sale };
+      }).filter(Boolean)
+    : [];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Sale Products</h1>
-          <p className="text-sm text-gray-500 mt-0.5">All products currently in sale categories — edit discounts or remove</p>
+          <p className="text-sm text-gray-500 mt-0.5">Manage products within each sale category</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={openModal}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#FF6B35] hover:bg-orange-500 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-orange-200"
         >
           <Plus className="w-4 h-4" /> Add Product to Sale
         </button>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {[
-          { label: 'Sale Products', value: allSaleProducts.length, icon: ShoppingBag, color: 'text-[#FF6B35]', bg: 'bg-orange-50' },
-          { label: 'Active Sales', value: saleCategories.filter((c) => c.is_active).length, icon: Tag, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Avg Discount', value: `${avgDiscount}%`, icon: Percent, color: 'text-[#1A3C8A]', bg: 'bg-blue-50' },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-3">
-            <div className={`w-10 h-10 ${bg} rounded-xl flex items-center justify-center shrink-0`}>
-              <Icon className={`w-5 h-5 ${color}`} />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">{label}</p>
-              <p className="text-xl font-bold text-gray-900">{value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-48 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search products…"
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400 shrink-0" />
-          <select
-            value={filterCat}
-            onChange={(e) => setFilterCat(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#FF6B35] bg-white"
-          >
-            <option value="all">All Sales</option>
-            {saleCategories.map((c) => (
-              <option key={c.id} value={c.id}>{c.title}{!c.is_active ? ' (Inactive)' : ''}</option>
-            ))}
-          </select>
-        </div>
-        <span className="text-sm text-gray-400 ml-auto">{filtered.length} products</span>
-      </div>
-
-      {/* Table */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="w-7 h-7 animate-spin text-[#FF6B35]" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : saleCategories.length === 0 ? (
         <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
-          <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">No sale products yet</p>
-          <p className="text-sm mt-1">Click "Add Product to Sale" to assign products to a sale category</p>
+          <Tag className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">No sale categories yet</p>
+          <p className="text-sm mt-1">Create sale categories first, then add products here.</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider font-semibold border-b border-gray-100">
-                  <th className="px-5 py-3 text-left">Product</th>
-                  <th className="px-5 py-3 text-right">Original</th>
-                  <th className="px-5 py-3 text-right">Sale Price</th>
-                  <th className="px-5 py-3 text-center">Discount</th>
-                  <th className="px-5 py-3 text-center">Sale</th>
-                  <th className="px-5 py-3 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map((sp, idx) => {
-                  const p = sp.product;
-                  const originalPrice = p?.price ?? 0;
-                  const salePrice = originalPrice
-                    ? Math.round(originalPrice * (1 - sp.discount_percentage / 100))
-                    : 0;
-                  const isEditingThis =
-                    editing && editing.saleId === sp.saleId && editing.productId === sp.product_id;
+          {/* ── Tab bar ── */}
+          <div className="flex overflow-x-auto border-b border-gray-100 scrollbar-none">
+            {saleCategories.map((cat) => {
+              const isActive = cat.id === activeTab;
+              const count = cat.products?.length ?? 0;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveTab(cat.id)}
+                  className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors shrink-0 ${
+                    isActive
+                      ? 'border-[#FF6B35] text-[#FF6B35] bg-orange-50/50'
+                      : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  <span>{cat.title}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                    isActive ? 'bg-[#FF6B35] text-white' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {count}
+                  </span>
+                  {!cat.is_active && (
+                    <span className="text-[10px] text-gray-400">(off)</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-                  return (
-                    <tr key={`${sp.saleId}-${sp.product_id}-${idx}`} className="hover:bg-gray-50 transition-colors">
-                      {/* Product */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                            {p?.imageUrl
-                              ? <img src={getImageUrl(p.imageUrl)} alt={p.name} className="w-full h-full object-cover" />
-                              : <Package className="w-5 h-5 m-2.5 text-gray-300" />}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 truncate max-w-[180px]">
-                              {p?.name ?? <span className="text-gray-400 text-xs font-mono">{sp.product_id}</span>}
-                            </p>
-                            <p className="text-xs text-gray-400">{p?.isActive ? 'Active' : 'Inactive'}</p>
-                          </div>
-                        </div>
-                      </td>
+          {/* ── Tab content ── */}
+          {activeCategory && (
+            <div>
+              {/* Tab header */}
+              <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-gray-50">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${activeCategory.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                    <span className="font-semibold text-gray-900">{activeCategory.title}</span>
+                    {activeCategory.badge_label && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                        style={{ background: activeCategory.badge_color || '#FF6B35' }}>
+                        {activeCategory.badge_label}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {tabProducts.length} product{tabProducts.length !== 1 ? 's' : ''} · Drag rows or use arrows to reorder
+                  </p>
+                </div>
+                <button
+                  onClick={openModal}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#FF6B35] border border-[#FF6B35]/30 rounded-lg hover:bg-orange-50 transition"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Products
+                </button>
+              </div>
 
-                      {/* Original price */}
-                      <td className="px-5 py-4 text-right text-gray-400 line-through text-xs whitespace-nowrap">
-                        Rs. {originalPrice.toLocaleString()}
-                      </td>
+              {/* Product list */}
+              {tabProducts.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No products in this sale yet</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {tabProducts.map((sp, idx) => {
+                    const p             = getProduct(sp.product_id);
+                    const originalPrice = p?.price ?? 0;
+                    const salePrice     = originalPrice
+                      ? Math.round(originalPrice * (1 - sp.discount_percentage / 100))
+                      : 0;
+                    const isEditingThis = editing?.saleId === activeTab && editing?.productId === sp.product_id;
 
-                      {/* Sale price */}
-                      <td className="px-5 py-4 text-right font-bold text-[#FF6B35] whitespace-nowrap">
-                        Rs. {salePrice.toLocaleString()}
-                      </td>
-
-                      {/* Discount (inline editable) */}
-                      <td className="px-5 py-4 text-center">
-                        {isEditingThis ? (
-                          <div className="flex items-center justify-center gap-1">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={editing.discount}
-                              onChange={(e) => setEditing((ed) => ({ ...ed, discount: e.target.value }))}
-                              className="w-16 text-center border border-[#FF6B35] rounded-lg py-1 text-sm focus:outline-none"
-                              autoFocus
-                              onKeyDown={(e) => { if (e.key === 'Enter') saveDiscount(); if (e.key === 'Escape') setEditing(null); }}
-                            />
-                            <button
-                              onClick={saveDiscount}
-                              disabled={saving}
-                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-50"
-                            >
-                              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                            </button>
-                            <button onClick={() => setEditing(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded-lg">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
+                    return (
+                      <div key={sp.product_id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group">
+                        {/* Sort arrows */}
+                        <div className="flex flex-col gap-0.5 shrink-0">
                           <button
-                            onClick={() => setEditing({ saleId: sp.saleId, productId: sp.product_id, discount: sp.discount_percentage })}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-600 font-bold rounded-full text-xs hover:bg-orange-100 transition"
+                            onClick={() => moveProduct(sp.product_id, 'up')}
+                            disabled={idx === 0 || saving}
+                            className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 disabled:cursor-not-allowed rounded"
                           >
-                            <Percent className="w-3 h-3" />{sp.discount_percentage}%
+                            <ChevronUp className="w-3.5 h-3.5" />
                           </button>
-                        )}
-                      </td>
-
-                      {/* Sale category badge */}
-                      <td className="px-5 py-4 text-center">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${sp.saleActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {sp.saleTitle}
-                        </span>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-5 py-4">
-                        <div className="flex justify-center gap-2">
                           <button
-                            onClick={() => setEditing({ saleId: sp.saleId, productId: sp.product_id, discount: sp.discount_percentage })}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            onClick={() => moveProduct(sp.product_id, 'down')}
+                            disabled={idx === tabProducts.length - 1 || saving}
+                            className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 disabled:cursor-not-allowed rounded"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Order number */}
+                        <span className="text-xs text-gray-300 w-5 text-center shrink-0 font-mono">{idx + 1}</span>
+
+                        {/* Thumbnail */}
+                        <div className="w-11 h-11 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                          {p?.imageUrl
+                            ? <img src={getImageUrl(p.imageUrl)} alt={p?.name} className="w-full h-full object-cover" />
+                            : <Package className="w-5 h-5 m-3 text-gray-300" />}
+                        </div>
+
+                        {/* Name */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm truncate">
+                            {p?.name ?? <span className="text-gray-400 text-xs font-mono">{sp.product_id}</span>}
+                          </p>
+                          {sp.badge_label && (
+                            <span className="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded text-white bg-[#FF6B35]">
+                              {sp.badge_label}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Prices */}
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-[#FF6B35] text-sm">Rs. {salePrice.toLocaleString()}</p>
+                          <p className="text-xs text-gray-400 line-through">Rs. {originalPrice.toLocaleString()}</p>
+                        </div>
+
+                        {/* Discount — inline editable */}
+                        <div className="shrink-0 w-28 text-center">
+                          {isEditingThis ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number" min="0" max="100"
+                                value={editing.discount}
+                                onChange={(e) => setEditing((ed) => ({ ...ed, discount: e.target.value }))}
+                                className="w-16 text-center border border-[#FF6B35] rounded-lg py-1 text-sm focus:outline-none"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter')  saveDiscount();
+                                  if (e.key === 'Escape') setEditing(null);
+                                }}
+                              />
+                              <button
+                                onClick={saveDiscount} disabled={saving}
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-50"
+                              >
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                              </button>
+                              <button onClick={() => setEditing(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded-lg">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setEditing({ saleId: activeTab, productId: sp.product_id, discount: sp.discount_percentage })}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-600 font-bold rounded-full text-xs hover:bg-orange-100 transition"
+                            >
+                              <Percent className="w-3 h-3" />{sp.discount_percentage}%
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => setEditing({ saleId: activeTab, productId: sp.product_id, discount: sp.discount_percentage })}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
                             title="Edit discount"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => removeFromSale(sp.saleId, sp.product_id)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Remove from sale"
+                            onClick={() => removeFromSale(activeTab, sp.product_id)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Remove"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── Add to Sale Modal ── */}
+      {/* ── Add to Sale Modal ────────────────────────────────────────────────── */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-6">
+
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-[#FF6B35]" /> Add Product to Sale
+                <ShoppingBag className="w-5 h-5 text-[#FF6B35]" /> Add to Sale
               </h2>
               <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-lg transition">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              {/* Sale category picker */}
+            <div className="p-6 space-y-5">
+
+              {/* Sale Category */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Sale Category *</label>
                 <select
                   value={addForm.saleId}
-                  onChange={(e) => setAddForm((f) => ({ ...f, saleId: e.target.value, productId: '' }))}
+                  onChange={(e) => setAddForm((f) => ({ ...f, saleId: e.target.value, productIds: [] }))}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] bg-white transition"
                 >
                   <option value="">Select a sale…</option>
@@ -373,96 +476,219 @@ export default function SaleProductsCrud() {
                 </select>
               </div>
 
-              {/* Product search */}
+              {/* Sale Type */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Product *</label>
-                <div className="relative" data-dd="prod">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  <input
-                    value={productSearch}
-                    onChange={(e) => {
-                      setProductSearch(e.target.value);
-                      setAddForm((f) => ({ ...f, productId: '' }));
-                      setShowProductDrop(true);
-                    }}
-                    onFocus={() => setShowProductDrop(true)}
-                    placeholder="Search products…"
-                    className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition"
-                  />
-                  {showProductDrop && (
-                    <div className="absolute top-full mt-1 w-full bg-white rounded-xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto z-30">
-                      {availableProducts.length > 0 ? (
-                        availableProducts.map((p) => (
-                          <button
-                            key={p.id || p._id}
-                            type="button"
-                            onClick={() => {
-                              setAddForm((f) => ({ ...f, productId: p.id || p._id }));
-                              setProductSearch(p.name);
-                              setShowProductDrop(false);
-                            }}
-                            className="w-full text-left px-4 py-2.5 hover:bg-orange-50 flex items-center gap-3 text-sm transition"
-                          >
-                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                              {p.imageUrl
-                                ? <img src={getImageUrl(p.imageUrl)} alt="" className="w-full h-full object-cover" />
-                                : <Package className="w-4 h-4 m-2 text-gray-300" />}
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-800">{p.name}</p>
-                              <p className="text-xs text-gray-400">Rs. {p.price?.toLocaleString()}</p>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <p className="p-4 text-sm text-gray-400 text-center">
-                          {addForm.saleId ? 'No more products to add' : 'Select a sale category first'}
-                        </p>
-                      )}
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Discount Type *</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {SALE_TYPES.map(({ value, label, icon: Icon }) => {
+                    const active = addForm.saleType === value;
+                    return (
+                      <button
+                        key={value} type="button"
+                        onClick={() => setAddForm((f) => ({ ...f, saleType: value }))}
+                        className={`flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border text-xs font-semibold transition ${
+                          active
+                            ? 'border-[#FF6B35] bg-orange-50 text-[#FF6B35] ring-1 ring-[#FF6B35]'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add Mode toggle */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Add By</label>
+                <div className="flex gap-2">
+                  {[
+                    { v: 'product',  label: 'Select Products', icon: Package },
+                    { v: 'category', label: 'Entire Category', icon: LayoutGrid },
+                  ].map(({ v, label, icon: Icon }) => {
+                    const active = addForm.addMode === v;
+                    return (
+                      <button
+                        key={v} type="button"
+                        onClick={() => setAddForm((f) => ({ ...f, addMode: v, productIds: [], categoryId: '' }))}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition ${
+                          active ? 'border-[#1A3C8A] bg-blue-50 text-[#1A3C8A]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" /> {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Product multi-select */}
+              {addForm.addMode === 'product' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Products *
+                    {addForm.productIds.length > 0 && (
+                      <span className="ml-2 text-xs font-normal text-[#FF6B35]">{addForm.productIds.length} selected</span>
+                    )}
+                  </label>
+                  <div className="relative" data-dd="prod">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <input
+                      value={addForm.productSearch}
+                      onChange={(e) => { setAddForm((f) => ({ ...f, productSearch: e.target.value })); setShowProductDrop(true); }}
+                      onFocus={() => setShowProductDrop(true)}
+                      placeholder="Search and tick products to add…"
+                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition"
+                    />
+                    {showProductDrop && (
+                      <div className="absolute top-full mt-1 w-full bg-white rounded-xl shadow-xl border border-gray-100 max-h-52 overflow-y-auto z-30">
+                        {availableProducts.length > 0 ? (
+                          availableProducts.map((p) => {
+                            const id = p.id || p._id;
+                            const checked = addForm.productIds.includes(id);
+                            return (
+                              <button key={id} type="button" onClick={() => toggleProductId(id)}
+                                className={`w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition ${checked ? 'bg-orange-50' : 'hover:bg-gray-50'}`}>
+                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition ${checked ? 'bg-[#FF6B35] border-[#FF6B35]' : 'border-gray-300'}`}>
+                                  {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                                </div>
+                                <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                                  {p.imageUrl ? <img src={getImageUrl(p.imageUrl)} alt="" className="w-full h-full object-cover" /> : <Package className="w-4 h-4 m-2 text-gray-300" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-gray-800 truncate">{p.name}</p>
+                                  <p className="text-xs text-gray-400">Rs. {p.price?.toLocaleString()}</p>
+                                </div>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <p className="p-4 text-sm text-gray-400 text-center">
+                            {addForm.saleId ? 'No more products available' : 'Select a sale category first'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {addForm.productIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {addForm.productIds.map((id) => {
+                        const p = getProduct(id);
+                        return (
+                          <span key={id} className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 text-xs px-2.5 py-1 rounded-full">
+                            {p?.name ?? id}
+                            <button type="button" onClick={() => toggleProductId(id)} className="hover:text-red-600 ml-0.5">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
-                {addForm.productId && (
-                  <p className="mt-1.5 text-xs text-emerald-600 flex items-center gap-1">
-                    <Check className="w-3 h-3" /> {getProduct(addForm.productId)?.name} selected
-                  </p>
-                )}
-              </div>
+              )}
 
-              {/* Discount */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Discount % *</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={addForm.discount_percentage}
-                    onChange={(e) => setAddForm((f) => ({ ...f, discount_percentage: e.target.value }))}
-                    className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition"
-                  />
-                  <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                </div>
-                {addForm.productId && Number(addForm.discount_percentage) > 0 && (() => {
-                  const p = getProduct(addForm.productId);
-                  if (!p?.price) return null;
-                  const sale = Math.round(p.price * (1 - Number(addForm.discount_percentage) / 100));
-                  return (
-                    <p className="mt-1 text-xs text-gray-500">
-                      Rs. {p.price.toLocaleString()} →{' '}
-                      <span className="font-semibold text-orange-600">Rs. {sale.toLocaleString()}</span>
+              {/* Category select */}
+              {addForm.addMode === 'category' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category *</label>
+                  <select
+                    value={addForm.categoryId}
+                    onChange={(e) => setAddForm((f) => ({ ...f, categoryId: e.target.value }))}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] bg-white transition"
+                  >
+                    <option value="">Select a category…</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id || cat._id} value={cat.id || cat._id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  {addForm.categoryId && (
+                    <p className="mt-1.5 text-xs text-emerald-600 flex items-center gap-1">
+                      <Check className="w-3 h-3" />{categoryProducts.length} product(s) will be added
                     </p>
-                  );
-                })()}
-              </div>
+                  )}
+                </div>
+              )}
 
-              <div className="flex gap-3 pt-2">
+              {/* Discount fields */}
+              {addForm.saleType === 'percentage' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Discount % *</label>
+                  <div className="relative">
+                    <input type="number" min="0" max="100"
+                      value={addForm.discount_percentage}
+                      onChange={(e) => setAddForm((f) => ({ ...f, discount_percentage: e.target.value }))}
+                      className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition"
+                    />
+                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              )}
+
+              {addForm.saleType === 'fixed' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Fixed Amount Off (Rs.) *</label>
+                  <input type="number" min="0"
+                    value={addForm.fixed_amount}
+                    onChange={(e) => setAddForm((f) => ({ ...f, fixed_amount: e.target.value }))}
+                    placeholder="e.g. 200"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition"
+                  />
+                </div>
+              )}
+
+              {addForm.saleType === 'bxgy' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Buy Qty</label>
+                      <input type="number" min="1" value={addForm.buy_qty}
+                        onChange={(e) => setAddForm((f) => ({ ...f, buy_qty: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Get Qty Free</label>
+                      <input type="number" min="1" value={addForm.get_qty}
+                        onChange={(e) => setAddForm((f) => ({ ...f, get_qty: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] transition"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-600 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                    Buy {addForm.buy_qty || 2} get {addForm.get_qty || 1} free — BXGY logic enforced at order level.
+                  </p>
+                </div>
+              )}
+
+              {/* Price Preview */}
+              {pricePreview.length > 0 && (
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Price Preview</p>
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                    {pricePreview.map(({ id, name, original, sale }) => (
+                      <div key={id} className="flex items-center justify-between text-xs gap-2">
+                        <span className="text-gray-600 truncate flex-1">{name}</span>
+                        <span className="text-gray-400 line-through whitespace-nowrap">Rs. {original.toLocaleString()}</span>
+                        <span className="font-bold text-orange-600 whitespace-nowrap">Rs. {sale.toLocaleString()}</span>
+                        <span className="text-emerald-600 font-semibold">{addForm.discount_percentage}% OFF</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
                 <button
-                  onClick={addToSale}
-                  disabled={saving}
+                  onClick={addToSale} disabled={saving}
                   className="flex-1 py-2.5 bg-[#FF6B35] hover:bg-orange-500 text-white font-bold rounded-xl text-sm transition disabled:opacity-70 flex items-center justify-center gap-2"
                 >
-                  {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding…</> : <><Plus className="w-4 h-4" /> Add to Sale</>}
+                  {saving
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding…</>
+                    : <><Plus className="w-4 h-4" /> Add to Sale</>}
                 </button>
                 <button
                   onClick={closeModal}

@@ -127,6 +127,7 @@ export default function Footer() {
               <a href="#" className="text-gray-400 transition hover:text-white">Privacy Policy</a>
               <a href="#" className="text-gray-400 transition hover:text-white">Terms of Service</a>
               <a href="#" className="text-gray-400 transition hover:text-white">Cookie Policy</a>
+              <Link to="/admin/login" className="text-gray-600 transition hover:text-gray-300 text-xs">Admin</Link>
             </div>
           </div>
         </div>

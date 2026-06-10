@@ -8,6 +8,7 @@ import {
   Package, CheckCircle, AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 import { getImageUrl } from '@/config';
+import { TableSkeleton } from '../ui/Skeleton';
 
 export default function ProductCrud() {
   const { products, loading, fetchProducts, addProduct, updateProduct, deleteProduct } = useProductStore();
@@ -21,12 +22,14 @@ export default function ProductCrud() {
 
   const defaultForm = {
     name: '', description: '', price: '', discountPrice: 0,
-    stock: '', category_id: '', hasOffer: false, isActive: true, imageUrl: ''
+    stock: '', category_id: '', hasOffer: false, isActive: true, imageUrl: '',
+    saleStartDate: '', saleEndDate: ''
   };
   const [form, setForm] = useState(defaultForm);
 
   useEffect(() => {
-    fetchProducts();
+    // Admin sees the full catalogue, including inactive/hidden products.
+    fetchProducts({ limit: 100, includeInactive: true });
     fetchCategories();
   }, []);
 
@@ -61,6 +64,8 @@ export default function ProductCrud() {
         price: parseFloat(form.price),
         discountPrice: parseFloat(form.discountPrice) || 0,
         stock: parseInt(form.stock) || 0,
+        saleStartDate: form.saleStartDate ? new Date(form.saleStartDate).toISOString() : null,
+        saleEndDate: form.saleEndDate ? new Date(form.saleEndDate).toISOString() : null,
       };
 
       const productId = editingProduct?._id || editingProduct?.id;
@@ -74,7 +79,7 @@ export default function ProductCrud() {
         toast.success('Product created!');
       }
       closeModal();
-      await fetchProducts();
+      await fetchProducts({ limit: 100, includeInactive: true });
     } catch (error) {
       console.error('❌ Save failed:', error);
       toast.error(error?.response?.data?.message || 'Failed to save');
@@ -94,6 +99,8 @@ export default function ProductCrud() {
       hasOffer: product.hasOffer || false,
       isActive: product.isActive !== false,
       imageUrl: product.imageUrl || '',
+      saleStartDate: product.saleStartDate ? product.saleStartDate.slice(0, 16) : '',
+      saleEndDate: product.saleEndDate ? product.saleEndDate.slice(0, 16) : '',
     });
     setPreviewImage(product.imageUrl ? getImageUrl(product.imageUrl) : null);
     setShowModal(true);
@@ -105,7 +112,7 @@ export default function ProductCrud() {
       console.log('🗑️ Attempting to delete product:', id);
       await deleteProduct(id);
       toast.success('Product deleted');
-      fetchProducts();
+      fetchProducts({ limit: 100, includeInactive: true });
     } catch (error) {
       console.error('❌ Delete failed:', error);
       toast.error(error?.response?.data?.message || 'Delete failed');
@@ -218,9 +225,7 @@ export default function ProductCrud() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#FF6B35]" />
-          </div>
+          <TableSkeleton rows={8} cols={6} />
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
             <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -407,6 +412,21 @@ export default function ProductCrud() {
                   <span className="font-medium text-gray-700">Product is Active</span>
                 </label>
               </div>
+
+              {/* Optional sale scheduling — offer is only active within this window */}
+              {form.hasOffer && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Sale Start (optional)</label>
+                    <input type="datetime-local" name="saleStartDate" value={form.saleStartDate} onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35]" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Sale End (optional)</label>
+                    <input type="datetime-local" name="saleEndDate" value={form.saleEndDate} onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35]" />
+                  </div>
+                </div>)}
 
               <div className="flex gap-3 pt-2">
                 <button type="submit"

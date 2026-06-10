@@ -13,12 +13,10 @@ export const useProductStore = create((set) => ({
     try {
       const res = await productApi.getAll(params);
       const data = res.data?.data || res.data || [];
-      const pagination = res.data?.pagination || null;
+      const pagination = res.data?.meta || res.data?.pagination || null;
       
-      console.log('📦 Products fetched:', { count: data.length, pagination });
       // Log first product to see the FULL structure including category
       if (data.length > 0) {
-        console.log('📦 FULL Product structure:', JSON.stringify(data[0], null, 2));
       }
       set({ products: Array.isArray(data) ? data : [], pagination });
     } catch (err) {
@@ -34,9 +32,8 @@ export const useProductStore = create((set) => ({
     try {
       const res = await productApi.getByCategory(categoryId, params);
       const data = res.data?.data || res.data || [];
-      const pagination = res.data?.pagination || null;
+      const pagination = res.data?.meta || res.data?.pagination || null;
       
-      console.log('📦 Category products fetched:', { category: categoryId, count: data.length });
       set({ products: Array.isArray(data) ? data : [], pagination });
     } catch (err) {
       console.error('❌ Error fetching category products:', err);
@@ -51,9 +48,8 @@ export const useProductStore = create((set) => ({
     try {
       const res = await productApi.getWithOffers(params);
       const data = res.data?.data || res.data || [];
-      const pagination = res.data?.pagination || null;
+      const pagination = res.data?.meta || res.data?.pagination || null;
       
-      console.log('🎉 Offer products fetched:', { count: data.length });
       set({ products: Array.isArray(data) ? data : [], pagination });
     } catch (err) {
       console.error('❌ Error fetching offer products:', err);
@@ -69,7 +65,6 @@ export const useProductStore = create((set) => ({
       const res = await productApi.create(data);
       const product = res.data?.data || res.data;
       
-      console.log('✅ Product created:', product);
       set((state) => ({ products: [...state.products, product] }));
       return product;
     } catch (err) {
@@ -84,11 +79,9 @@ export const useProductStore = create((set) => ({
   updateProduct: async (id, data) => {
     set({ loading: true });
     try {
-      console.log('✏️ Updating product with ID:', id);
       const res = await productApi.update(id, data);
       const updatedProduct = res.data?.data || res.data;
       
-      console.log('✅ Product updated:', updatedProduct);
       
       // Update the product in the local state
       set((state) => ({
@@ -114,11 +107,8 @@ export const useProductStore = create((set) => ({
   deleteProduct: async (id) => {
     set({ loading: true });
     try {
-      console.log('🗑️ Store: Attempting to delete product:', id);
       const response = await productApi.remove(id);
-      console.log('✅ Delete response:', response);
       
-      console.log('🗑️ Product deleted:', id);
       set((state) => ({ products: state.products.filter((p) => (p.id || p._id) !== id) }));
       return response;
     } catch (err) {

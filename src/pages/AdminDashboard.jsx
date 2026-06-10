@@ -158,7 +158,8 @@ export default function AdminDashboard() {
         await Promise.all([
           productStore.fetchProducts?.(),
           categoryStore.fetchCategories?.(),
-          orderStore.fetchOrders?.(),
+          orderStore.fetchOrders?.({ limit: 100 }),
+          orderStore.fetchStats?.(),
           couponStore.fetchCoupons?.(),
           flashSaleStore.fetchFlashSales?.(),
           bannerStore.fetchBanners?.(),
@@ -175,10 +176,13 @@ export default function AdminDashboard() {
   const coupons    = couponStore.coupons   ?? [];
   const flashSales = flashSaleStore.flashSales ?? [];
 
-  const totalRevenue    = orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
-  const pendingOrders   = orders.filter(o => o.status === 'pending').length;
-  const deliveredOrders = orders.filter(o => o.status === 'delivered').length;
-  const cancelledOrders = orders.filter(o => o.status === 'cancelled').length;
+  // Server-side stats cover the WHOLE order book; the loaded `orders` page
+  // (most recent 100) is only used for the trend chart below.
+  const stats = orderStore.stats;
+  const totalRevenue    = stats?.totalRevenue    ?? orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const pendingOrders   = stats?.pendingOrders   ?? orders.filter(o => o.status === 'pending').length;
+  const deliveredOrders = stats?.deliveredOrders ?? orders.filter(o => o.status === 'delivered').length;
+  const cancelledOrders = stats?.cancelledOrders ?? orders.filter(o => o.status === 'cancelled').length;
   const activeCoupons   = coupons.filter(c => c.isActive).length;
   const activeSales     = flashSales.filter(fs => fs.isActive).length;
   const lowStockCount   = products.filter(p => p.stock > 0 && p.stock < 10).length;

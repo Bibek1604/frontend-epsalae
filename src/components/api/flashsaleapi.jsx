@@ -5,10 +5,10 @@ import api from './base';
 const ENDPOINT = '/flash-sales';
 
 export const flashSaleApi = {
-  getAll: () => {
-    console.log('📥 Fetching flash sales from:', ENDPOINT);
-    return api.get(ENDPOINT);
-  },
+  getAll: () => api.get(ENDPOINT),
+
+  // Public storefront — active flash sales only
+  getActive: () => api.get(`${ENDPOINT}/active`),
   
   getById: (id) => api.get(`${ENDPOINT}/${id}`),
   
@@ -21,8 +21,6 @@ export const flashSaleApi = {
       endTime: data.endTime,
       isActive: data.isActive !== undefined ? data.isActive : true,
     };
-    console.log('📤 Creating flash sale:', payload);
-    console.log('📤 POST to:', ENDPOINT);
     return api.post(ENDPOINT, payload);
   },
 
@@ -35,7 +33,6 @@ export const flashSaleApi = {
       endTime: data.endTime,
       isActive: data.isActive,
     };
-    console.log('📤 Updating flash sale:', { id, ...payload });
     return api.put(`${ENDPOINT}/${id}`, payload);
   },
 

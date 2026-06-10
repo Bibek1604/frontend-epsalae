@@ -22,6 +22,36 @@ export const API_URL = `${API_BASE_URL}/api/v1`;
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'Epasaley';
 export const APP_DESCRIPTION = import.meta.env.VITE_APP_DESCRIPTION || "Nepal's Trusted Online Store";
 
+// ============================================================
+// CURRENCY — Single source of truth for money formatting.
+// The platform targets Nepal, so the currency is always Rupees (Rs.).
+// Never hardcode a currency symbol anywhere — import these helpers.
+// ============================================================
+export const CURRENCY = {
+  code: 'NPR',
+  symbol: 'Rs.',
+  locale: 'en-IN', // en-IN gives the lakh/crore-friendly grouping used in Nepal
+};
+
+/**
+ * Format a numeric amount as a currency string, e.g. 1250 -> "Rs. 1,250".
+ * @param {number|string} amount
+ * @param {{ decimals?: number, symbol?: boolean }} [opts]
+ */
+export const formatCurrency = (amount, opts = {}) => {
+  const { decimals = 0, symbol = true } = opts;
+  const n = Number(amount);
+  const safe = Number.isFinite(n) ? n : 0;
+  const num = safe.toLocaleString(CURRENCY.locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+  return symbol ? `${CURRENCY.symbol} ${num}` : num;
+};
+
+// Convenience alias used across the app.
+export const formatPrice = (amount, opts) => formatCurrency(amount, opts);
+
 // Default placeholder image - Generic product placeholder
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600';
 

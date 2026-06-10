@@ -1,9 +1,10 @@
 // src/components/api/promocode.jsx
 import api from './base';
+import userApi from './userapi';
 
 export const couponApi = {
+  // Admin-only operations use the admin api client
   getAll: async () => {
-    console.log('🎟️ Fetching coupons...');
     const res = await api.get('/coupons/');
     return res;
   },
@@ -14,7 +15,6 @@ export const couponApi = {
   },
 
   create: async (data) => {
-    console.log('📤 Creating coupon:', data);
     const payload = {
       ...data,
       code: data.code.toUpperCase().trim(),
@@ -28,20 +28,24 @@ export const couponApi = {
   },
 
   update: async (code, data) => {
-    console.log('📝 Updating coupon:', data);
     const res = await api.put(`/coupons/${code}`, data);
     return res;
   },
 
+  // validate uses the user client so the logged-in user's token is sent,
+  // allowing the backend to enforce per-user usage limits correctly
   validate: async (code, context = {}) => {
-    console.log('✔️ Validating coupon:', code);
-    const res = await api.post(`/coupons/validate`, { code, ...context });
+    const res = await userApi.post(`/coupons/validate`, { code, ...context });
     return res;
   },
 
   remove: async (code) => {
-    console.log('🗑️ Deleting coupon:', code);
     const res = await api.delete(`/coupons/${code}`);
+    return res;
+  },
+
+  analytics: async (code) => {
+    const res = await api.get(`/coupons/${code}/analytics`);
     return res;
   },
 };

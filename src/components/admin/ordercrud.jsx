@@ -7,16 +7,23 @@ import {
   MapPin, Phone, User, ShoppingBag, Calendar, RefreshCw, Copy,
   TrendingUp, DollarSign, Search
 } from 'lucide-react';
+import { TableSkeleton } from '../ui/Skeleton';
 
 export default function OrderCRUD() {
-  const { orders, loading, error, fetchOrders, updateOrderStatus } = useOrderStore();
+  const { orders, pagination, loading, error, fetchOrders, updateOrderStatus } = useOrderStore();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    // Server-side pagination + status filter so the table isn't capped at the
+    // backend's default 20 rows.
+    fetchOrders({ page, limit: PAGE_SIZE, ...(statusFilter !== 'all' ? { status: statusFilter } : {}) });
+  }, [fetchOrders, page, statusFilter]);
+
+  useEffect(() => { setPage(1); }, [statusFilter]);
 
   const statusConfig = {
     pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', icon: Clock, label: 'Pending' },
@@ -204,9 +211,7 @@ export default function OrderCRUD() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#FF6B35]" />
-          </div>
+          <TableSkeleton rows={8} cols={6} />
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-16">
             <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -316,6 +321,25 @@ export default function OrderCRUD() {
                 })}
               </tbody>
             </table>
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 py-4 border-t border-gray-100">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="px-4 py-2 text-xs font-semibold border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                >
+                  ← Prev
+                </button>
+                <span className="text-xs font-bold text-gray-600">Page {page} / {pagination.totalPages} ({pagination.total} orders)</span>
+                <button
+                  onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                  disabled={page >= pagination.totalPages}
+                  className="px-4 py-2 text-xs font-semibold border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

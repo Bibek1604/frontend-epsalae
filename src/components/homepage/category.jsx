@@ -33,7 +33,7 @@ const revealVariants = {
 }
 
 export default function TopCategories() {
-  const { categories, loading, fetchCategories } = useCategoryStore()
+  const { categories, loading, fetchActiveCategories: fetchCategories } = useCategoryStore()
   const navigate = useNavigate()
 
   useEffect(() => { fetchCategories() }, [fetchCategories])

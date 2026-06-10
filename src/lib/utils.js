@@ -17,8 +17,28 @@ export function formatProductName(name) {
     .join(' ')
 }
 
-// Format currency to NRS
-export function formatPrice(price) {
-  if (!price && price !== 0) return 'Rs. 0'
-  return `Rs. ${Number(price).toLocaleString()}`
+// Format currency to NRS — delegates to the centralized currency config
+// (src/config) so there is a single source of truth for money formatting.
+export { formatCurrency, formatPrice, CURRENCY } from '@/config'
+
+// Centralized stock status logic — single source of truth for inventory messaging.
+//   stock > 10  -> In Stock
+//   stock 1–10  -> Only X left — order before it's gone!
+//   stock 0     -> Out of Stock
+export function getStockStatus(stock) {
+  const n = Number(stock) || 0
+  if (n <= 0) {
+    return { state: 'out', inStock: false, label: 'Out of Stock', short: 'Out of Stock', tone: 'danger' }
+  }
+  if (n <= 10) {
+    return {
+      state: 'low',
+      inStock: true,
+      count: n,
+      label: `Only ${n} left — order before it's gone!`,
+      short: `Only ${n} left`,
+      tone: 'warning',
+    }
+  }
+  return { state: 'in', inStock: true, count: n, label: 'In Stock', short: 'In Stock', tone: 'success' }
 }

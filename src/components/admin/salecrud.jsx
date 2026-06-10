@@ -6,14 +6,26 @@ import toast from 'react-hot-toast';
 import { getImageUrl } from '@/config';
 import {
   Plus, Edit2, Trash2, Loader2, X, Tag, ToggleLeft, ToggleRight,
-  Search, ChevronDown, ChevronUp, Package, Percent, Check
+  Search, ChevronDown, ChevronUp, Package, Percent, Check, Sparkles,
 } from 'lucide-react';
 
 const ENDPOINT = '/sale-categories';
 
+const SEASONS = [
+  { value: '',         label: 'None (no season)' },
+  { value: 'dashain',  label: '🎉 Dashain Mahotsav' },
+  { value: 'tihar',    label: '🪔 Tihar Utsav' },
+  { value: 'new_year', label: '🎆 New Year Bonanza' },
+  { value: 'summer',   label: '🌞 Summer Clearance' },
+  { value: 'winter',   label: '❄️ Winter Sale' },
+];
+
 const emptyForm = {
   title: '', slug: '', description: '', banner: '',
-  is_active: true, start_date: '', end_date: '', products: []
+  is_active: true, start_date: '', end_date: '',
+  priority: 0, cta_label: '', cta_url: '',
+  season: '', badge_label: '', badge_color: '#FF6B35',
+  products: [],
 };
 
 const slugify = s => s.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_]+/g, '-').replace(/^-+|-+$/g, '');
@@ -74,6 +86,8 @@ export default function SaleCrud() {
       banner: s.banner || '', is_active: s.is_active !== false,
       start_date: s.start_date ? s.start_date.slice(0, 16) : '',
       end_date: s.end_date ? s.end_date.slice(0, 16) : '',
+      priority: s.priority ?? 0, cta_label: s.cta_label || '', cta_url: s.cta_url || '',
+      season: s.season || '', badge_label: s.badge_label || '', badge_color: s.badge_color || '#FF6B35',
       products: Array.isArray(s.products) ? s.products.map(p => ({ product_id: p.product_id || p.id, discount_percentage: p.discount_percentage || 0 })) : [],
     });
     setErrors({}); setShowModal(true);
@@ -103,6 +117,12 @@ export default function SaleCrud() {
         ...form,
         start_date: form.start_date ? new Date(form.start_date).toISOString() : null,
         end_date: form.end_date ? new Date(form.end_date).toISOString() : null,
+        priority: Number(form.priority) || 0,
+        cta_label: form.cta_label?.trim() || null,
+        cta_url: form.cta_url?.trim() || null,
+        season: form.season || null,
+        badge_label: form.badge_label?.trim() || null,
+        badge_color: form.badge_color?.trim() || null,
         products: form.products.map(p => ({ product_id: p.product_id, discount_percentage: Number(p.discount_percentage) || 0 })),
       };
       if (editing) {
@@ -200,10 +220,23 @@ export default function SaleCrud() {
                       {s.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">/{s.slug} · {s.products?.length || 0} products
-                    {s.start_date && ` · ${new Date(s.start_date).toLocaleDateString()}`}
-                    {s.end_date && ` → ${new Date(s.end_date).toLocaleDateString()}`}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                    <p className="text-xs text-gray-400 truncate">/{s.slug} · {s.products?.length || 0} products
+                      {s.start_date && ` · ${new Date(s.start_date).toLocaleDateString()}`}
+                      {s.end_date && ` → ${new Date(s.end_date).toLocaleDateString()}`}
+                    </p>
+                    {s.season && (
+                      <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                        {SEASONS.find(x => x.value === s.season)?.label ?? s.season}
+                      </span>
+                    )}
+                    {s.badge_label && (
+                      <span className="inline-flex text-[9px] font-bold px-2 py-0.5 rounded-full text-white uppercase"
+                        style={{ background: s.badge_color || '#FF6B35' }}>
+                        {s.badge_label}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button onClick={() => setExpandedSale(expandedSale === s.id ? null : s.id)}
@@ -277,6 +310,55 @@ export default function SaleCrud() {
                 <SaleInput label="Start Date" type="datetime-local" value={form.start_date} onChange={v => set('start_date', v)} error={errors.start_date} />
                 <SaleInput label="End Date" type="datetime-local" value={form.end_date} onChange={v => set('end_date', v)} error={errors.end_date} />
               </div>
+
+              {/* Campaign promotion controls */}
+              <div className="grid grid-cols-2 gap-4">
+                <SaleInput label="Priority" type="number" value={form.priority} onChange={v => set('priority', v)} placeholder="0 = lowest" />
+                <SaleInput label="CTA Button Label" value={form.cta_label} onChange={v => set('cta_label', v)} placeholder="Shop the Sale" />
+              </div>
+              <SaleInput label="CTA Redirect URL" value={form.cta_url} onChange={v => set('cta_url', v)} placeholder="/sale/winter-sale or https://…" />
+              <p className="-mt-2 text-xs text-gray-400">Higher priority campaigns are shown first on the homepage.</p>
+
+              {/* Season + Badge */}
+              <div className="border-t border-gray-100 pt-4 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-bold text-gray-700">Season &amp; Badge</span>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Season</label>
+                  <select value={form.season} onChange={e => set('season', e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] bg-white transition">
+                    {SEASONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-400">Tag this sale to a season so the Seasonal Sales manager can activate it automatically.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <SaleInput label="Badge Label" value={form.badge_label} onChange={v => set('badge_label', v)} placeholder="e.g. DASHAIN OFFER" />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Badge Color</label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={form.badge_color}
+                        onChange={e => set('badge_color', e.target.value)}
+                        className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5" />
+                      <input type="text" value={form.badge_color}
+                        onChange={e => set('badge_color', e.target.value)}
+                        placeholder="#FF6B35"
+                        className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] font-mono transition" />
+                    </div>
+                  </div>
+                </div>
+                {form.badge_label && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    Preview:
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full text-white uppercase"
+                      style={{ background: form.badge_color || '#FF6B35' }}>
+                      {form.badge_label}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               <label className="flex items-center gap-3 cursor-pointer select-none">
                 <div onClick={() => set('is_active', !form.is_active)}
                   className={`w-11 h-6 rounded-full transition-colors ${form.is_active ? 'bg-emerald-500' : 'bg-gray-300'} relative`}>

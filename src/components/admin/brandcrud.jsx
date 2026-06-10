@@ -1,34 +1,43 @@
 // src/components/admin/brandcrud.jsx
-// Admin Panel for Managing Brands (localStorage based)
-import React, { useState } from 'react';
+// Admin Panel for Managing Brands (backend /brands API)
+import React, { useState, useEffect } from 'react';
 import { useBrandStore } from '../store/brandstore';
 import { Plus, Trash2, Edit2, X, Image, RefreshCw, Save } from 'lucide-react';
 
 export default function BrandCrud() {
-  const { brands, addBrand, updateBrand, deleteBrand, resetBrands } = useBrandStore();
+  const { brands, addBrand, updateBrand, deleteBrand, resetBrands, fetchAllBrands } = useBrandStore();
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { fetchAllBrands(); }, [fetchAllBrands]);
   const [editingBrand, setEditingBrand] = useState(null);
   const [formData, setFormData] = useState({ name: '', logo: '' });
   const [previewImage, setPreviewImage] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.logo) {
       alert('Please provide a logo image URL');
       return;
     }
 
-    if (editingBrand) {
-      updateBrand(editingBrand.id, formData);
-    } else {
-      addBrand(formData);
+    setSaving(true);
+    try {
+      if (editingBrand) {
+        await updateBrand(editingBrand.id, formData);
+      } else {
+        await addBrand(formData);
+      }
+      setFormData({ name: '', logo: '' });
+      setPreviewImage('');
+      setEditingBrand(null);
+      setShowModal(false);
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to save brand');
+    } finally {
+      setSaving(false);
     }
-
-    setFormData({ name: '', logo: '' });
-    setPreviewImage('');
-    setEditingBrand(null);
-    setShowModal(false);
   };
 
   const handleEdit = (brand) => {
@@ -38,9 +47,10 @@ export default function BrandCrud() {
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this brand?')) {
-      deleteBrand(id);
+      try { await deleteBrand(id); }
+      catch (err) { alert(err?.response?.data?.message || 'Failed to delete brand'); }
     }
   };
 
@@ -63,7 +73,7 @@ export default function BrandCrud() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Brand Management</h1>
-          <p className="mt-1 text-gray-600">Manage brands displayed on homepage (stored in localStorage)</p>
+          <p className="mt-1 text-gray-600">Manage brands displayed on the homepage (shared with all visitors)</p>
         </div>
         <div className="flex gap-3">
           <button

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, AlertCircle, CheckCircle, X, Tag, ShoppingCart, Truck, Shield, RotateCcw, ChevronRight } from 'lucide-react'
 import { useCart } from '@/store/cartstore'
+import { useProductStore } from '../components/store/productstore'
 import { promocode } from '../components/api/promocode'
 import { AnimatePresence, motion } from 'framer-motion'
 import { getImageUrl } from '@/config'
@@ -12,6 +13,7 @@ const PLACEHOLDER = 'https://via.placeholder.com/150?text=Product'
 export default function Cart() {
   const navigate = useNavigate()
   const { cart, removeFromCart, updateQuantity, getTotalPrice } = useCart()
+  const { products } = useProductStore()
 
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
@@ -20,10 +22,16 @@ export default function Cart() {
   const [couponSuccess, setCouponSuccess] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
 
+  // Mirrors the server's pricing formula (utils/priceCalculator.ts):
+  // VAT 13% on the discounted subtotal; shipping Rs. 150, free above Rs. 5,000.
+  const VAT_RATE = 0.13
+  const FREE_SHIPPING_ABOVE = 5000
+  const SHIPPING_RATE = 150
   const subtotal = getTotalPrice()
-  const shipping = subtotal >= 5000 ? 0 : 200
   const discountedSubtotal = subtotal - discount
-  const total = discountedSubtotal + shipping
+  const vatAmount = Math.round(discountedSubtotal * VAT_RATE)
+  const shipping = discountedSubtotal >= FREE_SHIPPING_ABOVE ? 0 : SHIPPING_RATE
+  const total = discountedSubtotal + vatAmount + shipping
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -34,9 +42,17 @@ export default function Cart() {
       setCouponError('')
       setCouponSuccess('')
       setCouponLoading(true)
+      const productIds = cart.map(i => i.id || i._id).filter(Boolean)
+      const categoryIds = [...new Set(
+        productIds.map(pid => {
+          const p = products.find(x => (x.id || x._id) === pid)
+          return p?.category_id || p?.categoryId || p?.category?._id || p?.category?.id || (typeof p?.category === 'string' ? p.category : null)
+        }).filter(Boolean)
+      )]
       const context = {
         cartTotal: subtotal,
-        productIds: cart.map(i => i.id || i._id).filter(Boolean),
+        productIds,
+        categoryIds,
       }
       const res = await promocode.validate(couponCode.trim(), context)
       const coupon = res.data?.data || res.data
@@ -290,10 +306,14 @@ export default function Cart() {
                       {shipping === 0 ? 'Free' : `Rs. ${shipping}`}
                     </span>
                   </div>
-                  {subtotal < 5000 && (
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>VAT (13%)</span>
+                    <span className="font-semibold text-gray-900">Rs. {vatAmount.toLocaleString()}</span>
+                  </div>
+                  {discountedSubtotal < FREE_SHIPPING_ABOVE && (
                     <p className="text-xs text-gray-400 flex items-center gap-1.5 bg-gray-50 rounded-xl px-3 py-2">
                       <Truck className="w-3.5 h-3.5 shrink-0" />
-                      Add Rs. {(5000 - subtotal).toLocaleString()} more for free shipping
+                      Add Rs. {(FREE_SHIPPING_ABOVE - discountedSubtotal).toLocaleString()} more for free shipping
                     </p>
                   )}
                 </div>

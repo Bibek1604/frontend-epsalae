@@ -49,7 +49,7 @@ function SkeletonFlashCard() {
 
 export default function FlashSale() {
   const navigate = useNavigate()
-  const { flashSales, loading, fetchFlashSales } = useFlashSaleStore()
+  const { flashSales, loading, fetchActiveFlashSales: fetchFlashSales } = useFlashSaleStore()
   const { addToCart } = useCart()
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 })
   const [addedIds, setAddedIds] = useState(new Set())

@@ -76,6 +76,24 @@ export const useCart = create(
 
       clearCart: () => set({ cart: [] }),
 
+      // Replace the cart wholesale (used when restoring the saved server cart).
+      setCart: (items) => set({ cart: Array.isArray(items) ? items : [] }),
+
+      // Merge server-saved items into the local cart (local quantities win
+      // for items present in both; server-only items are appended).
+      mergeServerCart: (serverItems) => {
+        if (!Array.isArray(serverItems) || !serverItems.length) return
+        set((state) => {
+          const merged = [...state.cart]
+          for (const it of serverItems) {
+            if (!it || !it.id) continue
+            const exists = merged.find((m) => m.id === it.id && m.color === it.color && m.size === it.size)
+            if (!exists) merged.push(it)
+          }
+          return { cart: merged }
+        })
+      },
+
       getTotalPrice: () =>
         get().cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
 

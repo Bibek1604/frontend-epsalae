@@ -23,12 +23,20 @@ export const productApi = {
    * Get all products with pagination and filters
    */
   getAll: (params) => {
+    // Contract: camelCase query params — page, limit, search, categoryId,
+    // hasOffer, minPrice, maxPrice, sortBy, order, includeInactive (admin).
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page);
     if (params?.limit) queryParams.append('limit', params.limit);
     if (params?.search) queryParams.append('search', params.search);
-    if (params?.category_id) queryParams.append('category_id', params.category_id);
-    if (params?.sort) queryParams.append('sort', params.sort);
+    const categoryId = params?.categoryId || params?.category_id;
+    if (categoryId) queryParams.append('categoryId', categoryId);
+    if (params?.minPrice !== undefined) queryParams.append('minPrice', params.minPrice);
+    if (params?.maxPrice !== undefined) queryParams.append('maxPrice', params.maxPrice);
+    if (params?.hasOffer !== undefined) queryParams.append('hasOffer', params.hasOffer);
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.order) queryParams.append('order', params.order);
+    if (params?.includeInactive) queryParams.append('includeInactive', 'true');
 
     return api.get(`/products?${queryParams.toString()}`);
   },
@@ -80,12 +88,10 @@ export const productApi = {
     if (data.imageUrl && data.imageUrl.includes('data:image')) {
       const file = base64ToFile(data.imageUrl, 'product-image.png');
       if (file) {
-        console.log('📤 Uploading product image file:', { name: file.name, size: file.size, type: file.type });
         formData.append('image', file); // Backend expects 'image' field name
       }
     }
 
-    console.log('📤 Sending product FormData with:', { name: data.name, category_id: data.category_id, hasImage: !!data.imageUrl });
     return api.post('/products', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -112,17 +118,14 @@ export const productApi = {
         // New image uploaded as base64 - convert to file
         const file = base64ToFile(data.imageUrl, 'product-image.png');
         if (file) {
-          console.log('📤 Uploading new product image:', { name: file.name, size: file.size, type: file.type });
           formData.append('image', file);
         }
       } else if (data.imageUrl.startsWith('http')) {
         // Existing Cloudinary URL - pass it to backend to preserve
-        console.log('📤 Keeping existing image URL:', data.imageUrl);
         formData.append('imageUrl', data.imageUrl);
       }
     }
 
-    console.log('📤 Updating product:', { id, name: data.name, hasImage: !!data.imageUrl });
     return api.put(`/products/${id}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -132,7 +135,6 @@ export const productApi = {
    * Delete product (admin)
    */
   remove: (id) => {
-    console.log('🗑️ API: Deleting product with ID:', id);
     return api.delete(`/products/${id}`);
   },
 };

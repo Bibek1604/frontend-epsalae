@@ -1,10 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../store/authstore';
 import api from '../api/base';
-import {
+import { UploadCloud,
   LayoutDashboard, Package, ShoppingCart, Tag, Percent,
   Zap, Image, LogOut, ExternalLink, Award, X, BadgePercent,
-  Heart, ShoppingBag, ChevronRight, ChevronDown,
+  Heart, ShoppingBag, ChevronRight, ChevronDown, Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 import logo from '../../assets/weblogo.png';
@@ -21,6 +21,7 @@ const NAV_SECTIONS = [
     items: [
       { path: '/admin/productcrud',  label: 'Products',   icon: Package },
       { path: '/admin/categorycrud', label: 'Categories', icon: Tag },
+      { path: '/admin/bulk-upload',  label: 'Bulk Upload', icon: UploadCloud },
     ],
   },
   {
@@ -28,8 +29,9 @@ const NAV_SECTIONS = [
     items: [
       { path: '/admin/ordercrud',     label: 'Orders',          icon: ShoppingCart },
       { path: '/admin/salecrud',      label: 'Sale Categories', icon: BadgePercent },
-      { path: '/admin/saleproducts',  label: 'Sale Products',   icon: ShoppingBag },
-      { path: '/admin/flashsalecrud', label: 'Flash Sales',     icon: Zap },
+      { path: '/admin/saleproducts',    label: 'Sale Products',   icon: ShoppingBag },
+      { path: '/admin/seasonal-sales', label: 'Seasonal Sales',  icon: Sparkles },
+      { path: '/admin/flashsalecrud',  label: 'Flash Sales',     icon: Zap },
     ],
   },
   {

@@ -3,8 +3,9 @@ import ProfileSetup from './ProfileSetup'
 import OrdersPage from './AccountOrders'
 import AddressesPage from './AccountAddresses'
 import WishlistPage from './AccountWishlist'
+import SecurityPage from './AccountSecurity'
 import OrderInvoice from './OrderInvoice'
-import { User, ShoppingBag, MapPin, Heart, LogOut } from 'lucide-react'
+import { User, ShoppingBag, MapPin, Heart, LogOut, Lock } from 'lucide-react'
 import { useUserAuth } from '@/components/store/authstore'
 import { authEndpoints } from '@/components/api/userapi'
 import toast from 'react-hot-toast'
@@ -14,6 +15,7 @@ const navItems = [
   { to: '/account/orders', icon: ShoppingBag, label: 'Purchase History' },
   { to: '/account/addresses', icon: MapPin, label: 'Saved Addresses' },
   { to: '/account/wishlist', icon: Heart, label: 'Wishlist' },
+  { to: '/account/security', icon: Lock, label: 'Security' },
 ]
 
 const linkCls = ({ isActive }) =>
@@ -72,6 +74,7 @@ export default function AccountDashboard() {
               <Route path="orders/:orderId" element={<OrderInvoice />} />
               <Route path="addresses" element={<AddressesPage />} />
               <Route path="wishlist" element={<WishlistPage />} />
+              <Route path="security" element={<SecurityPage />} />
             </Routes>
           </main>
         </div>

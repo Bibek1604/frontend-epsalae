@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useFavoritesStore } from '@/store/favoritesstore';
 
 /**
  * Two separate auth slices so an admin login can't grant user-route access
@@ -55,6 +56,8 @@ export const useUserAuth = create(
       logoutUser: () => {
         try { localStorage.removeItem('userToken'); } catch (e) {}
         set({ userToken: null, user: null, isUser: false });
+        // Reset favorites so the next user starts fresh
+        useFavoritesStore.getState().reset();
       },
 
       patchUser: (patch) => set((s) => ({ user: { ...(s.user || {}), ...patch } })),

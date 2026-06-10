@@ -70,9 +70,6 @@ export default function OrderSuccess() {
   
   // Debug: Log what we receive
   useEffect(() => {
-    console.log('🎉 OrderSuccess - URL orderId:', orderId)
-    console.log('🎉 OrderSuccess - location.state:', location.state)
-    console.log('🎉 OrderSuccess - order data:', location.state?.order || location.state?.orderData)
   }, [orderId, location.state])
   
   // Get order data from navigation state
@@ -408,7 +405,7 @@ export default function OrderSuccess() {
           {paymentMethod === 'cod' && (
             <div className="p-3 mb-4 border border-yellow-200 no-print rounded-xl bg-yellow-50">
               <p className="text-sm text-yellow-800">
-                <strong>💵 Cash on Delivery:</strong> Keep Rs. {total.toLocaleString()} ready when your order arrives.
+                <strong>🛵 Cash on Delivery:</strong> Keep Rs. {total.toLocaleString()} ready when your order arrives.
               </p>
             </div>
           )}

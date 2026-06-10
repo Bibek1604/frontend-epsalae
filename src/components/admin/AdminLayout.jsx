@@ -1,19 +1,25 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from './sidebar';
 import AdminHeader from './AdminHeader';
 import AdminFooter from './AdminFooter';
-import AdminDashboard from '../../pages/AdminDashboard';
-import ProductCrud from './productcrud';
-import CategoryCrud from './categorycrud';
-import OrderCrud from './ordercrud';
-import PromoCodCrud from './promocodecrud';
-import FlashSaleCrud from './flashsale';
-import BannerCrud from './bannercrud';
-import BrandCrud from './brandcrud';
-import SaleCrud from './salecrud';
-import SaleProductsCrud from './saleproductscrud';
-import WishlistCrud from './wishlistcrud';
+import { TableSkeleton } from '../ui/Skeleton';
+
+// Code-split each admin screen so the initial admin bundle stays small —
+// a screen's JS is only fetched when the user navigates to it.
+const AdminDashboard   = lazy(() => import('../../pages/AdminDashboard'));
+const ProductCrud      = lazy(() => import('./productcrud'));
+const CategoryCrud     = lazy(() => import('./categorycrud'));
+const OrderCrud        = lazy(() => import('./ordercrud'));
+const PromoCodCrud     = lazy(() => import('./promocodecrud'));
+const FlashSaleCrud    = lazy(() => import('./flashsale'));
+const BannerCrud       = lazy(() => import('./bannercrud'));
+const BrandCrud        = lazy(() => import('./brandcrud'));
+const SaleCrud         = lazy(() => import('./salecrud'));
+const SaleProductsCrud = lazy(() => import('./saleproductscrud'));
+const WishlistCrud     = lazy(() => import('./wishlistcrud'));
+const SeasonalSales    = lazy(() => import('./seasonalsales'));
+const BulkUpload       = lazy(() => import('./bulkupload'));
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,19 +39,23 @@ export default function AdminLayout() {
 
         {/* Page Content */}
         <main className="flex-1 mt-[70px] p-5 md:p-7 overflow-auto">
-          <Routes>
-            <Route path="/" element={<AdminDashboard />} />
-            <Route path="/categorycrud" element={<CategoryCrud />} />
-            <Route path="/productcrud" element={<ProductCrud />} />
-            <Route path="/ordercrud" element={<OrderCrud />} />
-            <Route path="/promocodecrud" element={<PromoCodCrud />} />
-            <Route path="/flashsalecrud" element={<FlashSaleCrud />} />
-            <Route path="/bannercrud" element={<BannerCrud />} />
-            <Route path="/brandcrud" element={<BrandCrud />} />
-            <Route path="/salecrud" element={<SaleCrud />} />
-            <Route path="/saleproducts" element={<SaleProductsCrud />} />
-            <Route path="/wishlists" element={<WishlistCrud />} />
-          </Routes>
+          <Suspense fallback={<div className="space-y-4"><TableSkeleton rows={8} cols={6} /></div>}>
+            <Routes>
+              <Route path="/" element={<AdminDashboard />} />
+              <Route path="/categorycrud" element={<CategoryCrud />} />
+              <Route path="/productcrud" element={<ProductCrud />} />
+              <Route path="/ordercrud" element={<OrderCrud />} />
+              <Route path="/promocodecrud" element={<PromoCodCrud />} />
+              <Route path="/flashsalecrud" element={<FlashSaleCrud />} />
+              <Route path="/bannercrud" element={<BannerCrud />} />
+              <Route path="/brandcrud" element={<BrandCrud />} />
+              <Route path="/salecrud" element={<SaleCrud />} />
+              <Route path="/saleproducts" element={<SaleProductsCrud />} />
+              <Route path="/wishlists" element={<WishlistCrud />} />
+              <Route path="/seasonal-sales" element={<SeasonalSales />} />
+              <Route path="/bulk-upload" element={<BulkUpload />} />
+            </Routes>
+          </Suspense>
         </main>
 
         {/* Footer */}

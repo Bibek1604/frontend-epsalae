@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Search, ShoppingBag, Heart, Menu, Package, LogIn, X, Grid, Home, ChevronDown, User, Zap } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '@/store/cartstore'
+import { authEndpoints } from '../api/userapi'
 import { useUserAuth } from '../store/authstore'
 import { useProductStore } from '../store/productstore'
 import { useCategoryStore } from '../store/categorystore'
@@ -228,7 +229,8 @@ export default function Navbar() {
                             </Link>
                             <hr className="border-gray-100" />
                             <button
-                              onClick={() => {
+                              onClick={async () => {
+                                try { await authEndpoints.logout() } catch (_) {}
                                 logout()
                                 setUserMenuOpen(false)
                                 navigate('/')
@@ -243,7 +245,15 @@ export default function Navbar() {
                       )}
                     </AnimatePresence>
                   </div>
-                ) : null}
+                ) : (
+                  <Link
+                    to="/login"
+                    className="flex items-center gap-2 rounded-full bg-[#1A3C8A] px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#112960] shadow-md shadow-blue-200"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Login
+                  </Link>
+                )}
 
                 {/* Mobile Menu Toggle */}
                 <button
@@ -303,9 +313,10 @@ export default function Navbar() {
                     Track Your Order
                   </Link>
 
-                  {isLoggedIn && (
+                  {isLoggedIn ? (
                     <button
-                      onClick={() => {
+                      onClick={async () => {
+                        try { await authEndpoints.logout() } catch (_) {}
                         logout()
                         setMobileMenuOpen(false)
                       }}
@@ -314,6 +325,15 @@ export default function Navbar() {
                       <LogIn className="w-6 h-6" />
                       Logout
                     </button>
+                  ) : (
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-4 rounded-3xl bg-[#1A3C8A] px-6 py-4 font-semibold text-white shadow-lg"
+                    >
+                      <LogIn className="w-6 h-6" />
+                      Login / Sign Up
+                    </Link>
                   )}
                 </div>
               </div>

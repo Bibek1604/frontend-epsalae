@@ -48,7 +48,15 @@ const LoginPage: React.FC = () => {
       if (!token) throw new Error(res.data?.message || 'Login failed');
       loginUser(token, user);
       try {
-        if (Array.isArray(cart) && cart.length) await profileEndpoints.cart.merge({ items: cart });
+        // Two-way cart sync: pull the cart saved on the server, merge it into
+        // the local cart, then push the merged result back.
+        const saved = await profileEndpoints.cart.get();
+        const savedItems = saved.data?.data || [];
+        useCart.getState().mergeServerCart(savedItems);
+        const merged = useCart.getState().cart;
+        if (Array.isArray(merged) && merged.length) {
+          await profileEndpoints.cart.merge({ items: merged });
+        }
       } catch (_) {}
       toast.success('Welcome back!');
       navigate(returnTo, { replace: true });

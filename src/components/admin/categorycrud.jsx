@@ -8,6 +8,7 @@ import {
   Tag, Image as ImageIcon, Eye, EyeOff
 } from 'lucide-react';
 import { openCloudinaryWidget } from '../../utils/cloudinary';
+import { TableSkeleton } from '../ui/Skeleton';
 import { getImageUrl } from '@/config';
 
 export default function CategoryCrud() {
@@ -231,9 +232,7 @@ export default function CategoryCrud() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#FF6B35]" />
-          </div>
+          <TableSkeleton rows={6} cols={4} />
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <Tag className="w-12 h-12 text-gray-300 mx-auto mb-3" />

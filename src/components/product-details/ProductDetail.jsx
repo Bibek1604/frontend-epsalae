@@ -100,7 +100,7 @@ export default function ProductDetail() {
     addToCart({
       id: product._id || product.id,
       name: product.name,
-      price: product.discountPrice > 0 ? product.discountPrice : product.price,
+      price: (product.hasOffer && product.discountPrice > 0) ? product.discountPrice : product.price,
       image: mainImage,
       quantity,
     })
@@ -221,7 +221,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Low stock alert */}
-            {(product.stock || 0) > 0 && (product.stock || 0) < 10 && (
+            {(product.stock || 0) > 0 && (product.stock || 0) <= 10 && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}

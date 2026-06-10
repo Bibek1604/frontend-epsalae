@@ -131,7 +131,8 @@ function App() {
           <Route path="products" element={<Products />} />
           <Route path="product/:id" element={<ProductDetail />} />
           <Route path="cart" element={<Cart />} />
-          <Route path="checkout" element={<UserProtectedRoute><Checkout /></UserProtectedRoute>} />
+          {/* Guest checkout is allowed by contract — no auth guard here. */}
+          <Route path="checkout" element={<Checkout />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="sale/:slug" element={<SalePage />} />
           <Route path="register" element={<RegisterPage />} />

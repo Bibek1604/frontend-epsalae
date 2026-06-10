@@ -7,13 +7,26 @@ export const useBannerStore = create((set) => ({
   loading: false,
   error: null,
 
+  // Storefront: only active banners
+  fetchActiveBanners: async () => {
+    set({ loading: true, error: null });
+    try {
+      const res = await bannerApi.getActive();
+      const data = res.data?.data || res.data || [];
+      set({ banners: Array.isArray(data) ? data : [] });
+    } catch (err) {
+      set({ error: err.response?.data?.message || 'Failed to load banners' });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   fetchBanners: async () => {
     set({ loading: true, error: null });
     try {
       const res = await bannerApi.getAll();
       const data = res.data?.data || res.data || [];
       const banners = Array.isArray(data) ? data : [];
-      console.log('🎨 Banners fetched:', { count: banners.length });
       set({ banners });
     } catch (err) {
       console.error('❌ Error fetching banners:', err);

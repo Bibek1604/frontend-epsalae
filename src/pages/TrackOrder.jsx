@@ -127,27 +127,20 @@ export default function TrackOrder() {
     try {
       // Use public track endpoint (no auth required)
       // Backend: GET /api/v1/orders/track/:orderId
-      const res = await orderApi.trackById(orderId.trim());
-      console.log('📦 Track response:', res.data);
-      console.log('📦 Full response object:', JSON.stringify(res.data, null, 2));
+      const res = await orderApi.trackById(orderId.trim(), phone.trim());
       
       // Handle different response structures
       let fetchedOrder = res.data?.data || res.data?.order || res.data;
       
       // If the order data is nested further
       if (fetchedOrder && typeof fetchedOrder === 'object') {
-        console.log('📦 Fetched order keys:', Object.keys(fetchedOrder));
-        console.log('📦 Fetched order:', JSON.stringify(fetchedOrder, null, 2));
       }
       
       // Normalize the order data
       const normalizedOrder = normalizeOrder(fetchedOrder);
-      console.log('📦 Normalized order:', normalizedOrder);
       
       // Get phone for verification
       const dbPhone = normalizedOrder?.customerPhone;
-      console.log('📱 Order phone from DB:', dbPhone);
-      console.log('📱 User entered phone:', phone.trim());
 
       // Normalize phone numbers for comparison (remove spaces, dashes, +977 prefix)
       const normalizePhoneNumber = (p) => {
@@ -158,8 +151,6 @@ export default function TrackOrder() {
       const orderPhone = normalizePhoneNumber(dbPhone);
       const inputPhone = normalizePhoneNumber(phone);
       
-      console.log('📱 Normalized order phone:', orderPhone);
-      console.log('📱 Normalized input phone:', inputPhone);
 
       // Verify phone number matches for security (flexible comparison)
       // Also allow if no phone is in database or phones match

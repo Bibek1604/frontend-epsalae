@@ -1,45 +1,23 @@
 // src/components/api/orderapi.jsx
-import api from './base';
+import api from './base';          // admin client (adminToken)
+import userApi from './userapi';   // user client (userToken when logged in)
+import publicApi from './publicapi';
 
 export const orderApi = {
-  getAll: async () => {
-    console.log('📦 Fetching orders...');
-    const res = await api.get('/orders/');
-    return res;
-  },
+  // ── Admin ────────────────────────────────────────────────────────────────
+  getAll: (params) => api.get('/orders', { params }),
+  getById: (id) => api.get(`/orders/${id}`),
+  getStats: () => api.get('/orders/stats'),
+  updateStatus: (id, status, meta) =>
+    api.put(`/orders/${id}/status`, { status, ...(meta || {}) }),
 
-  getById: async (id) => {
-    const res = await api.get(`/orders/${id}`);
-    return res;
-  },
+  // ── Customer / guest ─────────────────────────────────────────────────────
+  // Contract: items carry ONLY { productId, quantity } — the server resolves
+  // prices. Sent through the user client so a logged-in user's JWT attaches
+  // and the order lands in their history; guests simply send no token.
+  create: (data) => userApi.post('/orders', data),
 
-  create: async (data) => {
-    console.log('📤 Creating order with data:', data);
-    try {
-      const res = await api.post('/orders/', data);
-      console.log('📥 Order creation response:', res);
-      console.log('📥 Response data:', res.data);
-      console.log('📥 Response data.data:', res.data?.data);
-      console.log('📥 Response data._id:', res.data?._id);
-      console.log('📥 Response data.data._id:', res.data?.data?._id);
-      return res;
-    } catch (error) {
-      console.error('❌ Order creation failed:', error);
-      console.error('❌ Error response:', error.response?.data);
-      throw error;
-    }
-  },
-
-  updateStatus: async (id, status, meta) => {
-    console.log('📝 Updating order status:', { id, status, meta });
-    const res = await api.put(`/orders/${id}/status`, { status, ...(meta || {}) });
-    return res;
-  },
-
-  // Public track order by ID (no auth required).
-  // Backend endpoint: GET /api/v1/orders/track/:id
-  trackById: async (orderId) => {
-    const res = await api.get(`/orders/track/${orderId}`);
-    return res;
-  },
+  // Public tracking — requires the phone number used on the order.
+  trackById: (orderId, phone) =>
+    publicApi.get(`/orders/track/${encodeURIComponent(orderId)}`, { params: { phone } }),
 };

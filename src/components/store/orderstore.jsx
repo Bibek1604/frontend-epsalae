@@ -4,8 +4,21 @@ import { orderApi } from '../api/orderapi';
 
 export const useOrderStore = create((set) => ({
   orders: [],
+  pagination: null,
+  stats: null,
   loading: false,
   error: null,
+
+  // Server-computed statistics (GET /orders/stats) — covers ALL orders, not
+  // just the page currently loaded.
+  fetchStats: async () => {
+    try {
+      const res = await orderApi.getStats();
+      set({ stats: res.data?.data || null });
+    } catch (err) {
+      set({ stats: null });
+    }
+  },
 
   createOrder: async (orderData) => {
     set({ loading: true, error: null });
@@ -25,16 +38,14 @@ export const useOrderStore = create((set) => ({
     }
   },
 
-  fetchOrders: async () => {
+  fetchOrders: async (params = {}) => {
     set({ loading: true, error: null });
     try {
-      const res = await orderApi.getAll();
+      const res = await orderApi.getAll(params);
       const data = res.data?.data || res.data || [];
       const orders = Array.isArray(data) ? data : [];
-      console.log('📦 Orders fetched:', { count: orders.length });
-      set({ orders });
+      set({ orders, pagination: res.data?.meta || null });
     } catch (err) {
-      console.error('❌ Error fetching orders:', err);
       set({ error: err.response?.data?.message || 'Failed to load orders' });
     } finally {
       set({ loading: false });

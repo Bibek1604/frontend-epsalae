@@ -15,8 +15,13 @@ const convertBase64ToFile = (base64, filename) => {
 
 export const bannerApi = {
   getAll: async () => {
-    console.log('📸 Fetching banners...');
     const res = await api.get('/banners/');
+    return res;
+  },
+
+  // Public storefront — active banners only
+  getActive: async () => {
+    const res = await api.get('/banners/active');
     return res;
   },
 
@@ -26,7 +31,6 @@ export const bannerApi = {
   },
 
   create: async (data) => {
-    console.log('📤 Creating banner:', data);
     const formData = new FormData();
     formData.append('title', data.title);
     formData.append('subtitle', data.subtitle || '');
@@ -46,7 +50,6 @@ export const bannerApi = {
   },
 
   update: async (id, data) => {
-    console.log('📝 Updating banner:', data);
     const formData = new FormData();
     formData.append('title', data.title);
     formData.append('subtitle', data.subtitle || '');
@@ -66,7 +69,6 @@ export const bannerApi = {
   },
 
   remove: async (id) => {
-    console.log('🗑️ Deleting banner:', id);
     const res = await api.delete(`/banners/${id}`);
     return res;
   },

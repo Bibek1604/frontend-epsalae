@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Calendar, CreditCard, Download, MapPin, Package, Printer, RotateCcw, Truck, CircleCheckBig } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { profileEndpoints } from '@/components/api/userapi'
+import userApi from '@/components/api/userapi'
 import { useCart } from '@/store/cartstore'
 
 // Hide everything except the invoice when printing
@@ -44,10 +44,11 @@ export default function OrderInvoice() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await profileEndpoints.orders({ page: 1, limit: 100 })
-        const data = res.data?.data || res.data || {}
-        const list = Array.isArray(data.orders) ? data.orders : Array.isArray(data) ? data : []
-        setOrders(list)
+        // Owner-checked single-order endpoint — no more fetching 100 orders
+        // and filtering client-side.
+        const res = await userApi.get(`/orders/my/${encodeURIComponent(orderId)}`)
+        const data = res.data?.data || null
+        setOrders(data ? [data] : [])
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to load order')
       } finally {
@@ -55,7 +56,7 @@ export default function OrderInvoice() {
       }
     }
     load()
-  }, [])
+  }, [orderId])
 
   const order = useMemo(() => {
     return orders.find((o) => String(o.id || o._id) === String(orderId)) || null

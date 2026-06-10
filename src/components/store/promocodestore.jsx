@@ -24,10 +24,10 @@ export const useCouponStore = create((set) => ({
     }
   },
 
-  validateCoupon: async (code) => {
+  validateCoupon: async (code, context = {}) => {
     set({ loading: true });
     try {
-      const res = await couponApi.validate(code);
+      const res = await couponApi.validate(code, context);
       const coupon = res.data?.data || res.data;
       set({ validatedCoupon: coupon });
       return coupon;
@@ -38,6 +38,12 @@ export const useCouponStore = create((set) => ({
     } finally {
       set({ loading: false });
     }
+  },
+
+  // Admin: fetch usage analytics for a single coupon.
+  fetchCouponAnalytics: async (code) => {
+    const res = await couponApi.analytics(code);
+    return res.data?.data || res.data;
   },
 
   addCoupon: async (data) => {

@@ -1,12 +1,13 @@
 // src/components/BrandsSection.jsx → ULTRA-PREMIUM GOOGLE-STYLE NEPALI BRANDS (2025 FINAL)
 // Now uses localStorage via brandstore for admin management
-import React from 'react'
+import React, { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useBrandStore } from '../store/brandstore'
 
 export default function BrandsSection() {
-  // Get brands from localStorage store
-  const { brands } = useBrandStore()
+  const { brands, fetchBrands } = useBrandStore()
+
+  useEffect(() => { fetchBrands() }, [fetchBrands])
 
   // If no brands, don't render section
   if (!brands || brands.length === 0) return null
