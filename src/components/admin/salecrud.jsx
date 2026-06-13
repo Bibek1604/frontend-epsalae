@@ -42,7 +42,7 @@ function SaleInput({ label, value, onChange, error, placeholder, required, type 
 }
 
 export default function SaleCrud() {
-  const { products, fetchProducts } = useProductStore();
+  const { products, fetchProducts, fetchAllProducts } = useProductStore();
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -76,7 +76,7 @@ export default function SaleCrud() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); fetchProducts({ limit: 200 }); }, [load]);
+  useEffect(() => { load(); fetchAllProducts(); }, [load]);
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setErrors({}); setShowModal(true); };
   const openEdit = (s) => {
@@ -111,6 +111,17 @@ export default function SaleCrud() {
 
   const handleSave = async () => {
     if (!validate()) return;
+    // An active sale with no products renders an empty section on the
+    // storefront — make the admin confirm that's really intended.
+    if (form.products.length === 0 && form.is_active !== false) {
+      const ok = window.confirm(
+        'This sale has NO products attached.\n\n' +
+        'It will appear on the homepage and /sales with an empty product grid. ' +
+        'Add products from the list below (the picker now shows your full catalogue), ' +
+        'or press OK to save it without products anyway.'
+      );
+      if (!ok) return;
+    }
     setSaving(true);
     try {
       const payload = {

@@ -23,25 +23,6 @@ export const useCart = create(
           }
           return { cart: [...state.cart, product] }
         })
-        
-        // Green theme - Product added
-        toast.success('Product added to cart!', {
-          duration: 2500,
-          position: 'top-right',
-          style: {
-            background: '#10B981',
-            color: '#fff',
-            fontWeight: '600',
-            fontSize: '14px',
-            padding: '14px 20px',
-            borderRadius: '12px',
-            boxShadow: '0 10px 30px rgba(16, 185, 129, 0.4)',
-          },
-          iconTheme: {
-            primary: '#fff',
-            secondary: '#10B981',
-          },
-        })
       },
 
       removeFromCart: (id) => {

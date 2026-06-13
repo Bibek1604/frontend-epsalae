@@ -58,11 +58,24 @@ export default function Cart() {
       const coupon = res.data?.data || res.data
 
       if (coupon && coupon.valid) {
-        if (coupon.discountAmount > subtotal) {
-          setCouponError('Coupon not applicable for this order amount')
+        // Recompute discount using the same scope logic as the backend priceCalculator
+        let discountAmt = Number(coupon.discountAmount) || 0
+        if (coupon.apply_on === 'product' && coupon.applicable_products?.length) {
+          const base = cart
+            .filter(i => coupon.applicable_products.includes(String(i.id || i._id)))
+            .reduce((s, i) => s + i.price * i.quantity, 0)
+          if (coupon.discount_type === 'percentage') {
+            discountAmt = Math.round(base * coupon.discount_value / 100)
+            if (coupon.max_discount_cap) discountAmt = Math.min(discountAmt, coupon.max_discount_cap)
+          } else {
+            discountAmt = Math.min(coupon.discount_value, base)
+          }
+          discountAmt = Math.min(discountAmt, subtotal)
+        }
+        if (discountAmt <= 0) {
+          setCouponError('This coupon is not applicable to any items in your cart')
           return
         }
-        const discountAmt = Number(coupon.discountAmount) || 0
         setAppliedCoupon(coupon)
         setDiscount(discountAmt)
         setCouponSuccess(`Coupon applied! You save Rs. ${discountAmt.toLocaleString()}`)
@@ -353,19 +366,6 @@ export default function Cart() {
                 >
                   Continue Shopping
                 </Link>
-              </div>
-
-              {/* Trust row */}
-              <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-center gap-4 flex-wrap">
-                {[
-                  { Icon: Shield, text: 'Secure checkout' },
-                  { Icon: RotateCcw, text: '7-day returns' },
-                  { Icon: Truck, text: 'Fast delivery' },
-                ].map(({ Icon: Ic, text }) => (
-                  <span key={text} className="flex items-center gap-1 text-xs font-medium text-gray-500">
-                    <Ic className="w-3.5 h-3.5 text-gray-400" /> {text}
-                  </span>
-                ))}
               </div>
             </div>
           </div>

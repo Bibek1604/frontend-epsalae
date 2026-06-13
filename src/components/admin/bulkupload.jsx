@@ -11,7 +11,6 @@ import { bulkApi, BULK_ENTITIES } from '../api/bulkapi';
 import { useProductStore } from '../store/productstore';
 import { useCategoryStore } from '../store/categorystore';
 import { useBannerStore } from '../store/bannerstore';
-import { useFlashSaleStore } from '../store/flashsalestore';
 
 const DATA_EXT = ['.csv', '.xlsx', '.xls', '.json'];
 const MAX_DATA_BYTES = 5 * 1024 * 1024;   // 5MB data file
@@ -34,7 +33,6 @@ export default function BulkUpload() {
   const { fetchProducts } = useProductStore();
   const { fetchCategories } = useCategoryStore();
   const { fetchBanners } = useBannerStore();
-  const { fetchFlashSales } = useFlashSaleStore();
 
   // ── Client-side file checks (level 1 of the 3-level limit) ────────────────
   const acceptDataFile = (f) => {
@@ -71,7 +69,6 @@ export default function BulkUpload() {
     if (entity === 'products') fetchProducts({ limit: 100, includeInactive: true });
     if (entity === 'categories') fetchCategories();
     if (entity === 'banners') fetchBanners();
-    if (entity === 'flash-sales') fetchFlashSales();
     // seasonal-sales pages fetch on mount via their own local loaders
   };
 

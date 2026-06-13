@@ -7,7 +7,6 @@ export const BULK_ENTITIES = [
   { key: 'products',       label: 'Products' },
   { key: 'banners',        label: 'Banners' },
   { key: 'seasonal-sales', label: 'Seasonal Sales' },
-  { key: 'flash-sales',    label: 'Flash Sales' },
 ];
 
 export const bulkApi = {

@@ -8,6 +8,30 @@ export const useProductStore = create((set) => ({
   error: null,
   pagination: null,
 
+  // Admin helper: aggregate every product across pages (backend caps each
+  // request at limit=100). Used by pickers that need the full catalogue.
+  fetchAllProducts: async () => {
+    set({ loading: true, error: null });
+    try {
+      const all = [];
+      let page = 1;
+      // hard cap 20 pages (2,000 products) as a safety valve
+      while (page <= 20) {
+        const res = await productApi.getAll({ page, limit: 100, includeInactive: true });
+        const data = res.data?.data || [];
+        all.push(...data);
+        const meta = res.data?.meta;
+        if (!data.length || !meta || page >= (meta.totalPages || 1)) break;
+        page += 1;
+      }
+      set({ products: all, pagination: null });
+    } catch (err) {
+      set({ error: 'Failed to load products', products: [] });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   fetchProducts: async (params = {}) => {
     set({ loading: true, error: null });
     try {

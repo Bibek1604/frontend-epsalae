@@ -115,7 +115,8 @@ export default function Checkout() {
       setBreakdown(data)
       return data
     } catch (err) {
-      setBreakdownError('Could not calculate total. Check your connection.')
+      const msg = err?.response?.data?.message || err?.message || 'Could not calculate total. Check your connection.'
+      setBreakdownError(msg)
       return null
     } finally {
       setBreakdownLoading(false)
@@ -168,13 +169,14 @@ export default function Checkout() {
     fetchBreakdown('')
   }
 
-  // ── Derived totals (from breakdown) ──────────────────────────────────────
-  const total         = breakdown?.total              ?? 0
-  const subtotal      = breakdown?.subtotal           ?? cart.reduce((s, i) => s + i.price * i.quantity, 0)
-  const couponDiscount = breakdown?.couponDiscount    ?? 0
-  const vatAmount     = breakdown?.vatAmount          ?? 0
-  const shipping      = breakdown?.shipping           ?? (subtotal >= 5000 ? 0 : 150)
-  const shippingNote  = breakdown?.shippingNote       ?? ''
+  // ── Derived totals (from breakdown, with local fallback when API fails) ──
+  const subtotal       = breakdown?.subtotal      ?? cart.reduce((s, i) => s + i.price * i.quantity, 0)
+  const couponDiscount = breakdown?.couponDiscount ?? 0
+  const discountedSub  = subtotal - couponDiscount
+  const vatAmount      = breakdown?.vatAmount      ?? (breakdown == null ? Math.round(discountedSub * 0.13) : 0)
+  const shipping       = breakdown?.shipping       ?? (discountedSub >= 5000 ? 0 : 150)
+  const shippingNote   = breakdown?.shippingNote   ?? ''
+  const total          = breakdown?.total          ?? (discountedSub + vatAmount + shipping)
 
   // ── Form helpers ─────────────────────────────────────────────────────────
   const handleInputChange = (e) => {
@@ -258,7 +260,7 @@ export default function Checkout() {
             phone: formData.phone, district: formData.district,
             city: formData.city, address: formData.address,
             description: formData.description,
-            items: orderData.items,
+            items: orderResponse?.items?.length ? orderResponse.items : orderData.items,
             subtotal, shipping,
             vatAmount, couponDiscount,
             total: breakdown.total, totalAmount: breakdown.total,
@@ -524,8 +526,19 @@ export default function Checkout() {
                     <Loader2 className="w-4 h-4 animate-spin" /> Calculating…
                   </div>
                 ) : breakdownError ? (
-                  <div className="flex items-center gap-2 text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {breakdownError}
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {breakdownError}
+                    </div>
+                    <div className="space-y-1.5 text-sm text-gray-500">
+                      <div className="flex justify-between"><span>Subtotal (est.)</span><span>Rs. {subtotal.toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span>VAT 13% (est.)</span><span>Rs. {vatAmount.toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span>Shipping (est.)</span><span>{shipping === 0 ? 'FREE' : `Rs. ${shipping}`}</span></div>
+                    </div>
+                    <button onClick={() => fetchBreakdown(appliedCouponCode)}
+                      className="w-full py-1.5 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50">
+                      Retry calculation
+                    </button>
                   </div>
                 ) : (
                   <>

@@ -4,7 +4,6 @@ import Trustability from "./trustability";
 import Banner from "./banner";
 import BrandsSection from "./brand";
 import ProductsGrid from "./product";
-import FlashSale from "./flashsale"
 import SaleSection from "./salesection";
 import AdditionalContent from "./additionalcontent";
 import FeaturedCarousel from './featuredCarousel'
@@ -28,7 +27,6 @@ export default function Home() {
       <AdditionalContent />
 
       <SaleSection />
-      <FlashSale />
       <FeaturedCarousel />
       <ProductsGrid />
       <Trustability />

@@ -96,9 +96,12 @@ export default function OrderSuccess() {
   }
 
   // Calculate values
-  const subtotal = order.subtotal || order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0
-  const shipping = order.shipping !== undefined ? order.shipping : (subtotal >= 5000 ? 0 : 250)
-  const total = order.total || order.totalAmount || (subtotal + shipping)
+  const subtotal = order.subtotal || order.items?.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0) || 0
+  const couponDiscount = order.couponDiscount || order.discountAmount || 0
+  const vatAmount = order.vatAmount || 0
+  const discountedSubtotal = subtotal - couponDiscount
+  const shipping = order.shipping !== undefined ? order.shipping : (discountedSubtotal >= 5000 ? 0 : 150)
+  const total = order.total || order.totalAmount || (discountedSubtotal + vatAmount + shipping)
   const paymentMethod = order.paymentMethod || 'cod'
   const customerName = order.name || `${order.first_name || ''} ${order.last_name || ''}`.trim() || 'Customer'
   const orderDate = order.orderDate ? new Date(order.orderDate) : new Date()
@@ -299,6 +302,18 @@ export default function OrderSuccess() {
                 <span>Subtotal</span>
                 <span>Rs. {subtotal.toLocaleString()}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between font-medium text-green-600">
+                  <span>Coupon Discount{order.couponCode ? ` (${order.couponCode})` : ''}</span>
+                  <span>− Rs. {couponDiscount.toLocaleString()}</span>
+                </div>
+              )}
+              {vatAmount > 0 && (
+                <div className="flex justify-between text-gray-600">
+                  <span>VAT (13%)</span>
+                  <span>Rs. {vatAmount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-600">
                 <span>Shipping</span>
                 <span>{shipping === 0 ? 'FREE' : `Rs. ${shipping}`}</span>
@@ -430,23 +445,14 @@ export default function OrderSuccess() {
             onClick={() => window.print()}
             className="flex items-center justify-center gap-2 px-6 py-4 font-semibold text-gray-900 transition border-2 border-gray-300 rounded-xl hover:bg-gray-50"
           >
-            <Download size={20} />
-            Print Invoice
+            <FileText className="w-5 h-5" /> Print Invoice
           </button>
           <button
-            onClick={() => navigate('/')}
-            className="flex items-center justify-center gap-2 px-6 py-4 font-semibold text-white transition bg-green-600 rounded-xl hover:bg-green-700"
+            onClick={() => navigate('/track-order')}
+            className="flex items-center justify-center gap-2 px-6 py-4 font-semibold text-white transition bg-[#1A3C8A] rounded-xl hover:bg-[#112960]"
           >
-            <Home size={20} />
-            Continue Shopping
+            <Package className="w-5 h-5" /> Track Your Order
           </button>
-        </div>
-
-        {/* Need Help - Hidden on Print */}
-        <div className="p-4 mt-6 text-center bg-white shadow no-print need-help-section rounded-xl">
-          <p className="text-sm text-gray-600">
-            Need help? Call us at <a href="tel:+9779860056658" className="font-semibold text-green-600">+977 9860056658</a>
-          </p>
         </div>
       </div>
     </div>

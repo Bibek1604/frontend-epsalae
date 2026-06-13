@@ -15,7 +15,6 @@ const ROUTE_META = {
   '/admin/ordercrud':     { title: 'Orders',             sub: 'Track and manage customer orders' },
   '/admin/salecrud':      { title: 'Sale Categories',    sub: 'Manage promotional sale campaigns' },
   '/admin/saleproducts':  { title: 'Sale Products',      sub: 'Products currently in sale categories' },
-  '/admin/flashsalecrud': { title: 'Flash Sales',        sub: 'Create limited-time lightning deals' },
   '/admin/promocodecrud': { title: 'Promo Codes',        sub: 'Create and manage discount coupons' },
   '/admin/bannercrud':    { title: 'Banners',            sub: 'Manage homepage banner images' },
   '/admin/brandcrud':     { title: 'Brands',             sub: 'Manage brand listings' },

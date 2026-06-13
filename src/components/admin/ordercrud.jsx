@@ -444,6 +444,38 @@ export default function OrderCRUD() {
                   </div>
                 </div>
 
+                {/* Price breakdown */}
+                {(() => {
+                  const subtotal = selectedOrder.items?.reduce((s, it) => s + (it.price || 0) * (it.quantity || 1), 0) || 0;
+                  const discount = selectedOrder.discountAmount || 0;
+                  const vat      = selectedOrder.vatAmount || 0;
+                  const discounted = subtotal - discount;
+                  const shipping = (selectedOrder.totalAmount || 0) - discounted - vat;
+                  return (
+                    <div className="p-4 bg-gray-50 rounded-xl space-y-2 text-sm">
+                      <div className="flex justify-between text-gray-600">
+                        <span>Subtotal</span><span>Rs. {subtotal.toLocaleString()}</span>
+                      </div>
+                      {discount > 0 && (
+                        <div className="flex justify-between font-medium text-green-600">
+                          <span>Coupon Discount{selectedOrder.couponCode ? ` (${selectedOrder.couponCode})` : ''}</span>
+                          <span>- Rs. {discount.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {vat > 0 && (
+                        <div className="flex justify-between text-gray-600">
+                          <span>VAT (13%)</span><span>Rs. {vat.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {shipping > 0 && (
+                        <div className="flex justify-between text-gray-600">
+                          <span>Shipping</span><span>Rs. {shipping.toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Total */}
                 <div className="flex items-center justify-between bg-[#1A3C8A] rounded-xl p-4 text-white">
                   <span className="font-bold">Total Amount</span>

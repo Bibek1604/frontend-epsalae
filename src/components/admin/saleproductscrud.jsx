@@ -32,7 +32,7 @@ const DEFAULT_FORM = {
 };
 
 export default function SaleProductsCrud() {
-  const { products, fetchProducts }      = useProductStore();
+  const { products, fetchProducts, fetchAllProducts } = useProductStore();
   const { categories, fetchCategories }  = useCategoryStore();
 
   const [saleCategories, setSaleCategories] = useState([]);
@@ -69,7 +69,7 @@ export default function SaleProductsCrud() {
 
   useEffect(() => {
     loadSales();
-    fetchProducts({ limit: 500 });
+    fetchAllProducts();
     fetchCategories();
   }, [loadSales, fetchProducts, fetchCategories]);
 

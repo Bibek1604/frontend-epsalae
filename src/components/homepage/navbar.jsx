@@ -1,6 +1,7 @@
 // src/components/Navbar.jsx
 import { useState, useEffect } from 'react'
-import { Search, ShoppingBag, Heart, Menu, Package, LogIn, X, Grid, Home, ChevronDown, User, Zap } from 'lucide-react'
+import { Search, ShoppingBag, Heart, Menu, Package, LogIn, X, Grid, Home, ChevronDown, User, Zap, Flame } from 'lucide-react'
+import api from '../api/base'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '@/store/cartstore'
 import { authEndpoints } from '../api/userapi'
@@ -54,8 +55,20 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Home', path: '/', icon: Home },
+    { name: 'Sales', path: '/sales', icon: Flame },
     { name: 'All Products', path: '/products', icon: Grid },
   ]
+
+  // Live count badge for the Sales nav entry (active sale categories)
+  const [liveSaleCount, setLiveSaleCount] = useState(0)
+  useEffect(() => {
+    api.get('/sale-categories/active')
+      .catch(() => ({ data: { data: [] } }))
+      .then((sc) => {
+        const sales = Array.isArray(sc.data?.data) ? sc.data.data.length : 0
+        setLiveSaleCount(sales)
+      })
+  }, [])
 
   return (
     <>
@@ -69,7 +82,7 @@ export default function Navbar() {
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-400"></span>
             </span>
             <span className="whitespace-nowrap">
-              FLASH SALE: Up to 50% Off!&nbsp;
+              MEGA SALE: Up to 50% Off!&nbsp;
               <span className="inline-flex items-center gap-1">
                 Code:&nbsp;<strong className="text-orange-300 tracking-wider bg-orange-500/20 px-1.5 py-0.5 rounded">EPASALEY</strong>
               </span>
@@ -140,6 +153,20 @@ export default function Navbar() {
                     </div>
                   </div>
                 </div>
+
+                {/* Sales — dedicated entry with live-count badge */}
+                <Link
+                  to="/sales"
+                  className="relative flex items-center gap-2 rounded-full px-5 py-3 font-semibold text-[#FF6B35] transition-all duration-300 hover:-translate-y-0.5 hover:bg-orange-50"
+                >
+                  <Flame className="w-4 h-4" />
+                  Sales
+                  {liveSaleCount > 0 && (
+                    <span className="absolute -top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FF6B35] px-1 text-[10px] font-bold text-white animate-pulse">
+                      {liveSaleCount}
+                    </span>
+                  )}
+                </Link>
 
                 <Link
                   to="/products"

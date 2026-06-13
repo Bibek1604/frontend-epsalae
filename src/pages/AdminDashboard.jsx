@@ -8,12 +8,11 @@ import { useProductStore }   from '../components/store/productstore';
 import { useCategoryStore }  from '../components/store/categorystore';
 import { useOrderStore }     from '../components/store/orderstore';
 import { useCouponStore }    from '../components/store/promocodestore';
-import { useFlashSaleStore } from '../components/store/flashsalestore';
 import { useBannerStore }    from '../components/store/bannerstore';
 import { useAdminAuth }      from '../components/store/authstore';
 import {
-  Package, Tag, ShoppingCart, TicketPercent, Zap, ImageIcon,
-  ArrowUpRight, ArrowDownRight, DollarSign, AlertCircle,
+  Package, Tag, ShoppingCart, TicketPercent, ImageIcon,
+  ArrowUpRight, ArrowDownRight, Banknote, AlertCircle,
   CheckCircle2, Loader2, Activity, BadgePercent, Clock,
   RefreshCw, TrendingUp, Users, Eye,
 } from 'lucide-react';
@@ -143,7 +142,6 @@ export default function AdminDashboard() {
   const categoryStore  = useCategoryStore();
   const orderStore     = useOrderStore();
   const couponStore    = useCouponStore();
-  const flashSaleStore = useFlashSaleStore();
   const bannerStore    = useBannerStore();
   const { admin }      = useAdminAuth();
 
@@ -161,7 +159,6 @@ export default function AdminDashboard() {
           orderStore.fetchOrders?.({ limit: 100 }),
           orderStore.fetchStats?.(),
           couponStore.fetchCoupons?.(),
-          flashSaleStore.fetchFlashSales?.(),
           bannerStore.fetchBanners?.(),
         ].filter(Boolean));
       } catch {}
@@ -174,7 +171,6 @@ export default function AdminDashboard() {
   const products   = productStore.products ?? [];
   const categories = categoryStore.categories ?? [];
   const coupons    = couponStore.coupons   ?? [];
-  const flashSales = flashSaleStore.flashSales ?? [];
 
   // Server-side stats cover the WHOLE order book; the loaded `orders` page
   // (most recent 100) is only used for the trend chart below.
@@ -184,7 +180,6 @@ export default function AdminDashboard() {
   const deliveredOrders = stats?.deliveredOrders ?? orders.filter(o => o.status === 'delivered').length;
   const cancelledOrders = stats?.cancelledOrders ?? orders.filter(o => o.status === 'cancelled').length;
   const activeCoupons   = coupons.filter(c => c.isActive).length;
-  const activeSales     = flashSales.filter(fs => fs.isActive).length;
   const lowStockCount   = products.filter(p => p.stock > 0 && p.stock < 10).length;
 
   /* ── chart data ── */
@@ -238,6 +233,35 @@ export default function AdminDashboard() {
     { name: 'Out of Stock',value: products.filter(p => p.stock === 0).length,              fill: '#EF4444' },
   ]), [products]);
 
+  // Top selling products — aggregate units & revenue from order items
+  const topProducts = useMemo(() => {
+    const map = {};
+    orders.forEach(o => {
+      (o.items || []).forEach(it => {
+        const key = it.name || 'Unknown';
+        if (!map[key]) map[key] = { name: key, units: 0, revenue: 0 };
+        const qty = it.quantity || 1;
+        map[key].units   += qty;
+        map[key].revenue += (it.price || 0) * qty;
+      });
+    });
+    return Object.values(map).sort((a, b) => b.units - a.units).slice(0, 6);
+  }, [orders]);
+
+  // Products by category — count per category
+  const categoryData = useMemo(() => {
+    const nameOf = (id) => categories.find(c => (c._id || c.id) === id)?.name || 'Uncategorized';
+    const cnt = {};
+    products.forEach(p => {
+      const id = p.category_id || p.categoryId || p.category?._id || p.category?.id || p.category;
+      const name = typeof id === 'string' || typeof id === 'number' ? nameOf(id) : (id?.name || 'Uncategorized');
+      cnt[name] = (cnt[name] || 0) + 1;
+    });
+    return Object.entries(cnt)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [products, categories]);
+
   // Compute received amount + due amount from orders
   const receivedAmt = orders.filter(o => o.status === 'delivered').reduce((s,o) => s + (o.totalAmount||0), 0);
   const dueAmt      = orders.filter(o => ['pending','confirmed','processing'].includes(o.status)).reduce((s,o) => s + (o.totalAmount||0), 0);
@@ -284,7 +308,7 @@ export default function AdminDashboard() {
           label="Total Revenue"
           value={`Rs. ${fmt(totalRevenue)}`}
           pct={4.35}
-          icon={DollarSign}
+          icon={Banknote}
           iconBg="bg-orange-100"
           iconColor="text-[#FF6B35]"
           link="/admin/ordercrud"
@@ -485,6 +509,66 @@ export default function AdminDashboard() {
         </ChartCard>
       </div>
 
+      {/* ── Charts row 3: Top Products bar + Category donut ─────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        {/* Top Selling Products — 2/3 */}
+        <div className="xl:col-span-2">
+          <ChartCard title="Top Selling Products" action={
+            <Link to="/admin/productcrud" className="text-xs font-semibold text-[#FF6B35] hover:text-orange-600 flex items-center gap-1">
+              All Products <ArrowUpRight className="w-3 h-3" />
+            </Link>
+          }>
+            {topProducts.length === 0 ? (
+              <div className="flex items-center justify-center h-56 text-gray-300 text-sm">No sales data yet</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={topProducts} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#6B7280' }} tickLine={false} axisLine={false}
+                    tickFormatter={v => v.length > 16 ? v.slice(0, 15) + '…' : v} />
+                  <Tooltip content={<ChartTip />} cursor={{ fill: '#FFF5F1' }} />
+                  <Bar dataKey="units" name="Units Sold" fill={ORANGE} radius={[0,4,4,0]} maxBarSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+        </div>
+
+        {/* Products by Category — 1/3 */}
+        <ChartCard title="Products by Category">
+          {categoryData.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-gray-300 text-sm">No products yet</div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={170}>
+                <PieChart>
+                  <Pie data={categoryData} cx="50%" cy="50%" innerRadius={45} outerRadius={68}
+                    paddingAngle={3} dataKey="value" strokeWidth={0}>
+                    {categoryData.map((e,i) => <Cell key={i} fill={CAT_PAL[i % CAT_PAL.length]} />)}
+                  </Pie>
+                  <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                    <tspan x="50%" dy="-4" style={{ fontSize: 20, fontWeight: 700, fill: '#111827' }}>{products.length}</tspan>
+                    <tspan x="50%" dy="16" style={{ fontSize: 10, fill: '#9CA3AF' }}>products</tspan>
+                  </text>
+                  <Tooltip content={<ChartTip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2 mt-2 max-h-32 overflow-y-auto">
+                {categoryData.map((c, i) => (
+                  <div key={c.name} className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ background: CAT_PAL[i % CAT_PAL.length] }} />
+                    <span className="text-xs text-gray-600 flex-1 font-medium truncate">{c.name}</span>
+                    <span className="text-xs font-bold text-gray-800">{c.value}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </ChartCard>
+      </div>
+
       {/* ── Store tiles + Quick Actions ─────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
@@ -497,7 +581,6 @@ export default function AdminDashboard() {
             <StatTile label="Categories"    value={categoryStore.categories?.length}                        icon={Tag}           iconBg="bg-purple-50"  iconColor="text-purple-600"  path="/admin/categorycrud"  />
             <StatTile label="Total Orders"  value={orders.length}                                           icon={ShoppingCart}  iconBg="bg-emerald-50" iconColor="text-emerald-600" path="/admin/ordercrud"     />
             <StatTile label="Active Coupons" value={activeCoupons}                                          icon={TicketPercent} iconBg="bg-pink-50"    iconColor="text-pink-600"    path="/admin/promocodecrud" />
-            <StatTile label="Flash Sales"   value={activeSales}                                             icon={Zap}           iconBg="bg-amber-50"   iconColor="text-amber-600"   path="/admin/flashsalecrud" />
             <StatTile label="Banners"       value={bannerStore.banners?.filter(b => b.isActive)?.length}    icon={ImageIcon}     iconBg="bg-indigo-50"  iconColor="text-indigo-600"  path="/admin/bannercrud"    />
           </div>
         </div>
@@ -506,7 +589,6 @@ export default function AdminDashboard() {
           <div className="space-y-2">
             <QuickAction label="Add Product"    desc="Create a new product listing"   icon={Package}       iconBg="bg-orange-50"  iconColor="text-[#FF6B35]"   path="/admin/productcrud"   />
             <QuickAction label="Create Sale"    desc="Set up a sale category"          icon={BadgePercent}  iconBg="bg-orange-50"  iconColor="text-[#FF6B35]"   path="/admin/salecrud"      />
-            <QuickAction label="New Flash Sale" desc="Add a limited-time deal"         icon={Zap}           iconBg="bg-amber-50"   iconColor="text-amber-600"   path="/admin/flashsalecrud" />
             <QuickAction label="Manage Orders"  desc="View & update order statuses"   icon={ShoppingCart}  iconBg="bg-emerald-50" iconColor="text-emerald-600" path="/admin/ordercrud"     />
             <QuickAction label="Add Promo Code" desc="Create discounts for customers" icon={TicketPercent} iconBg="bg-pink-50"    iconColor="text-pink-600"    path="/admin/promocodecrud" />
           </div>

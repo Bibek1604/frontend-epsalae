@@ -210,6 +210,15 @@ export default function SaleSection() {
   return (
     <section className="py-6 sm:py-10 px-3 sm:px-4">
       <div className="max-w-7xl mx-auto">
+        {/* Section heading */}
+        <div className="flex items-center gap-2 mb-5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-[#FF6B35]"><Tag className="w-5 h-5" /></span>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">Live Sales &amp; Offers</h2>
+            <p className="text-xs text-gray-500">{sales.length} sale{sales.length !== 1 ? 's' : ''} running right now</p>
+          </div>
+        </div>
+
         {/* Active sale categories strip */}
         <SaleCategoryStrip
           sales={sales}
@@ -221,7 +230,8 @@ export default function SaleSection() {
           {visibleSales.map(sale => {
             const products = Array.isArray(sale.products) ? sale.products : []
             const preview = products.slice(0, 6)
-            if (preview.length === 0) return null
+            // NOTE: sales without hydrated products still render their banner
+            // + CTA — an admin-created sale must never be silently invisible.
 
             return (
               <div key={sale.id || sale.slug}>
@@ -260,12 +270,18 @@ export default function SaleSection() {
                   </div>
                 </div>
 
-                {/* Products grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                  {preview.map((p, i) => (
-                    <SaleProductCard key={p.id || i} product={p} sale={sale} />
-                  ))}
-                </div>
+                {/* Products grid (banner above always renders, even with 0 products) */}
+                {preview.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+                    {preview.map((p, i) => (
+                      <SaleProductCard key={p.id || i} product={p} sale={sale} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-sm text-gray-400 py-4">
+                    No products are attached to this sale yet — add them in Admin → Sale Categories (or Bulk Upload → Seasonal Sales).
+                  </p>
+                )}
 
                 {products.length > 6 && (
                   <div className="text-center mt-5">

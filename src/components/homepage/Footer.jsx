@@ -69,7 +69,7 @@ export default function Footer() {
             <div>
               <h4 className="mb-6 text-lg font-semibold text-gray-900">Shop</h4>
               <ul className="space-y-4">
-                {["All Products", "New Arrivals", "Best Sellers", "Flash Sale"].map((item) => (
+                {["All Products", "New Arrivals", "Best Sellers"].map((item) => (
                   <li key={item}>
                     <Link to="/products" className="flex items-center gap-2 text-gray-600 transition hover:text-gray-900 group">
                       <ChevronRight className="w-4 h-4 text-gray-400 transition group-hover:text-gray-900" />

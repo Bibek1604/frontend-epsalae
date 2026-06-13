@@ -63,8 +63,11 @@ export default function OrderInvoice() {
   }, [orders, orderId])
 
   const subtotal = order?.items?.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0) || 0
-  const shipping = order?.shipping || (subtotal >= 5000 ? 0 : 250)
-  const total = Number(order?.totalAmount || subtotal + shipping)
+  const couponDiscount = order?.discountAmount || 0
+  const vatAmount = order?.vatAmount || 0
+  const discountedSubtotal = subtotal - couponDiscount
+  const shipping = discountedSubtotal >= 5000 ? 0 : 150
+  const total = Number(order?.totalAmount) || (discountedSubtotal + vatAmount + shipping)
   const status = (order?.status || 'pending').toLowerCase()
 
   const reorder = () => {
@@ -253,16 +256,17 @@ export default function OrderInvoice() {
               <h3 className="text-lg font-semibold text-slate-900">Summary</h3>
               <div className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between text-slate-600"><span>Subtotal</span><span>Rs. {subtotal.toLocaleString()}</span></div>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between font-medium text-emerald-600">
+                    <span>Coupon{order?.couponCode ? ` (${order.couponCode})` : ' Discount'}</span>
+                    <span>− Rs. {couponDiscount.toLocaleString()}</span>
+                  </div>
+                )}
+                {vatAmount > 0 && (
+                  <div className="flex justify-between text-slate-600"><span>VAT (13%)</span><span>Rs. {vatAmount.toLocaleString()}</span></div>
+                )}
                 <div className="flex justify-between text-slate-600"><span>Shipping</span><span>{shipping === 0 ? 'FREE' : `Rs. ${shipping}`}</span></div>
                 <div className="flex justify-between border-t border-slate-100 pt-3 text-base font-semibold text-slate-900"><span>Total</span><span>Rs. {total.toLocaleString()}</span></div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl sm:rounded-[2rem] bg-white p-4 sm:p-5 shadow-[0_18px_70px_-50px_rgba(15,23,42,0.55)] sm:p-6">
-              <h3 className="text-lg font-semibold text-slate-900">Tracking</h3>
-              <div className="mt-4 space-y-3 text-sm text-slate-600">
-                <div className="flex items-center gap-2"><Truck className="h-4 w-4 text-emerald-600" /> Status: {status.replaceAll('_', ' ')}</div>
-                <div className="flex items-center gap-2"><Download className="h-4 w-4 text-emerald-600" /> Invoice available for download / print</div>
               </div>
             </div>
           </aside>

@@ -56,7 +56,7 @@ function Field({ label, error, children }) {
 
 export default function PromoCodeCRUD() {
   const { coupons, loading, fetchCoupons, addCoupon, updateCoupon, deleteCoupon, fetchCouponAnalytics } = useCouponStore();
-  const { products, fetchProducts } = useProductStore();
+  const { products, fetchProducts, fetchAllProducts } = useProductStore();
   const { categories, fetchCategories } = useCategoryStore();
 
   const [showModal, setShowModal] = useState(false);
@@ -68,7 +68,7 @@ export default function PromoCodeCRUD() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [productSelectorSearch, setProductSelectorSearch] = useState('');
 
-  useEffect(() => { fetchCoupons(); fetchProducts({ limit: 200 }); fetchCategories(); }, []);
+  useEffect(() => { fetchCoupons(); fetchAllProducts(); fetchCategories(); }, []);
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setErrors({}); setProductSelectorSearch(''); setShowModal(true); };
   const openEdit = (c) => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../components/store/authstore';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 import { API_URL } from '@/config';
 import { motion } from 'framer-motion';
@@ -57,8 +57,6 @@ export default function AdminLogin() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#060d1a]">
-      <Toaster position="top-center" toastOptions={{ style: { background: '#131c2e', color: '#e9eef7', border: '1px solid #243049' } }} />
-
       {/* Ambient glow orbs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-32 left-[20%] h-[480px] w-[480px] rounded-full bg-[#1A3C8A]/25 blur-[130px]" />

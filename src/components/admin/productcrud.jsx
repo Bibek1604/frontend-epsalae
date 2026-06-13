@@ -11,7 +11,7 @@ import { getImageUrl } from '@/config';
 import { TableSkeleton } from '../ui/Skeleton';
 
 export default function ProductCrud() {
-  const { products, loading, fetchProducts, addProduct, updateProduct, deleteProduct } = useProductStore();
+  const { products, loading, fetchProducts, fetchAllProducts, addProduct, updateProduct, deleteProduct } = useProductStore();
   const { categories, fetchCategories } = useCategoryStore();
 
   const [search, setSearch] = useState('');
@@ -29,7 +29,7 @@ export default function ProductCrud() {
 
   useEffect(() => {
     // Admin sees the full catalogue, including inactive/hidden products.
-    fetchProducts({ limit: 100, includeInactive: true });
+    fetchAllProducts();
     fetchCategories();
   }, []);
 
@@ -79,7 +79,7 @@ export default function ProductCrud() {
         toast.success('Product created!');
       }
       closeModal();
-      await fetchProducts({ limit: 100, includeInactive: true });
+      await fetchAllProducts();
     } catch (error) {
       console.error('❌ Save failed:', error);
       toast.error(error?.response?.data?.message || 'Failed to save');
@@ -112,7 +112,7 @@ export default function ProductCrud() {
       console.log('🗑️ Attempting to delete product:', id);
       await deleteProduct(id);
       toast.success('Product deleted');
-      fetchProducts({ limit: 100, includeInactive: true });
+      fetchAllProducts();
     } catch (error) {
       console.error('❌ Delete failed:', error);
       toast.error(error?.response?.data?.message || 'Delete failed');

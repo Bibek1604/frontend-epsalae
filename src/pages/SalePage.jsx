@@ -85,6 +85,22 @@ export default function SalePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Non-live notice — the backend already returns REGULAR prices for
+            upcoming/ended sales, so the cards below are always truthful. */}
+        {sale.is_live === false && (
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <Tag className="w-5 h-5 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">
+                {sale.status === 'upcoming'
+                  ? `This sale hasn't started yet${sale.start_date ? ` — starts ${new Date(sale.start_date).toLocaleDateString()}` : ''}.`
+                  : 'This sale has ended.'}
+              </p>
+              <p className="text-amber-700/80">You're browsing the collection at regular prices. Discounts apply automatically while the sale is live.</p>
+            </div>
+          </div>
+        )}
+
         {/* Back */}
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition">
           <ArrowLeft className="w-4 h-4" /> Back
@@ -122,7 +138,19 @@ export default function SalePage() {
         {products.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <Tag className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p>No products match your filters.</p>
+            {sale.configured_products === 0 ? (
+              <>
+                <p className="font-semibold text-gray-500">No products have been added to this sale yet.</p>
+                <p className="text-sm mt-1">The store team is stocking it up — check back soon.</p>
+              </>
+            ) : sale.products?.length === 0 ? (
+              <>
+                <p className="font-semibold text-gray-500">The products in this sale are currently unavailable.</p>
+                <p className="text-sm mt-1">{sale.configured_products} item{sale.configured_products !== 1 ? 's are' : ' is'} attached but out of the catalogue right now.</p>
+              </>
+            ) : (
+              <p>No products match your filters.</p>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

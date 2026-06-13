@@ -43,20 +43,20 @@ export default function AdditionalContent() {
 	}))
 
 	return (
-		<section className="relative py-8 sm:py-16 sm:py-20">
+		<section className="relative py-10 sm:py-16 lg:py-20">
 			<div className="absolute inset-0 pointer-events-none overflow-hidden">
 				<div className="absolute -left-24 top-12 h-56 w-56 rounded-full bg-[#1A3C8A]/8 blur-3xl" />
 				<div className="absolute right-0 bottom-0 h-72 w-72 rounded-full bg-[#FF6B35]/8 blur-3xl" />
 			</div>
 
-			<div className="relative px-3 sm:px-4 mx-auto max-w-7xl sm:px-4 sm:px-6 lg:px-8">
+			<div className="relative px-3 sm:px-6 lg:px-8 mx-auto max-w-7xl">
 				<div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[1.08fr_0.92fr]">
 					<motion.div
 						initial={{ opacity: 0, y: 24 }}
 						whileInView={{ opacity: 1, y: 0 }}
 						viewport={{ once: true, margin: '-80px' }}
 						transition={{ duration: 0.6, ease: 'easeOut' }}
-						className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[linear-gradient(135deg,_rgba(17,24,39,0.96)_0%,_rgba(26,60,138,0.96)_55%,_rgba(255,107,53,0.92)_100%)] p-4 sm:p-8 text-white shadow-[0_30px_90px_-50px_rgba(15,23,42,0.55)] sm:p-10"
+						className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-[linear-gradient(135deg,_rgba(17,24,39,0.96)_0%,_rgba(26,60,138,0.96)_55%,_rgba(255,107,53,0.92)_100%)] p-4 sm:p-8 lg:p-10 text-white shadow-[0_30px_90px_-50px_rgba(15,23,42,0.55)]"
 					>
 						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.12),transparent_28%)]" />
 						<div className="relative">
@@ -65,7 +65,7 @@ export default function AdditionalContent() {
 								Trending now
 							</div>
 
-							<h2 className="mt-6 max-w-xl text-xl sm:text-3xl font-semibold leading-tight sm:text-2xl sm:text-4xl lg:text-5xl">
+							<h2 className="mt-6 max-w-xl text-2xl font-semibold leading-tight sm:text-3xl lg:text-5xl">
 								A cleaner, more premium way to discover products that feel worth the click.
 							</h2>
 

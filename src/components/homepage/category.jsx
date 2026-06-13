@@ -42,10 +42,25 @@ export default function TopCategories() {
   const cats = categories.length > 0 ? categories.slice(0, 8) : []
 
   if (loading) return (
-    <div className="py-20 text-center bg-gray-50">
-      <div className="w-14 h-14 border-4 border-gray-200 border-t-[#FF6B35] rounded-full animate-spin inline-block" />
-      <p className="mt-4 text-gray-500">Loading categories...</p>
-    </div>
+    <section className="relative py-8 sm:py-14 lg:py-20">
+      <div className="relative px-4 mx-auto max-w-7xl sm:px-6">
+        <div className="mb-6 text-center sm:mb-10">
+          <div className="h-7 w-40 mx-auto bg-gray-100 rounded-full animate-pulse" />
+          <div className="h-9 w-64 mx-auto mt-4 bg-gray-100 rounded-lg animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="overflow-hidden border border-gray-100 rounded-2xl bg-white">
+              <div className="aspect-square bg-gray-100 animate-pulse" />
+              <div className="p-5 border-t border-gray-100 space-y-2">
+                <div className="h-4 w-2/3 mx-auto bg-gray-100 rounded animate-pulse" />
+                <div className="h-3 w-1/2 mx-auto bg-gray-100 rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 
   // Don't show section if no categories from backend
@@ -62,7 +77,7 @@ export default function TopCategories() {
       <div className="relative px-4 mx-auto max-w-7xl sm:px-6">
         {/* Section Header */}
         <div className="mb-6 text-center sm:mb-10">
-          <motion.span 
+          <motion.span
             initial={{ opacity: 0, y: -10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -72,7 +87,7 @@ export default function TopCategories() {
             <Sparkles className="w-4 h-4" />
             Browse by Category
           </motion.span>
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -113,7 +128,7 @@ export default function TopCategories() {
 function CategoryCard({ cat, index, navigate }) {
   const [imgSrc, setImgSrc] = useState(getImageUrl(cat.imageUrl) || CATEGORY_PLACEHOLDER);
   const catId = cat._id || cat.id;
-  
+
   return (
     <motion.div
       variants={revealVariants}
@@ -131,7 +146,7 @@ function CategoryCard({ cat, index, navigate }) {
           className="relative z-10 object-contain w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110 group-hover:rotate-1"
           onError={() => setImgSrc(CATEGORY_PLACEHOLDER)}
         />
-        
+
         {/* Hover Overlay */}
         <div className="absolute inset-0 transition-opacity duration-300 opacity-0 bg-gradient-to-t from-black/5 via-transparent to-transparent group-hover:opacity-100" />
       </div>
