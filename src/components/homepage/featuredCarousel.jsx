@@ -94,7 +94,7 @@ export default function FeaturedCarousel() {
                             aria-label="Add to cart"
                             onClick={(e) => {
                               e.stopPropagation()
-                              addToCart({ id, name: p.name, price: p.discountPrice || p.price, image: getImageUrl(p.imageUrl), quantity: 1 })
+                              if (!addToCart({ id, name: p.name, price: p.discountPrice || p.price, image: getImageUrl(p.imageUrl), quantity: 1 })) return
                               toast.success('Added to cart!')
                             }}
                             className="shrink-0 p-2 text-white bg-[#1A3C8A] rounded-full hover:bg-[#FF6B35] active:scale-90 transition-all"

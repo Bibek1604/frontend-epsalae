@@ -1,5 +1,6 @@
 // src/components/admin/saleproductscrud.jsx
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProductStore } from '../store/productstore';
 import { useCategoryStore } from '../store/categorystore';
 import api from '../api/base';
@@ -34,6 +35,7 @@ const DEFAULT_FORM = {
 export default function SaleProductsCrud() {
   const { products, fetchProducts, fetchAllProducts } = useProductStore();
   const { categories, fetchCategories }  = useCategoryStore();
+  const navigate = useNavigate();
 
   const [saleCategories, setSaleCategories] = useState([]);
   const [activeTab,  setActiveTab]  = useState(null);   // sale category id
@@ -565,9 +567,22 @@ export default function SaleProductsCrud() {
                             );
                           })
                         ) : (
-                          <p className="p-4 text-sm text-gray-400 text-center">
-                            {addForm.saleId ? 'No more products available' : 'Select a sale category first'}
-                          </p>
+                          <div className="p-4 text-center">
+                            {!addForm.saleId ? (
+                              <p className="text-sm text-gray-400">Select a sale category first</p>
+                            ) : (
+                              <>
+                                <p className="text-sm text-gray-400">
+                                  {addForm.productSearch ? `No product matches "${addForm.productSearch}"` : 'No more products available'}
+                                </p>
+                                <button type="button"
+                                  onClick={() => navigate('/admin/productcrud', { state: { createName: addForm.productSearch || '' } })}
+                                  className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 text-xs font-semibold text-white bg-[#FF6B35] rounded-lg hover:bg-[#e85d2a] transition">
+                                  <Plus className="w-3.5 h-3.5" /> Create a new product
+                                </button>
+                              </>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}

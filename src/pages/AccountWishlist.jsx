@@ -69,7 +69,7 @@ export default function WishlistPage(){
   }
 
   const moveToCart = (p) => {
-    addToCart({
+    const added = addToCart({
       id: p.id || p._id,
       _id: p._id || p.id,
       name: p.name,
@@ -77,6 +77,7 @@ export default function WishlistPage(){
       image: p.imageUrl,
       quantity: 1,
     })
+    if (!added) return
     toast.success(`${p.name} added to cart`)
   }
 

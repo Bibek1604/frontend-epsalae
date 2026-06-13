@@ -3,7 +3,7 @@ import { useAdminAuth } from '../store/authstore';
 import api from '../api/base';
 import { UploadCloud,
   LayoutDashboard, Package, ShoppingCart, Tag, Percent,
-  Image, LogOut, ExternalLink, Award, X, BadgePercent,
+  Image, LogOut, ExternalLink, X, BadgePercent,
   Heart, ShoppingBag, ChevronRight, ChevronDown,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -37,7 +37,6 @@ const NAV_SECTIONS = [
     items: [
       { path: '/admin/promocodecrud', label: 'Promo Codes', icon: Percent },
       { path: '/admin/bannercrud',    label: 'Banners',     icon: Image },
-      { path: '/admin/brandcrud',     label: 'Brands',      icon: Award },
     ],
   },
   {

@@ -35,7 +35,7 @@ export default function BannerCRUD() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { toast.error('Please select a valid image'); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error('Image must be under 10MB'); return; }
     setUploading(true);
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -246,7 +246,7 @@ export default function BannerCRUD() {
                   <p className="text-sm font-medium text-gray-600">
                     {uploading ? 'Uploading...' : form.imageUrl ? 'Click to replace image' : 'Click to upload or drag & drop'}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 10MB</p>
                 </div>
                 {errors.imageUrl && <p className="mt-1 text-xs text-red-600">{errors.imageUrl}</p>}
               </div>

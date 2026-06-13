@@ -1,64 +1,14 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Check, Download, Home, Truck, CreditCard, Package, MapPin, Phone, Calendar, FileText, Copy, CheckCircle } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import { API_URL } from '../config'
+import { Check, Home, CreditCard, Package, MapPin, Phone, Calendar, FileText, Copy, CheckCircle, Truck } from 'lucide-react'
+import { useState } from 'react'
+import { getImageUrl } from '../config'
 
-// Print styles - injected into head for clean invoice printing
 const printStyles = `
 @media print {
-  @page {
-    size: A4;
-    margin: 10mm;
-  }
-  
-  body {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  
-  /* Hide non-printable elements */
-  .no-print, 
-  .no-print *,
-  nav, 
-  footer,
-  button,
-  .action-buttons,
-  .need-help-section,
-  .status-timeline,
-  .tracking-info-box {
-    display: none !important;
-  }
-  
-  /* Show only invoice content */
-  .print-invoice {
-    display: block !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: 100% !important;
-    box-shadow: none !important;
-  }
-  
-  .min-h-screen {
-    min-height: auto !important;
-    background: white !important;
-  }
-  
-  /* Compact styling for print */
-  .print-compact {
-    padding: 8px !important;
-    margin-bottom: 8px !important;
-  }
-  
-  .print-small-text {
-    font-size: 11px !important;
-  }
-  
-  /* Ensure everything fits on one page */
-  .order-card {
-    page-break-inside: avoid;
-    box-shadow: none !important;
-    border: 1px solid #ddd !important;
-  }
+  @page { size: A4; margin: 12mm; }
+  body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .no-print, .no-print * { display: none !important; }
+  .print-invoice { box-shadow: none !important; border: none !important; }
 }
 `
 
@@ -67,36 +17,14 @@ export default function OrderSuccess() {
   const location = useLocation()
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
-  
-  // Debug: Log what we receive
-  useEffect(() => {
-  }, [orderId, location.state])
-  
-  // Get order data from navigation state
-  const orderData = location.state?.orderData || location.state?.order
 
-  // Use order data from navigation state or fallback
-  const order = orderData || {
-    id: orderId,
-    totalAmount: 0,
-    subtotal: 0,
-    shipping: 0,
-    total: 0,
-    items: [],
-    name: '',
-    first_name: '',
-    last_name: '',
-    phone: '',
-    address: '',
-    city: '',
-    district: '',
-    description: '',
-    paymentMethod: 'cod',
-    orderDate: new Date().toISOString()
+  const order = location.state?.orderData || location.state?.order || {
+    id: orderId, totalAmount: 0, subtotal: 0, shipping: 0, total: 0, items: [],
+    name: '', phone: '', address: '', city: '', district: '', paymentMethod: 'cod',
+    orderDate: new Date().toISOString(),
   }
 
-  // Calculate values
-  const subtotal = order.subtotal || order.items?.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0) || 0
+  const subtotal = order.subtotal || order.items?.reduce((s, i) => s + ((i.price || 0) * (i.quantity || 0)), 0) || 0
   const couponDiscount = order.couponDiscount || order.discountAmount || 0
   const vatAmount = order.vatAmount || 0
   const discountedSubtotal = subtotal - couponDiscount
@@ -105,65 +33,8 @@ export default function OrderSuccess() {
   const paymentMethod = order.paymentMethod || 'cod'
   const customerName = order.name || `${order.first_name || ''} ${order.last_name || ''}`.trim() || 'Customer'
   const orderDate = order.orderDate ? new Date(order.orderDate) : new Date()
-  // Use the full backend-generated order ID for tracking - check all possible field names
   const orderNumber = order.orderId || order.order_id || order.id || order._id || orderId || 'N/A'
-  
-  // Get customer phone for tracking reminder
-  const customerPhone = order.phone || ''
-  
-  // Get order status from backend (default to 'pending' for new orders)
-  const orderStatus = order.status?.toLowerCase() || 'pending'
-  
-  // Define status steps with dynamic completion based on order.status
-  const getStatusSteps = () => {
-    const statusMap = {
-      'pending': 1,
-      'confirmed': 1,
-      'processing': 2,
-      'shipped': 3,
-      'out_for_delivery': 3,
-      'delivered': 4,
-      'cancelled': 0
-    }
-    
-    const currentStep = statusMap[orderStatus] || 1
-    
-    return [
-      { 
-        step: 1, 
-        status: 'Order Confirmed', 
-        desc: 'Your order has been received', 
-        completed: currentStep >= 1,
-        current: currentStep === 1
-      },
-      { 
-        step: 2, 
-        status: 'Processing', 
-        desc: 'We are preparing your items', 
-        completed: currentStep >= 2,
-        current: currentStep === 2
-      },
-      { 
-        step: 3, 
-        status: 'Shipped', 
-        desc: 'Your package is on the way', 
-        completed: currentStep >= 3,
-        current: currentStep === 3
-      },
-      { 
-        step: 4, 
-        status: 'Delivered', 
-        desc: 'Package delivered', 
-        completed: currentStep >= 4,
-        current: currentStep === 4
-      }
-    ]
-  }
-  
-  const statusSteps = getStatusSteps()
-  const isCancelled = orderStatus === 'cancelled'
 
-  // Copy order number to clipboard
   const copyOrderNumber = () => {
     navigator.clipboard.writeText(orderNumber)
     setCopied(true)
@@ -172,290 +43,114 @@ export default function OrderSuccess() {
 
   return (
     <>
-      {/* Print Styles */}
       <style>{printStyles}</style>
-      
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-gray-50">
-        <div className="max-w-3xl px-4 py-8 mx-auto print-invoice sm:px-6 lg:px-8">
-          
-          {/* Success Icon - Hidden on print */}
+      <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-xl px-4 py-8 mx-auto sm:py-10">
+
+          {/* Success header */}
           <div className="mb-6 text-center no-print">
-            <div className="inline-block p-3 mb-3 bg-green-100 rounded-full">
-              <Check size={48} className="text-green-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 mb-3 rounded-full bg-emerald-100">
+              <Check className="w-8 h-8 text-emerald-600" />
             </div>
-            <h1 className="mb-1 text-3xl font-bold text-gray-900">Order Confirmed!</h1>
-            <p className="text-gray-600">Thank you for your purchase, {customerName.split(' ')[0]}!</p>
+            <h1 className="text-2xl font-extrabold text-gray-900">Order Confirmed!</h1>
+            <p className="mt-1 text-sm text-gray-500">Thank you, {customerName.split(' ')[0]} — your order is placed.</p>
           </div>
 
-          {/* Order Details Card - Main Invoice */}
-          <div className="p-6 mb-6 bg-white shadow-lg order-card rounded-2xl">
-            
-            {/* Invoice Header - Shows on print */}
-            <div className="hidden print:block pb-4 mb-4 text-center border-b-2 border-gray-300">
-              <h1 className="text-2xl font-bold text-gray-900">ePasaley</h1>
-              <p className="text-sm text-gray-500">Order Invoice</p>
-            </div>
-            
-            {/* Order Number */}
-            <div className="pb-4 mb-4 text-center border-b-2 border-gray-200 border-dashed print-compact">
-              <p className="mb-1 text-xs font-medium text-gray-500 uppercase">Order Number</p>
-              <div className="flex items-center justify-center gap-2">
-                <p className="font-mono text-2xl font-bold tracking-wider text-green-600">#{orderNumber}</p>
-                <button 
-                  onClick={copyOrderNumber}
-                  className="p-1.5 text-gray-500 transition rounded-lg no-print hover:text-green-600 hover:bg-green-50"
-                  title="Copy order number"
-                >
-                  {copied ? <CheckCircle size={18} className="text-green-600" /> : <Copy size={18} />}
-                </button>
+          {/* Compact invoice card */}
+          <div className="overflow-hidden bg-white border border-gray-100 shadow-sm print-invoice rounded-2xl">
+
+            {/* Order id strip */}
+            <div className="flex items-center justify-between gap-3 px-5 py-4 bg-[#1A3C8A] text-white">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-white/60">Order Number</p>
+                <p className="font-mono text-lg font-bold truncate">{orderNumber}</p>
               </div>
-              {copied && <p className="mt-1 text-xs text-green-600 no-print">Copied!</p>}
-              <p className="mt-2 text-xs text-gray-500">
-                <Calendar className="inline w-3 h-3 mr-1" />
-                {orderDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-              </p>
+              <button onClick={copyOrderNumber} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/15 hover:bg-white/25 transition no-print">
+                {copied ? <><CheckCircle className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+              </button>
             </div>
 
-          {/* Save This Info Box - Track Order Instructions - HIDDEN ON PRINT */}
-          <div className="p-5 mb-6 border-2 border-green-200 no-print tracking-info-box rounded-xl bg-green-50">
-            <h3 className="flex items-center gap-2 mb-3 font-bold text-green-800">
-              <FileText size={18} /> 📋 Save This For Tracking
-            </h3>
-            <p className="mb-3 text-sm text-green-700">
-              To track your order, go to <strong>"Track Order"</strong> section and enter:
-            </p>
-            
-            {/* Tracking Credentials Box */}
-            <div className="p-4 mb-3 bg-white border border-green-300 rounded-lg">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
-                  <div>
-                    <span className="text-xs text-gray-500 uppercase">Order ID</span>
-                    <p className="font-mono text-lg font-bold text-gray-900">{orderNumber}</p>
-                  </div>
-                  <button 
-                    onClick={copyOrderNumber}
-                    className="p-2 text-gray-500 transition rounded-lg hover:text-green-600 hover:bg-green-50"
-                    title="Copy order ID"
-                  >
-                    {copied ? <CheckCircle size={18} className="text-green-600" /> : <Copy size={18} />}
-                  </button>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
-                  <div>
-                    <span className="text-xs text-gray-500 uppercase">Phone Number</span>
-                    <p className="font-mono text-lg font-bold text-gray-900">{customerPhone}</p>
-                  </div>
-                </div>
+            <div className="p-5 space-y-4">
+              {/* date + payment */}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+                <span className="inline-flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {orderDate.toLocaleDateString('en-NP', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span className="inline-flex items-center gap-1"><CreditCard className="w-3.5 h-3.5" /> {paymentMethod === 'cod' ? 'Cash on Delivery' : paymentMethod}</span>
               </div>
-            </div>
-            
-            {copied && <p className="mb-2 text-sm text-center text-green-600">✓ Order ID copied!</p>}
-            
-            <p className="text-xs text-green-600">
-              💡 <strong>Tip:</strong> Take a screenshot of this page for your records.
-            </p>
-          </div>
 
-          {/* Payment Method - Compact for print */}
-          <div className="flex items-center gap-3 p-3 mb-4 print-compact rounded-xl bg-gray-50">
-            <CreditCard className="text-gray-600" size={20} />
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Payment: {paymentMethod === 'cod' ? 'Cash on Delivery' : paymentMethod === 'khalti' ? 'Khalti' : 'eSewa'}</p>
-            </div>
-          </div>
-
-          {/* Order Items - Compact table for print */}
-          {order.items && order.items.length > 0 && (
-            <div className="pb-4 mb-4 border-b print-compact">
-              <h2 className="flex items-center gap-2 mb-3 text-base font-bold text-gray-900">
-                <Package size={18} /> Items ({order.items.length})
-              </h2>
-              <div className="space-y-2">
-                {order.items.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 text-sm rounded-lg bg-gray-50 print-small-text">
-                    <div className="flex items-center gap-2">
-                      {item.imageUrl && (
-                        <img 
-                          src={item.imageUrl.startsWith('http') ? item.imageUrl : `${API_URL}${item.imageUrl}`} 
-                          alt={item.name} 
-                          className="object-cover w-10 h-10 rounded no-print" 
-                        />
-                      )}
-                      <div>
-                        <p className="font-medium text-gray-900">{item.name}</p>
-                        <p className="text-xs text-gray-500">{item.quantity} × Rs. {item.price?.toLocaleString()}</p>
+              {/* items */}
+              {order.items?.length > 0 && (
+                <div className="space-y-2">
+                  {order.items.map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="shrink-0 w-11 h-11 overflow-hidden bg-gray-50 border border-gray-100 rounded-lg no-print">
+                        <img src={getImageUrl(item.imageUrl || item.image)} alt={item.name} className="object-contain w-full h-full p-1" />
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
+                        <p className="text-xs text-gray-500">{item.quantity} × Rs. {Number(item.price).toLocaleString()}</p>
+                      </div>
+                      <p className="text-sm font-bold text-gray-900">Rs. {(Number(item.price) * Number(item.quantity)).toLocaleString()}</p>
                     </div>
-                    <p className="font-semibold text-gray-900">Rs. {(item.price * item.quantity).toLocaleString()}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Order Summary - Compact */}
-          <div className="pb-4 mb-4 border-b print-compact">
-            <h2 className="mb-2 text-base font-bold text-gray-900">Summary</h2>
-            <div className="p-3 space-y-2 text-sm rounded-xl bg-gray-50 print-small-text">
-              <div className="flex justify-between text-gray-600">
-                <span>Subtotal</span>
-                <span>Rs. {subtotal.toLocaleString()}</span>
-              </div>
-              {couponDiscount > 0 && (
-                <div className="flex justify-between font-medium text-green-600">
-                  <span>Coupon Discount{order.couponCode ? ` (${order.couponCode})` : ''}</span>
-                  <span>− Rs. {couponDiscount.toLocaleString()}</span>
+                  ))}
                 </div>
               )}
-              {vatAmount > 0 && (
-                <div className="flex justify-between text-gray-600">
-                  <span>VAT (13%)</span>
-                  <span>Rs. {vatAmount.toLocaleString()}</span>
+
+              {/* summary */}
+              <div className="pt-3 space-y-1.5 text-sm border-t border-dashed border-gray-200">
+                <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>Rs. {subtotal.toLocaleString()}</span></div>
+                {couponDiscount > 0 && <div className="flex justify-between font-medium text-emerald-600"><span>Coupon{order.couponCode ? ` (${order.couponCode})` : ''}</span><span>− Rs. {couponDiscount.toLocaleString()}</span></div>}
+                {vatAmount > 0 && <div className="flex justify-between text-gray-600"><span>VAT (13%)</span><span>Rs. {vatAmount.toLocaleString()}</span></div>}
+                <div className="flex justify-between text-gray-600"><span>Shipping</span><span className={shipping === 0 ? 'text-emerald-600 font-semibold' : ''}>{shipping === 0 ? 'FREE' : `Rs. ${shipping.toLocaleString()}`}</span></div>
+                <div className="flex justify-between pt-2 text-base font-bold text-gray-900 border-t border-gray-100">
+                  <span>Total</span><span className="text-[#1A3C8A]">Rs. {total.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* ship + contact */}
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+                <div>
+                  <p className="flex items-center gap-1 mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400"><MapPin className="w-3 h-3" /> Ship to</p>
+                  <p className="text-sm font-semibold text-gray-900">{customerName}</p>
+                  <p className="text-xs text-gray-500">{[order.address, order.city, order.district].filter(Boolean).join(', ')}</p>
+                </div>
+                <div>
+                  <p className="flex items-center gap-1 mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400"><Phone className="w-3 h-3" /> Contact</p>
+                  <p className="text-sm font-semibold text-gray-900">{order.phone}</p>
+                </div>
+              </div>
+
+              {paymentMethod === 'cod' && (
+                <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg no-print">
+                  <Truck className="w-4 h-4 shrink-0" /> Keep Rs. {total.toLocaleString()} ready for cash on delivery.
                 </div>
               )}
-              <div className="flex justify-between text-gray-600">
-                <span>Shipping</span>
-                <span>{shipping === 0 ? 'FREE' : `Rs. ${shipping}`}</span>
-              </div>
-              <div className="flex justify-between pt-2 text-lg font-bold text-gray-900 border-t border-gray-200">
-                <span>Total</span>
-                <span className="text-green-600">Rs. {total.toLocaleString()}</span>
-              </div>
+            </div>
+
+            {/* print footer */}
+            <div className="hidden print:block px-5 py-3 text-center border-t border-gray-200">
+              <p className="text-xs text-gray-500">Thank you for shopping with ePasaley · www.epasaley.com</p>
             </div>
           </div>
 
-          {/* Shipping Information - Compact grid */}
-          <div className="grid grid-cols-2 gap-3 mb-4 print-compact">
-            <div className="p-3 rounded-xl bg-gray-50">
-              <h3 className="flex items-center gap-1 mb-2 text-sm font-bold text-gray-900">
-                <MapPin size={14} className="text-green-600" /> Ship To
-              </h3>
-              <p className="text-sm font-medium text-gray-900">{customerName}</p>
-              <p className="text-xs text-gray-600">{order.address}</p>
-              <p className="text-xs text-gray-600">{order.city}, {order.district}</p>
-            </div>
-            <div className="p-3 rounded-xl bg-gray-50">
-              <h3 className="flex items-center gap-1 mb-2 text-sm font-bold text-gray-900">
-                <Phone size={14} className="text-green-600" /> Contact
-              </h3>
-              <p className="text-sm text-gray-600">Phone: <span className="font-medium">{order.phone}</span></p>
-            </div>
-          </div>
+          {/* track hint */}
+          <p className="mt-4 text-xs text-center text-gray-500 no-print">
+            Track anytime with your <strong>Order ID</strong> + <strong>phone number</strong> on the Track Order page.
+          </p>
 
-          {/* Status Timeline - HIDDEN ON PRINT */}
-          <div className="pb-4 mb-4 border-b no-print status-timeline">
-            <h2 className="flex items-center gap-2 mb-3 text-base font-bold text-gray-900">
-              <Truck size={18} /> Order Status
-            </h2>
-            
-            {/* Cancelled Order Message */}
-            {isCancelled && (
-              <div className="p-3 mb-3 border border-red-200 rounded-xl bg-red-50">
-                <p className="text-sm font-semibold text-red-700">❌ This order has been cancelled</p>
-              </div>
-            )}
-            
-            {/* Current Status Badge */}
-            {!isCancelled && (
-              <div className="p-2 mb-3 border border-green-200 rounded-lg bg-green-50">
-                <p className="text-sm text-green-800">
-                  <span className="font-semibold">Current Status:</span>{' '}
-                  <span className="px-2 py-1 text-xs font-bold text-white bg-green-600 rounded-full">
-                    {statusSteps.find(s => s.current)?.status || 'Order Confirmed'}
-                  </span>
-                </p>
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              {statusSteps.map((item) => (
-                <div key={item.step} className={`flex items-start gap-4 ${isCancelled ? 'opacity-50' : ''}`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                    item.completed
-                      ? 'bg-green-500 text-white'
-                      : item.current
-                      ? 'bg-blue-500 text-white ring-4 ring-blue-200'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}>
-                    {item.completed ? <Check size={18} /> : item.step}
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <div className="flex items-center gap-2">
-                      <p className={`font-semibold ${
-                        item.completed ? 'text-green-600' : 
-                        item.current ? 'text-blue-600' : 'text-gray-900'
-                      }`}>
-                        {item.status}
-                      </p>
-                      {item.current && !isCancelled && (
-                        <span className="px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-full animate-pulse">
-                          Current
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* Progress Bar */}
-            {!isCancelled && (
-              <div className="mt-6">
-                <div className="w-full h-2 overflow-hidden bg-gray-200 rounded-full">
-                  <div 
-                    className="h-full transition-all duration-500 bg-green-500 rounded-full"
-                    style={{ width: `${(statusSteps.filter(s => s.completed).length / statusSteps.length) * 100}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-center text-gray-500">
-                  {statusSteps.filter(s => s.completed).length} of {statusSteps.length} steps completed
-                </p>
-              </div>
-            )}
+          {/* actions */}
+          <div className="grid grid-cols-1 gap-3 mt-5 no-print sm:grid-cols-3">
+            <button onClick={() => window.print()} className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-gray-700 transition border-2 border-gray-200 rounded-xl hover:bg-gray-50">
+              <FileText className="w-4 h-4" /> Print
+            </button>
+            <button onClick={() => navigate('/track-order')} className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white transition bg-[#1A3C8A] rounded-xl hover:bg-[#112960]">
+              <Package className="w-4 h-4" /> Track Order
+            </button>
+            <button onClick={() => navigate('/products')} className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white transition bg-[#FF6B35] rounded-xl hover:bg-[#e85d2a]">
+              <Home className="w-4 h-4" /> Shop More
+            </button>
           </div>
-
-          {/* COD Info - Hidden on Print */}
-          {paymentMethod === 'cod' && (
-            <div className="p-3 mb-4 border border-yellow-200 no-print rounded-xl bg-yellow-50">
-              <p className="text-sm text-yellow-800">
-                <strong>🛵 Cash on Delivery:</strong> Keep Rs. {total.toLocaleString()} ready when your order arrives.
-              </p>
-            </div>
-          )}
-
-          {/* Important Info - Hidden on Print */}
-          <div className="p-3 border border-blue-200 no-print rounded-xl bg-blue-50">
-            <p className="text-sm text-blue-900">
-              <strong>📦 What's Next?</strong> Our delivery partner will contact you at <strong>{order.phone}</strong> before delivery. Expected delivery: 3-5 business days.
-            </p>
-          </div>
-          
-          {/* Print Footer - Only shows on print */}
-          <div className="hidden print:block pt-4 mt-4 text-center border-t border-gray-300">
-            <p className="text-xs text-gray-600">Thank you for shopping with ePasaley!</p>
-            <p className="text-xs text-gray-500">Contact: +977 9860056658 | www.epasaley.com</p>
-          </div>
-        </div>
-
-        {/* Action Buttons - Hidden on Print */}
-        <div className="grid grid-cols-1 gap-4 no-print action-buttons md:grid-cols-2">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center justify-center gap-2 px-6 py-4 font-semibold text-gray-900 transition border-2 border-gray-300 rounded-xl hover:bg-gray-50"
-          >
-            <FileText className="w-5 h-5" /> Print Invoice
-          </button>
-          <button
-            onClick={() => navigate('/track-order')}
-            className="flex items-center justify-center gap-2 px-6 py-4 font-semibold text-white transition bg-[#1A3C8A] rounded-xl hover:bg-[#112960]"
-          >
-            <Package className="w-5 h-5" /> Track Your Order
-          </button>
         </div>
       </div>
-    </div>
     </>
   )
 }

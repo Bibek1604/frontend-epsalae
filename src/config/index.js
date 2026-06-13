@@ -53,15 +53,16 @@ export const formatCurrency = (amount, opts = {}) => {
 export const formatPrice = (amount, opts) => formatCurrency(amount, opts);
 
 // Default placeholder image - Generic product placeholder
-const PLACEHOLDER = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600';
+export const PLACEHOLDER = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Crect%20width%3D%22300%22%20height%3D%22300%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%3E%3Crect%20x%3D%22105%22%20y%3D%22100%22%20width%3D%2290%22%20height%3D%2275%22%20rx%3D%228%22%2F%3E%3Ccircle%20cx%3D%22130%22%20cy%3D%22127%22%20r%3D%2210%22%2F%3E%3Cpath%20d%3D%22M112%20168l26-24%2020%2018%2016-14%2020%2020%22%2F%3E%3C%2Fg%3E%3Ctext%20x%3D%22150%22%20y%3D%22205%22%20text-anchor%3D%22middle%22%20fill%3D%22%2394a3b8%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%3ENo%20image%3C%2Ftext%3E%3C%2Fsvg%3E';
 
 // Helper function to get full image URL
 // Handles: Cloudinary URLs, old local paths, and missing images
 export const getImageUrl = (imagePath, placeholder = PLACEHOLDER) => {
   if (!imagePath) return placeholder;
   
-  // Already a full URL (Cloudinary, Unsplash, etc.) - use directly
-  if (imagePath.startsWith('http')) {
+  // Already a full URL (Cloudinary, Unsplash, etc.) or an inline base64 data
+  // URL (admin uploads) — use directly so the real uploaded image always shows.
+  if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
     return imagePath;
   }
   

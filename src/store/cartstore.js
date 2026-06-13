@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import toast from 'react-hot-toast'
+import { useAdminAuth } from '@/components/store/authstore'
 
 export const useCart = create(
   persist(
@@ -8,6 +9,13 @@ export const useCart = create(
       cart: [],
 
       addToCart: (product) => {
+        // Only customers may add to cart. Admin sessions are blocked here so the
+        // rule holds no matter which button triggers it. Returns true on success,
+        // false when blocked (callers gate their success toast on this).
+        if (useAdminAuth.getState().isAdmin) {
+          toast.error("Admins can't add items to the cart. Use a customer account to shop.")
+          return false
+        }
         set((state) => {
           const existing = state.cart.find(
             (item) => item.id === product.id && item.color === product.color && item.size === product.size
@@ -23,6 +31,7 @@ export const useCart = create(
           }
           return { cart: [...state.cart, product] }
         })
+        return true
       },
 
       removeFromCart: (id) => {

@@ -13,7 +13,6 @@ const CategoryCrud     = lazy(() => import('./categorycrud'));
 const OrderCrud        = lazy(() => import('./ordercrud'));
 const PromoCodCrud     = lazy(() => import('./promocodecrud'));
 const BannerCrud       = lazy(() => import('./bannercrud'));
-const BrandCrud        = lazy(() => import('./brandcrud'));
 const SaleCrud         = lazy(() => import('./salecrud'));
 const SaleProductsCrud = lazy(() => import('./saleproductscrud'));
 const WishlistCrud     = lazy(() => import('./wishlistcrud'));
@@ -45,7 +44,6 @@ export default function AdminLayout() {
               <Route path="/ordercrud" element={<OrderCrud />} />
               <Route path="/promocodecrud" element={<PromoCodCrud />} />
               <Route path="/bannercrud" element={<BannerCrud />} />
-              <Route path="/brandcrud" element={<BrandCrud />} />
               <Route path="/salecrud" element={<SaleCrud />} />
               <Route path="/saleproducts" element={<SaleProductsCrud />} />
               <Route path="/wishlists" element={<WishlistCrud />} />

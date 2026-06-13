@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { getImageUrl } from '@/config';
 import {
   Plus, Edit2, Trash2, Loader2, X, Tag, ToggleLeft, ToggleRight,
-  Search, ChevronDown, ChevronUp, Package, Percent, Check, Sparkles,
+  Search, ChevronDown, ChevronUp, Package, Percent, Check, Sparkles, Upload,
 } from 'lucide-react';
 
 const ENDPOINT = '/sale-categories';
@@ -54,6 +54,7 @@ export default function SaleCrud() {
   const [productSearch, setProductSearch] = useState('');
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [expandedSale, setExpandedSale] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   // Close product dropdown on outside click
   useEffect(() => {
@@ -98,6 +99,19 @@ export default function SaleCrud() {
     if (k === 'title' && !editing) next.slug = slugify(v);
     return next;
   });
+
+  // Upload a banner image from the device (stored inline; same approach as the
+  // other admin forms). getImageUrl handles the resulting data URL everywhere.
+  const handleBannerUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { toast.error('Image must be under 10MB'); return; }
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => { set('banner', ev.target?.result); toast.success('Banner image selected'); setUploading(false); };
+    reader.onerror = () => { toast.error('Failed to read image'); setUploading(false); };
+    reader.readAsDataURL(file);
+  };
 
   const validate = () => {
     const e = {};
@@ -222,7 +236,7 @@ export default function SaleCrud() {
               <div className="flex items-center gap-4 p-4 sm:p-5">
                 {/* Banner thumb */}
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center shrink-0 overflow-hidden">
-                  {s.banner ? <img src={s.banner} alt="" className="w-full h-full object-cover" /> : <Tag className="w-5 h-5 text-orange-400" />}
+                  {s.banner ? <img src={getImageUrl(s.banner)} alt="" className="w-full h-full object-cover" /> : <Tag className="w-5 h-5 text-orange-400" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -316,7 +330,34 @@ export default function SaleCrud() {
                 <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder="Optional description…"
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6B35] resize-none transition" />
               </div>
-              <SaleInput label="Banner URL" value={form.banner} onChange={v => set('banner', v)} placeholder="https://... or upload via Cloudinary" />
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Banner Image</label>
+                {!form.banner ? (
+                  <label className="flex flex-col items-center justify-center gap-1.5 w-full py-6 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-[#FF6B35] hover:bg-orange-50/40 transition text-gray-500">
+                    {uploading ? (
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Uploading…</>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5" />
+                        <span className="text-sm font-medium">Upload banner from device</span>
+                        <span className="text-xs text-gray-400">PNG, JPG up to 10MB</span>
+                      </>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+                  </label>
+                ) : (
+                  <div className="relative overflow-hidden border border-gray-200 rounded-xl">
+                    <img src={getImageUrl(form.banner)} alt="Banner" className="w-full h-40 object-cover" />
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <label className="px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-xs font-semibold text-gray-700 cursor-pointer hover:bg-white shadow">
+                        Change
+                        <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+                      </label>
+                      <button type="button" onClick={() => set('banner', '')} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 shadow">Remove</button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <SaleInput label="Start Date" type="datetime-local" value={form.start_date} onChange={v => set('start_date', v)} error={errors.start_date} />
                 <SaleInput label="End Date" type="datetime-local" value={form.end_date} onChange={v => set('end_date', v)} error={errors.end_date} />

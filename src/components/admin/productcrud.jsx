@@ -1,5 +1,6 @@
 // src/pages/ProductCrud.jsx
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useProductStore } from '../store/productstore';
 import { useCategoryStore } from '../store/categorystore';
 import toast from 'react-hot-toast';
@@ -33,10 +34,25 @@ export default function ProductCrud() {
     fetchCategories();
   }, []);
 
+  // If we arrived here from "Create a new product" (e.g. from the Add-to-Sale
+  // picker), open the create modal with the typed name prefilled.
+  const location = useLocation();
+  useEffect(() => {
+    const createName = location.state?.createName;
+    if (createName !== undefined && createName !== null) {
+      setEditingProduct(null);
+      setForm({ ...defaultForm, name: createName });
+      setPreviewImage(null);
+      setShowModal(true);
+      window.history.replaceState({}, '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
+
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return toast.error('Image must be under 5MB');
+    if (file.size > 10 * 1024 * 1024) return toast.error('Image must be under 10MB');
     setUploading(true);
     const reader = new FileReader();
     reader.onload = (ev) => {

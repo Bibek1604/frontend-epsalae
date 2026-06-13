@@ -17,7 +17,6 @@ const ROUTE_META = {
   '/admin/saleproducts':  { title: 'Sale Products',      sub: 'Products currently in sale categories' },
   '/admin/promocodecrud': { title: 'Promo Codes',        sub: 'Create and manage discount coupons' },
   '/admin/bannercrud':    { title: 'Banners',            sub: 'Manage homepage banner images' },
-  '/admin/brandcrud':     { title: 'Brands',             sub: 'Manage brand listings' },
   '/admin/wishlists':     { title: 'Customer Wishlists', sub: 'View customer saved products' },
 };
 

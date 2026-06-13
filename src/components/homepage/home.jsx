@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import Category from "./category";
 import Trustability from "./trustability";
 import Banner from "./banner";
-import BrandsSection from "./brand";
 import ProductsGrid from "./product";
 import SaleSection from "./salesection";
 import AdditionalContent from "./additionalcontent";
@@ -31,7 +30,6 @@ export default function Home() {
       <ProductsGrid />
       <Trustability />
 
-      <BrandsSection />
     </div>
   );
 }

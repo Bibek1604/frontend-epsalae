@@ -164,7 +164,7 @@ export default function SalePage() {
                   <div className="relative aspect-square overflow-hidden bg-gray-50">
                     <img src={getImageUrl(p.imageUrl)} alt={p.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={e => { e.target.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400' }} />
+                      onError={e => { e.target.src = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Crect%20width%3D%22300%22%20height%3D%22300%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%3E%3Crect%20x%3D%22105%22%20y%3D%22100%22%20width%3D%2290%22%20height%3D%2275%22%20rx%3D%228%22%2F%3E%3Ccircle%20cx%3D%22130%22%20cy%3D%22127%22%20r%3D%2210%22%2F%3E%3Cpath%20d%3D%22M112%20168l26-24%2020%2018%2016-14%2020%2020%22%2F%3E%3C%2Fg%3E%3Ctext%20x%3D%22150%22%20y%3D%22205%22%20text-anchor%3D%22middle%22%20fill%3D%22%2394a3b8%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%3ENo%20image%3C%2Ftext%3E%3C%2Fsvg%3E' }} />
                     {p.discount_percentage > 0 && (
                       <div className="absolute top-2 left-2 bg-[#FF6B35] text-white text-xs font-bold px-2 py-0.5 rounded-full">
                         -{p.discount_percentage}%
@@ -180,7 +180,7 @@ export default function SalePage() {
                       </div>
                       <button onClick={e => {
                         e.stopPropagation()
-                        addToCart({ id: p.id, name: p.name, price, image: p.imageUrl, quantity: 1 })
+                        if (!addToCart({ id: p.id, name: p.name, price, image: p.imageUrl, quantity: 1 })) return
                         toast.success('Added to cart!')
                       }} className="p-2 bg-[#FF6B35] hover:bg-orange-500 text-white rounded-xl transition shadow-sm shadow-orange-200">
                         <ShoppingCart className="w-4 h-4" />

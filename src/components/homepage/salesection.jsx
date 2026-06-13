@@ -55,7 +55,7 @@ function SaleProductCard({ product, sale }) {
 
   const handleAdd = (e) => {
     e.stopPropagation()
-    addToCart({ id: product.id, name: product.name, price, image: product.imageUrl, quantity: 1 })
+    if (!addToCart({ id: product.id, name: product.name, price, image: product.imageUrl, quantity: 1 })) return
     toast.success('Added to cart!')
   }
 
@@ -65,7 +65,7 @@ function SaleProductCard({ product, sale }) {
       <div className="relative aspect-square overflow-hidden bg-gray-50">
         <img src={getImageUrl(product.imageUrl)} alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          onError={e => { e.target.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400' }} />
+          onError={e => { e.target.src = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Crect%20width%3D%22300%22%20height%3D%22300%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%3E%3Crect%20x%3D%22105%22%20y%3D%22100%22%20width%3D%2290%22%20height%3D%2275%22%20rx%3D%228%22%2F%3E%3Ccircle%20cx%3D%22130%22%20cy%3D%22127%22%20r%3D%2210%22%2F%3E%3Cpath%20d%3D%22M112%20168l26-24%2020%2018%2016-14%2020%2020%22%2F%3E%3C%2Fg%3E%3Ctext%20x%3D%22150%22%20y%3D%22205%22%20text-anchor%3D%22middle%22%20fill%3D%22%2394a3b8%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%3ENo%20image%3C%2Ftext%3E%3C%2Fsvg%3E' }} />
 
         {/* Discount badge — top left */}
         {discount > 0 && (
@@ -202,17 +202,17 @@ export default function SaleSection() {
   )
   if (!sales.length) return null
 
-  // If a sale is selected via strip, scroll to it; else show all
+  // If a sale is selected via strip, focus it; else show all
   const visibleSales = activeSaleId
     ? sales.filter(s => (s.id || s.slug) === activeSaleId)
     : sales
 
   return (
-    <section className="py-6 sm:py-10 px-3 sm:px-4">
+    <section className="py-8 sm:py-12 px-3 sm:px-4">
       <div className="max-w-7xl mx-auto">
         {/* Section heading */}
-        <div className="flex items-center gap-2 mb-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-[#FF6B35]"><Tag className="w-5 h-5" /></span>
+        <div className="flex items-center gap-3 mb-6">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-100 text-[#FF6B35]"><Tag className="w-5 h-5" /></span>
           <div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">Live Sales &amp; Offers</h2>
             <p className="text-xs text-gray-500">{sales.length} sale{sales.length !== 1 ? 's' : ''} running right now</p>
@@ -226,43 +226,44 @@ export default function SaleSection() {
           onSelect={(id) => setActiveSaleId(prev => prev === id ? null : id)}
         />
 
-        <div className="space-y-12">
+        <div className="space-y-8">
           {visibleSales.map(sale => {
             const products = Array.isArray(sale.products) ? sale.products : []
             const preview = products.slice(0, 6)
-            // NOTE: sales without hydrated products still render their banner
-            // + CTA — an admin-created sale must never be silently invisible.
 
             return (
-              <div key={sale.id || sale.slug}>
-                {/* Sale header banner */}
-                <div className={`rounded-3xl overflow-hidden mb-6 ${sale.banner ? '' : 'bg-linear-to-r from-[#0A1E46] via-[#1A3C8A] to-[#FF6B35]'}`}
+              // One self-contained card per sale: banner + its products live INSIDE it
+              <div key={sale.id || sale.slug} className="rounded-3xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+
+                {/* Banner header */}
+                <div className={`relative ${sale.banner ? '' : 'bg-gradient-to-r from-[#0A1E46] via-[#1A3C8A] to-[#FF6B35]'}`}
                   style={sale.banner ? { background: `url(${sale.banner}) center/cover no-repeat` } : {}}>
-                  <div className={`px-6 py-7 ${sale.banner ? 'bg-black/50' : ''}`}>
+                  <div className={`px-5 sm:px-7 py-6 sm:py-7 ${sale.banner ? 'bg-black/55' : ''}`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Tag className="w-4 h-4 text-orange-300" />
-                          <span className="text-orange-300 text-xs font-bold uppercase tracking-widest">Special Sale</span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="inline-flex items-center gap-1 text-orange-300 text-[11px] font-bold uppercase tracking-widest">
+                            <Tag className="w-3.5 h-3.5" /> Special Sale
+                          </span>
                           {sale.season && (
                             <SeasonalBadge season={sale.season} label={sale.badge_label} color={sale.badge_color} size="lg" />
                           )}
                         </div>
-                        <h2 className="text-lg sm:text-2xl font-bold text-white">{sale.title}</h2>
-                        {sale.description && <p className="text-white/70 text-sm mt-1 max-w-md">{sale.description}</p>}
+                        <h3 className="text-lg sm:text-2xl font-extrabold text-white truncate">{sale.title}</h3>
+                        {sale.description && <p className="text-white/70 text-sm mt-1 max-w-md line-clamp-2">{sale.description}</p>}
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 shrink-0">
                         {sale.end_date && <CountdownTimer endDate={sale.end_date} />}
                         <button onClick={() => {
                             const url = sale.cta_url?.trim()
-                            if (url) {
-                              if (/^https?:\/\//i.test(url)) window.location.href = url
-                              else navigate(url)
-                            } else {
-                              navigate(`/sale/${sale.slug}`)
-                            }
+                            // External link → open it. Internal path must start with "/".
+                            // Anything else (e.g. a bare slug) falls back to the sale page
+                            // so the click always lands on the products INSIDE this sale.
+                            if (url && /^https?:\/\//i.test(url)) { window.location.href = url; return }
+                            if (url && url.startsWith('/')) { navigate(url); return }
+                            navigate(`/sale/${sale.slug}`)
                           }}
-                          className="flex items-center gap-2 bg-white text-gray-900 hover:bg-orange-50 font-semibold px-5 py-2.5 rounded-xl text-sm transition whitespace-nowrap shrink-0">
+                          className="flex items-center gap-2 bg-white text-gray-900 hover:bg-orange-50 font-semibold px-4 sm:px-5 py-2.5 rounded-xl text-sm transition whitespace-nowrap">
                           {sale.cta_label?.trim() || 'View All'} <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>
@@ -270,27 +271,32 @@ export default function SaleSection() {
                   </div>
                 </div>
 
-                {/* Products grid (banner above always renders, even with 0 products) */}
-                {preview.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                    {preview.map((p, i) => (
-                      <SaleProductCard key={p.id || i} product={p} sale={sale} />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-sm text-gray-400 py-4">
-                    No products are attached to this sale yet — add them in Admin → Sale Categories (or Bulk Upload → Seasonal Sales).
-                  </p>
-                )}
-
-                {products.length > 6 && (
-                  <div className="text-center mt-5">
-                    <button onClick={() => navigate(`/sale/${sale.slug}`)}
-                      className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-[#FF6B35] text-[#FF6B35] hover:bg-[#FF6B35] hover:text-white font-semibold rounded-xl text-sm transition">
-                      View All {products.length} Products <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+                {/* Products — grouped INSIDE the sale card */}
+                <div className="p-4 sm:p-6">
+                  {preview.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+                        {preview.map((prod, i) => (
+                          <SaleProductCard key={prod.id || i} product={prod} sale={sale} />
+                        ))}
+                      </div>
+                      {products.length > 6 && (
+                        <div className="text-center mt-6">
+                          <button onClick={() => navigate(`/sale/${sale.slug}`)}
+                            className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-[#FF6B35] text-[#FF6B35] hover:bg-[#FF6B35] hover:text-white font-semibold rounded-xl text-sm transition">
+                            View all {products.length} products <ArrowRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-300 mb-3"><Tag className="w-6 h-6" /></span>
+                      <p className="text-sm font-medium text-gray-500">No products in this sale yet.</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Add them in Admin → Sale Products.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )
           })}

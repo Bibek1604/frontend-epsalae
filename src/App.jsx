@@ -1,4 +1,4 @@
-import { Routes, Route, Outlet } from 'react-router-dom';
+import { Routes, Route, Outlet, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast'
 import Home from './components/homepage/home'
 import ProductDetail from './components/product-details/ProductDetail'
@@ -33,6 +33,14 @@ function PublicLayout() {
       <Footer />
     </div>
   )
+}
+
+// A bare top-level slug (e.g. /wintersale, often used as a sale's CTA link)
+// resolves to its sale page. SalePage shows a graceful "Sale not found" if the
+// slug isn't a real sale, so this never hard-404s a legitimate sale link.
+function SaleSlugRedirect() {
+  const { slug } = useParams()
+  return <Navigate to={`/sale/${slug}`} replace />
 }
 
 function App() {
@@ -132,8 +140,8 @@ function App() {
           <Route path="products" element={<Products />} />
           <Route path="product/:id" element={<ProductDetail />} />
           <Route path="cart" element={<Cart />} />
-          {/* Guest checkout is allowed by contract — no auth guard here. */}
-          <Route path="checkout" element={<Checkout />} />
+          {/* Checkout requires a logged-in customer. */}
+          <Route path="checkout" element={<UserProtectedRoute><Checkout /></UserProtectedRoute>} />
           <Route path="login" element={<LoginPage />} />
           <Route path="sale/:slug" element={<SalePage />} />
           <Route path="sales" element={<SalesHub />} />
@@ -142,6 +150,8 @@ function App() {
           <Route path="account/*" element={<UserProtectedRoute><AccountDashboard /></UserProtectedRoute>} />
           <Route path="order-success/:orderId" element={<OrderSuccess />} />
           <Route path="track-order" element={<TrackOrder />} />
+          {/* Bare slug → sale page (handles admin CTA links like /wintersale) */}
+          <Route path=":slug" element={<SaleSlugRedirect />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
