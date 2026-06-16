@@ -4,8 +4,8 @@
 // DO NOT define API_BASE_URL or API_URL anywhere else.
 //
 // To configure: set VITE_API_BASE_URL in your .env file
-//   Development:  VITE_API_BASE_URL=http://localhost:5000
-//   Production:   VITE_API_BASE_URL=https://backend-epasal.onrender.com
+//   Development:  VITE_API_BASE_URL=http://localhost:4000
+//   Production:   VITE_API_BASE_URL=https://api.epasaley.com
 // ============================================================
 
 // Environment check
@@ -13,7 +13,12 @@ export const isDevelopment = import.meta.env.DEV;
 export const isProduction = import.meta.env.PROD;
 
 // Base URL of the backend server (no trailing slash)
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (isDevelopment ? 'http://localhost:5000' : 'https://backend-epasal.onrender.com');
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? (isDevelopment ? 'http://localhost:5000' : '');
+
+// Warn loudly if the production build was shipped without a backend URL.
+if (!isDevelopment && !import.meta.env.VITE_API_BASE_URL) {
+  console.error('VITE_API_BASE_URL is not set!');
+}
 
 // Full API prefix — all endpoints hang off this
 export const API_URL = `${API_BASE_URL}/api/v1`;
@@ -59,13 +64,13 @@ export const PLACEHOLDER = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2F
 // Handles: Cloudinary URLs, old local paths, and missing images
 export const getImageUrl = (imagePath, placeholder = PLACEHOLDER) => {
   if (!imagePath) return placeholder;
-  
+
   // Already a full URL (Cloudinary, Unsplash, etc.) or an inline base64 data
   // URL (admin uploads) — use directly so the real uploaded image always shows.
   if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
     return imagePath;
   }
-  
+
   // Old local path (/uploads/...) - these images are lost, show placeholder
   // User needs to re-upload via admin panel to get Cloudinary URL
   if (imagePath.startsWith('/uploads')) {
@@ -75,7 +80,7 @@ export const getImageUrl = (imagePath, placeholder = PLACEHOLDER) => {
     }
     return placeholder;
   }
-  
+
   // Fallback for any other paths
   return placeholder;
 };
@@ -90,37 +95,37 @@ export const theme = {
     primary: '#1A3C8A',      // Deep Blue - Main brand color
     primaryDark: '#112960',  // Darker blue for hover states
     primaryLight: '#2D52B2', // Lighter blue for backgrounds
-    
+
     brandOrange: '#FF6B35',  // Vibrant Orange - Branding & accents
     brandOrangeDark: '#E0531F', // Darker orange
     brandOrangeLight: '#FF885B', // Lighter orange
-    
+
     success: '#10B981',      // Emerald Green - Success, checkout
     successDark: '#059669',  // Darker green
     successLight: '#34D399', // Lighter green
-    
+
     // Neutrals
     white: '#FFFFFF',
     background: '#F9FAFB',   // Soft gray background
     surface: '#FFFFFF',      // Card backgrounds
     border: '#F3F4F6',       // Border color
-    
+
     // Text
     textPrimary: '#111827',  // Main text
     textSecondary: '#4B5563', // Secondary text
     textMuted: '#9CA3AF',    // Muted text
-    
+
     // Status Colors
     warning: '#F5A623',
     error: '#EF4444',
     info: '#3B82F6',
-    
+
     // Gradients
     gradientPrimary: 'linear-gradient(135deg, #1A3C8A 0%, #FF6B35 100%)',
     gradientBlue: 'linear-gradient(135deg, #1A3C8A 0%, #2D52B2 100%)',
     gradientOrange: 'linear-gradient(135deg, #FF6B35 0%, #FF885B 100%)',
   },
-  
+
   // Border Radius
   radius: {
     sm: '8px',
@@ -129,7 +134,7 @@ export const theme = {
     xl: '24px',
     full: '9999px',
   },
-  
+
   // Shadows
   shadows: {
     sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
@@ -139,7 +144,7 @@ export const theme = {
     card: '0 10px 30px rgba(26, 60, 138, 0.04)',
     button: '0 10px 20px rgba(255, 107, 53, 0.15)',
   },
-  
+
   // Typography
   fonts: {
     heading: "'Inter', -apple-system, sans-serif",
